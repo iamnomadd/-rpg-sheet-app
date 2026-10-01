@@ -20,16 +20,17 @@ jobs:
       - name: Verificar Flutter
         run: flutter --version
 
-      - name: Encontrar projeto
+            - name: Encontrar projeto
         run: |
-          if [ -f "pubspec.yaml" ]; then
-            echo "PROJECT_DIR=." >> $GITHUB_ENV
-          elif [ -f "rpg_sheet_app/pubspec.yaml" ]; then
-            echo "PROJECT_DIR=rpg_sheet_app" >> $GITHUB_ENV
-          else
+          PROJECT_DIR=$(find . -name "pubspec.yaml" -not -path "./.git/*" -print -quit | xargs dirname)
+
+          if [ -z "$PROJECT_DIR" ]; then
             echo "Projeto Flutter não encontrado"
             exit 1
           fi
+
+          echo "Projeto encontrado em: $PROJECT_DIR"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
 
       - name: Instalar dependências
         working-directory: ${{ env.PROJECT_DIR }}
