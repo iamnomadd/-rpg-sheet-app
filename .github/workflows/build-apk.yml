@@ -11,6 +11,18 @@ jobs:
       - name: Baixar projeto
         uses: actions/checkout@v4
 
+      - name: Extrair projeto
+        run: |
+          ZIP=$(find . -maxdepth 2 -type f -name "*.zip" -print -quit)
+
+          if [ -z "$ZIP" ]; then
+            echo "Nenhum arquivo ZIP encontrado"
+            exit 1
+          fi
+
+          echo "ZIP encontrado: $ZIP"
+          unzip -q "$ZIP" -d projeto_extraido
+
       - name: Instalar Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -19,17 +31,24 @@ jobs:
 
       - name: Localizar projeto Flutter
         run: |
-          find . -name pubspec.yaml -not -path './.git/*'
+          PROJECT=$(find . -type f -name "pubspec.yaml" -not -path "./.git/*" -print -quit)
+
+          if [ -z "$PROJECT" ]; then
+            echo "pubspec.yaml não encontrado"
+            exit 1
+          fi
+
+          echo "Projeto encontrado em: $PROJECT"
 
       - name: Instalar dependencias
         run: |
-          PROJECT=$(find . -name pubspec.yaml -not -path './.git/*' -print -quit)
+          PROJECT=$(find . -type f -name "pubspec.yaml" -not -path "./.git/*" -print -quit)
           cd "$(dirname "$PROJECT")"
           flutter pub get
 
       - name: Gerar APK
         run: |
-          PROJECT=$(find . -name pubspec.yaml -not -path './.git/*' -print -quit)
+          PROJECT=$(find . -type f -name "pubspec.yaml" -not -path "./.git/*" -print -quit)
           cd "$(dirname "$PROJECT")"
           flutter build apk --release
 
