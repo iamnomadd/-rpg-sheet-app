@@ -40,6 +40,14 @@ jobs:
 
           echo "Projeto encontrado em: $PROJECT"
 
+      - name: Criar estrutura Android
+        run: |
+          PROJECT=$(find . -type f -name "pubspec.yaml" -not -path "./.git/*" -print -quit)
+          cd "$(dirname "$PROJECT")"
+          flutter create --platforms=android .
+
+      - name: Instalar dependencias
+
       - name: Instalar dependencias
         run: |
           PROJECT=$(find . -type f -name "pubspec.yaml" -not -path "./.git/*" -print -quit)
