@@ -13,13 +13,11 @@ jobs:
 
       - name: Extrair projeto
         run: |
-          ZIP=$(find . -maxdepth 2 -type f -name "*.zip" -print -quit)
-
+          ZIP=$(find . -type f -name "*.zip" -print -quit)
           if [ -z "$ZIP" ]; then
-            echo "Nenhum arquivo ZIP encontrado"
+            echo "Nenhum ZIP encontrado"
             exit 1
           fi
-
           echo "ZIP encontrado: $ZIP"
           unzip -q "$ZIP" -d projeto_extraido
 
@@ -29,24 +27,20 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Localizar projeto Flutter
+      - name: Localizar projeto
         run: |
           PROJECT=$(find . -type f -name "pubspec.yaml" -not -path "./.git/*" -print -quit)
-
           if [ -z "$PROJECT" ]; then
             echo "pubspec.yaml não encontrado"
             exit 1
           fi
-
-          echo "Projeto encontrado em: $PROJECT"
+          echo "Projeto encontrado: $PROJECT"
 
       - name: Criar estrutura Android
         run: |
           PROJECT=$(find . -type f -name "pubspec.yaml" -not -path "./.git/*" -print -quit)
           cd "$(dirname "$PROJECT")"
           flutter create --platforms=android .
-
-      - name: Instalar dependencias
 
       - name: Instalar dependencias
         run: |
