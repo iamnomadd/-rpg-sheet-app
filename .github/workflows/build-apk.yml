@@ -1,4 +1,4 @@
-name: Build APK
+name: Gerar APK
 
 on:
   workflow_dispatch:
@@ -8,18 +8,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Baixar projeto
+      - name: Baixar repositório
         uses: actions/checkout@v4
 
-      - name: Extrair projeto
+      - name: Encontrar versão mais recente
+        id: latest
+        shell: bash
         run: |
-          ZIP=$(find . -type f -name "*.zip" -print -quit)
+          ZIP=$(find . -maxdepth 1 -type f -name 'rpg_sheet_app_v*.zip' \
+            | sort -V \
+            | tail -n 1)
+
           if [ -z "$ZIP" ]; then
-            echo "Nenhum ZIP encontrado"
+            echo "Nenhum arquivo rpg_sheet_app_v*.zip encontrado."
             exit 1
           fi
-          echo "ZIP encontrado: $ZIP"
-          unzip -q "$ZIP" -d projeto_extraido
+
+          echo "Versão selecionada: $ZIP"
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+
+      - name: Extrair projeto
+        shell: bash
+        run: |
+          mkdir -p app
+          unzip -q "${{ steps.latest.outputs.zip }}" -d app
+
+          PUBSPEC=$(find app -type f -name pubspec.yaml | head -n 1)
+
+          if [ -z "$PUBSPEC" ]; then
+            echo "pubspec.yaml não encontrado."
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$PUBSPEC")
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
+          echo "Projeto encontrado em: $PROJECT_DIR"
 
       - name: Instalar Flutter
         uses: subosito/flutter-action@v2
@@ -27,35 +51,26 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Localizar projeto
+      - name: Preparar Android
+        shell: bash
         run: |
-          PROJECT=$(find . -type f -name "pubspec.yaml" -not -path "./.git/*" -print -quit)
-          if [ -z "$PROJECT" ]; then
-            echo "pubspec.yaml não encontrado"
-            exit 1
-          fi
-          echo "Projeto encontrado: $PROJECT"
-
-      - name: Criar estrutura Android
-        run: |
-          PROJECT=$(find . -type f -name "pubspec.yaml" -not -path "./.git/*" -print -quit)
-          cd "$(dirname "$PROJECT")"
+          cd "$PROJECT_DIR"
           flutter create --platforms=android .
 
-      - name: Instalar dependencias
+      - name: Instalar dependências
+        shell: bash
         run: |
-          PROJECT=$(find . -type f -name "pubspec.yaml" -not -path "./.git/*" -print -quit)
-          cd "$(dirname "$PROJECT")"
+          cd "$PROJECT_DIR"
           flutter pub get
 
       - name: Gerar APK
+        shell: bash
         run: |
-          PROJECT=$(find . -type f -name "pubspec.yaml" -not -path "./.git/*" -print -quit)
-          cd "$(dirname "$PROJECT")"
+          cd "$PROJECT_DIR"
           flutter build apk --release
 
-      - name: Disponibilizar APK
+      - name: Publicar APK
         uses: actions/upload-artifact@v4
         with:
           name: rpg-sheet-apk
-          path: "**/build/app/outputs/flutter-apk/app-release.apk"
+          path: ${{ env.PROJECT_DIR }}/build/app/outputs/flutter-apk/app-release.apk
