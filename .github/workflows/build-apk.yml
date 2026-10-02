@@ -10,7 +10,6 @@ concurrency:
 jobs:
   validate-and-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
 
     steps:
       - name: Baixar repositório
@@ -20,7 +19,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
 
       - name: Configurar Flutter
         uses: subosito/flutter-action@v2
@@ -28,83 +27,64 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Localizar e extrair versão mais recente
-        id: app
+      - name: Selecionar e extrair versão
         shell: bash
         run: |
           set -euo pipefail
 
-          ZIP_FILE="$(find . -maxdepth 1 -type f -name 'rpg_sheet_app_v*.zip' | sort -V | tail -n 1)"
-          if [ -z "$ZIP_FILE" ]; then
-            echo "Nenhum arquivo rpg_sheet_app_v*.zip encontrado na raiz do repositório."
-            exit 1
-          fi
+          ZIP="$(find . -maxdepth 1 -type f -name 'rpg_sheet_app_v*.zip' | sort -V | tail -n 1)"
 
-          echo "ZIP selecionado: $ZIP_FILE"
+          test -n "$ZIP"
+
+          echo "Usando: $ZIP"
+
           rm -rf .ci_app
-          mkdir -p .ci_app
-          unzip -q "$ZIP_FILE" -d .ci_app
+          mkdir .ci_app
 
-          PUBSPEC="$(find .ci_app -maxdepth 4 -type f -name pubspec.yaml -print -quit)"
-          if [ -z "$PUBSPEC" ]; then
-            echo "pubspec.yaml não encontrado dentro do ZIP."
-            exit 1
-          fi
+          unzip -q "$ZIP" -d .ci_app
+
+          PUBSPEC="$(find .ci_app -maxdepth 4 -type f -name pubspec.yaml | head -n 1)"
+
+          test -n "$PUBSPEC"
 
           APP_DIR="$(dirname "$PUBSPEC")"
-          echo "Diretório do app: $APP_DIR"
-          echo "dir=$APP_DIR" >> "$GITHUB_OUTPUT"
-          echo "zip=$ZIP_FILE" >> "$GITHUB_OUTPUT"
+
+          echo "APP_DIR=$APP_DIR" >> "$GITHUB_ENV"
 
       - name: Baixar dependências
-        working-directory: ${{ steps.app.outputs.dir }}
-        run: flutter pub get
+        run: |
+          cd "$APP_DIR"
+          flutter pub get
 
       - name: Analisar código Dart e Flutter
-        working-directory: ${{ steps.app.outputs.dir }}
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        run: |
+          cd "$APP_DIR"
+          flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Executar testes automáticos
-        working-directory: ${{ steps.app.outputs.dir }}
         shell: bash
         run: |
-          set -euo pipefail
-          if find test -type f -name '*_test.dart' -print -quit 2>/dev/null | grep -q .; then
+          cd "$APP_DIR"
+
+          if find test -type f -name '*_test.dart' 2>/dev/null | grep -q .; then
             flutter test
           else
-            echo "Nenhum teste *_test.dart encontrado. Etapa ignorada."
+            echo "Nenhum teste encontrado."
           fi
 
       - name: Preparar projeto Android
-        working-directory: ${{ steps.app.outputs.dir }}
-        shell: bash
         run: |
-          set -euo pipefail
+          cd "$APP_DIR"
+
           if [ ! -d android ]; then
             flutter create --platforms=android .
           fi
 
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          if [ ! -f "$MANIFEST" ]; then
-            echo "AndroidManifest.xml não encontrado após preparar o projeto Android."
-            exit 1
-          fi
+          python3 tool/prepare_android_manifest.py
 
-          if ! grep -q 'android.permission.INTERNET' "$MANIFEST"; then
-            python3 - <<'PY'
-          from pathlib import Path
-          path = Path('android/app/src/main/AndroidManifest.xml')
-          text = path.read_text(encoding='utf-8')
-          marker = '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
-          permission = '\n    <uses-permission android:name="android.permission.INTERNET" />'
-          if marker not in text:
-              raise SystemExit('Não foi possível localizar a tag <manifest> para inserir INTERNET.')
-          text = text.replace(marker, marker + permission, 1)
-          path.write_text(text, encoding='utf-8')
-          PY
-          fi
-
-          grep -n 'android.permission.INTERNET' "$MANIFEST"
+          grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml
+          grep -q 'android:scheme="rpgsheet"' android/app/src/main/AndroidManifest.xml
+          grep -q 'android:host="auth-callback"' android/app/src/main/AndroidManifest.xml
 
       - name: Cache do Gradle
         uses: actions/cache@v4
@@ -112,31 +92,25 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('.ci_app/**/gradle-wrapper.properties', '.ci_app/**/*.gradle', '.ci_app/**/*.gradle.kts') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
       - name: Gerar APK release
-        working-directory: ${{ steps.app.outputs.dir }}
-        run: flutter build apk --release
+        run: |
+          cd "$APP_DIR"
+          flutter build apk --release
 
       - name: Resumo do build
         if: always()
-        shell: bash
         run: |
-          {
-            echo "## RPG Sheet — validação e build"
-            echo ""
-            echo "**ZIP selecionado:** \`${{ steps.app.outputs.zip }}\`"
-            echo ""
-            echo "Fluxo: dependências → análise → testes → Android → APK."
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "### RPG Sheet" >> "$GITHUB_STEP_SUMMARY"
+          echo "Validação, testes, Android/deep link e build executados." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publicar APK
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: rpg-sheet-apk
-          path: ${{ steps.app.outputs.dir }}/build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
+          path: ${{ env.APP_DIR }}/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 14
+          if-no-files-found: error
