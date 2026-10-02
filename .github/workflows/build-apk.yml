@@ -1,76 +1,142 @@
-name: Gerar APK
+name: Build APK
 
 on:
   workflow_dispatch:
 
+concurrency:
+  group: rpg-sheet-build-apk
+  cancel-in-progress: true
+
 jobs:
-  build:
+  validate-and-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Baixar repositório
         uses: actions/checkout@v4
 
-      - name: Encontrar versão mais recente
-        id: latest
-        shell: bash
-        run: |
-          ZIP=$(find . -maxdepth 1 -type f -name 'rpg_sheet_app_v*.zip' \
-            | sort -V \
-            | tail -n 1)
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
 
-          if [ -z "$ZIP" ]; then
-            echo "Nenhum arquivo rpg_sheet_app_v*.zip encontrado."
-            exit 1
-          fi
-
-          echo "Versão selecionada: $ZIP"
-          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
-
-      - name: Extrair projeto
-        shell: bash
-        run: |
-          mkdir -p app
-          unzip -q "${{ steps.latest.outputs.zip }}" -d app
-
-          PUBSPEC=$(find app -type f -name pubspec.yaml | head -n 1)
-
-          if [ -z "$PUBSPEC" ]; then
-            echo "pubspec.yaml não encontrado."
-            exit 1
-          fi
-
-          PROJECT_DIR=$(dirname "$PUBSPEC")
-          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
-
-          echo "Projeto encontrado em: $PROJECT_DIR"
-
-      - name: Instalar Flutter
+      - name: Configurar Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
-      - name: Preparar Android
+      - name: Localizar e extrair versão mais recente
+        id: app
         shell: bash
         run: |
-          cd "$PROJECT_DIR"
-          flutter create --platforms=android .
+          set -euo pipefail
 
-      - name: Instalar dependências
-        shell: bash
-        run: |
-          cd "$PROJECT_DIR"
-          flutter pub get
+          ZIP_FILE="$(find . -maxdepth 1 -type f -name 'rpg_sheet_app_v*.zip' | sort -V | tail -n 1)"
+          if [ -z "$ZIP_FILE" ]; then
+            echo "Nenhum arquivo rpg_sheet_app_v*.zip encontrado na raiz do repositório."
+            exit 1
+          fi
 
-      - name: Gerar APK
+          echo "ZIP selecionado: $ZIP_FILE"
+          rm -rf .ci_app
+          mkdir -p .ci_app
+          unzip -q "$ZIP_FILE" -d .ci_app
+
+          PUBSPEC="$(find .ci_app -maxdepth 4 -type f -name pubspec.yaml -print -quit)"
+          if [ -z "$PUBSPEC" ]; then
+            echo "pubspec.yaml não encontrado dentro do ZIP."
+            exit 1
+          fi
+
+          APP_DIR="$(dirname "$PUBSPEC")"
+          echo "Diretório do app: $APP_DIR"
+          echo "dir=$APP_DIR" >> "$GITHUB_OUTPUT"
+          echo "zip=$ZIP_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Baixar dependências
+        working-directory: ${{ steps.app.outputs.dir }}
+        run: flutter pub get
+
+      - name: Analisar código Dart e Flutter
+        working-directory: ${{ steps.app.outputs.dir }}
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Executar testes automáticos
+        working-directory: ${{ steps.app.outputs.dir }}
         shell: bash
         run: |
-          cd "$PROJECT_DIR"
-          flutter build apk --release
+          set -euo pipefail
+          if find test -type f -name '*_test.dart' -print -quit 2>/dev/null | grep -q .; then
+            flutter test
+          else
+            echo "Nenhum teste *_test.dart encontrado. Etapa ignorada."
+          fi
+
+      - name: Preparar projeto Android
+        working-directory: ${{ steps.app.outputs.dir }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -d android ]; then
+            flutter create --platforms=android .
+          fi
+
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if [ ! -f "$MANIFEST" ]; then
+            echo "AndroidManifest.xml não encontrado após preparar o projeto Android."
+            exit 1
+          fi
+
+          if ! grep -q 'android.permission.INTERNET' "$MANIFEST"; then
+            python3 - <<'PY'
+          from pathlib import Path
+          path = Path('android/app/src/main/AndroidManifest.xml')
+          text = path.read_text(encoding='utf-8')
+          marker = '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
+          permission = '\n    <uses-permission android:name="android.permission.INTERNET" />'
+          if marker not in text:
+              raise SystemExit('Não foi possível localizar a tag <manifest> para inserir INTERNET.')
+          text = text.replace(marker, marker + permission, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+          fi
+
+          grep -n 'android.permission.INTERNET' "$MANIFEST"
+
+      - name: Cache do Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('.ci_app/**/gradle-wrapper.properties', '.ci_app/**/*.gradle', '.ci_app/**/*.gradle.kts') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Gerar APK release
+        working-directory: ${{ steps.app.outputs.dir }}
+        run: flutter build apk --release
+
+      - name: Resumo do build
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## RPG Sheet — validação e build"
+            echo ""
+            echo "**ZIP selecionado:** \`${{ steps.app.outputs.zip }}\`"
+            echo ""
+            echo "Fluxo: dependências → análise → testes → Android → APK."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publicar APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: rpg-sheet-apk
-          path: ${{ env.PROJECT_DIR }}/build/app/outputs/flutter-apk/app-release.apk
+          path: ${{ steps.app.outputs.dir }}/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
