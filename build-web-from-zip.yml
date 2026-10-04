@@ -1,0 +1,32 @@
+name: Build RPG Sheet Web
+on:
+  workflow_dispatch:
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Extract latest RPG Sheet source
+        shell: bash
+        run: |
+          ZIP=$(find . -maxdepth 1 -type f -name 'rpg_sheet_app_v*.zip' | sort -V | tail -n 1)
+          test -n "$ZIP"
+          mkdir -p _websrc
+          unzip -q "$ZIP" -d _websrc
+      - name: Dependencies
+        working-directory: _websrc
+        run: flutter pub get
+      - name: Analyze
+        working-directory: _websrc
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Build Web
+        working-directory: _websrc
+        run: flutter build web --release --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rpg-sheet-web
+          path: _websrc/build/web
