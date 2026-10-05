@@ -1,3 +1,4 @@
+# CI only validates, builds and deploys the committed source.
 name: Build and Deploy RPG Sheet to Cloudflare Test
 
 on:
