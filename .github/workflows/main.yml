@@ -24,6 +24,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/apply_spell_icons_v1317.py
+          python3 scripts/fix_v1317_spell_item.py
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -32,7 +33,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "Source already migrated."
           else
-            git commit -m "feat: automatic spell icons v1.3.17"
+            git commit -m "fix: automatic spell icons v1.3.17"
             git push origin HEAD:main
           fi
 
