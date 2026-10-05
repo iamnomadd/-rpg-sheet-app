@@ -21,7 +21,16 @@ jobs:
           fetch-depth: 0
 
       - name: Apply v1.3.19 theme changes
-        run: python3 scripts/apply_theme_refinement_v1319.py
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('scripts/apply_theme_refinement_v1319.py')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace("base64.b64decode(data)", "base64.b64decode(data + '=' * (-len(data) % 4))")
+          p.write_text(s, encoding='utf-8')
+          PY
+          python3 scripts/apply_theme_refinement_v1319.py
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
