@@ -7,7 +7,7 @@ on:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-and-deploy:
@@ -16,27 +16,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Apply source migrations
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 scripts/apply_spell_icons_v1317.py
-          python3 scripts/fix_v1317_spell_item.py
-          python3 scripts/apply_tab_style_v1318.py
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib pubspec.yaml web README.md RELEASE_NOTES_1.3.17.md RELEASE_NOTES_1.3.18.md
-
-          if git diff --cached --quiet; then
-            echo "Source already migrated."
-          else
-            git commit -m "feat: unified navigation tabs v1.3.18"
-            git push origin HEAD:main
-          fi
 
       - name: Verify Flutter project
         shell: bash
