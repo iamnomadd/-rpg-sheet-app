@@ -132,18 +132,13 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
         ];
         final safeIndex = index >= pages.length ? pages.length - 1 : index;
         final reduceMotion = appState.reduceAnimations || MediaQuery.maybeOf(context)?.disableAnimations == true;
-        NavigationDestination destination(String role, String label) => NavigationDestination(
-          icon: Icon(themedMainIcon(appState.themeId, role)),
-          selectedIcon: Icon(themedSelectedMainIcon(appState.themeId, role)),
-          label: label,
-        );
-        final destinations = <NavigationDestination>[
-          destination('characters', 'Fichas'),
-          destination('systems', 'Sistemas'),
-          destination('tree', 'Árvore'),
-          destination('dice', 'Dados'),
-          if (appState.masterToolsEnabled) destination('campaigns', 'Mestre'),
-          destination('settings', 'Config.'),
+        final destinations = <({String role, String label})>[
+          (role: 'characters', label: 'Fichas'),
+          (role: 'systems', label: 'Sistemas'),
+          (role: 'tree', label: 'Árvore'),
+          (role: 'dice', label: 'Dados'),
+          if (appState.masterToolsEnabled) (role: 'campaigns', label: 'Mestre'),
+          (role: 'settings', label: 'Config.'),
         ];
         return AccessGate(child: Scaffold(
           body: PageView(
@@ -152,25 +147,73 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
             onPageChanged: (value) { if (mounted) setState(() => index = value); },
             children: pages.map((page) => RepaintBoundary(child: page)).toList(),
           ),
-          bottomNavigationBar: DecoratedBox(
-            decoration: BoxDecoration(
-              border: appState.themeId == 'vampire'
-                  ? const Border(top: BorderSide(color: Color(0xFFB70F00), width: 1.2))
-                  : null,
-            ),
-            child: NavigationBar(
-              selectedIndex: safeIndex,
-              onDestinationSelected: (value) {
-                setState(() => index = value);
-                if (reduceMotion) {
-                  _pageController.jumpToPage(value);
-                } else {
-                  final distance = (value - safeIndex).abs();
-                  final duration = Duration(milliseconds: (380 + (distance - 1).clamp(0, 3) * 45).toInt());
-                  _pageController.animateToPage(value, duration: duration, curve: Curves.easeInOutCubic);
-                }
-              },
-              destinations: destinations,
+          bottomNavigationBar: Material(
+            color: Theme.of(context).navigationBarTheme.backgroundColor ?? Theme.of(context).colorScheme.surface,
+            child: SafeArea(
+              top: false,
+              child: Container(
+                height: 78,
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(
+                    color: appState.themeId == 'vampire'
+                        ? const Color(0xFFB7211C)
+                        : Theme.of(context).colorScheme.outlineVariant.withOpacity(.32),
+                  )),
+                ),
+                child: Row(
+                  children: List.generate(destinations.length, (value) {
+                    final item = destinations[value];
+                    final selected = value == safeIndex;
+                    final scheme = Theme.of(context).colorScheme;
+                    final vampire = appState.themeId == 'vampire';
+                    return Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          setState(() => index = value);
+                          if (reduceMotion) {
+                            _pageController.jumpToPage(value);
+                          } else {
+                            final distance = (value - safeIndex).abs();
+                            final duration = Duration(milliseconds: (380 + (distance - 1).clamp(0, 3) * 45).toInt());
+                            _pageController.animateToPage(value, duration: duration, curve: Curves.easeInOutCubic);
+                          }
+                        },
+                        child: AnimatedContainer(
+                          duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 180),
+                          decoration: BoxDecoration(
+                            border: Border(bottom: BorderSide(
+                              color: selected ? scheme.primary : Colors.transparent,
+                              width: 4,
+                            )),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                selected
+                                    ? themedSelectedMainIcon(appState.themeId, item.role)
+                                    : themedMainIcon(appState.themeId, item.role),
+                                size: 24,
+                                color: vampire ? scheme.primary : (selected ? scheme.primary : scheme.onSurfaceVariant),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                item.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: selected ? scheme.primary : scheme.onSurface,
+                                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
             ),
           ),
         ));

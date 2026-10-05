@@ -545,44 +545,74 @@ class _CharacterScreenState extends State<CharacterScreen> {
               SliverPersistentHeader(
                 pinned: true,
                 delegate: _CharacterTabsHeader(
-                  height: 54,
+                  height: 72,
                   child: Material(
                     color: state.themeId == 'parchment' ? Theme.of(context).colorScheme.surface.withOpacity(.96) : Theme.of(context).scaffoldBackgroundColor,
                     child: Container(
-                      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withOpacity(.20)))),
-                      child: SizedBox(height: 54, child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                        child: Row(children: order.asMap().entries.map((entry) {
-                          final index=entry.key,id=entry.value,selected=tab==index; final colors=Theme.of(context).colorScheme;
-                          final pirate=state.themeId=='parchment';
-                          final vampire=state.themeId=='vampire';
-                          final tabRadius=BorderRadius.circular(pirate?6:12);
-                          return Padding(padding:const EdgeInsets.only(right:6),child:InkWell(
-                            borderRadius:tabRadius,onTap:(){
-                              final previousTab=tab;
-                              setState(()=>tab=index);
-                              if (reduceMotion) {
-                                _tabController.jumpToPage(index);
-                              } else {
-                                final distance=(index-previousTab).abs();
-                                _tabController.animateToPage(index,duration:Duration(milliseconds:(380+(distance-1).clamp(0,3)*40).toInt()),curve:Curves.easeInOutCubic);
-                              }
-                            },
-                            child:AnimatedContainer(duration:reduceMotion ? Duration.zero : const Duration(milliseconds:160),padding:const EdgeInsets.symmetric(horizontal:12,vertical:8),
-                              decoration:BoxDecoration(
-                                color:vampire?const Color(0xFF242426):(selected?(pirate?colors.primaryContainer.withOpacity(.72):colors.primary.withOpacity(.16)):Colors.transparent),
-                                borderRadius:tabRadius,
-                                border:Border.all(color:vampire?const Color(0xFFB70F00):(selected?colors.primary.withOpacity(pirate ? .50 : .28):(pirate?colors.outlineVariant.withOpacity(.32):Colors.transparent)),width:vampire?1.2:1),
+                      decoration: BoxDecoration(
+                        border: Border(bottom: BorderSide(
+                          color: state.themeId == 'vampire'
+                              ? const Color(0xFFB7211C)
+                              : Theme.of(context).colorScheme.outlineVariant.withOpacity(.32),
+                        )),
+                      ),
+                      child: SizedBox(
+                        height: 72,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(children: order.asMap().entries.map((entry) {
+                            final index = entry.key, id = entry.value, selected = tab == index;
+                            final colors = Theme.of(context).colorScheme;
+                            final vampire = state.themeId == 'vampire';
+                            return InkWell(
+                              onTap: () {
+                                final previousTab = tab;
+                                setState(() => tab = index);
+                                if (reduceMotion) {
+                                  _tabController.jumpToPage(index);
+                                } else {
+                                  final distance = (index - previousTab).abs();
+                                  _tabController.animateToPage(
+                                    index,
+                                    duration: Duration(milliseconds: (380 + (distance - 1).clamp(0, 3) * 40).toInt()),
+                                    curve: Curves.easeInOutCubic,
+                                  );
+                                }
+                              },
+                              child: AnimatedContainer(
+                                duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 180),
+                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                                decoration: BoxDecoration(
+                                  border: Border(bottom: BorderSide(
+                                    color: selected ? colors.primary : Colors.transparent,
+                                    width: selected ? 4 : 4,
+                                  )),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    themedCharacterTabIcon(
+                                      state.themeId,
+                                      id,
+                                      size: 22,
+                                      color: vampire ? colors.primary : (selected ? colors.primary : colors.onSurfaceVariant),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _tabLabel(id),
+                                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                        color: selected ? colors.primary : colors.onSurface,
+                                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              child:Row(mainAxisSize:MainAxisSize.min,children:[
-                                themedCharacterTabIcon(state.themeId,id,size:18,color:state.themeId=='vampire'?colors.primary:(selected?colors.primary:colors.onSurfaceVariant)),const SizedBox(width:7),
-                                Text(_tabLabel(id),style:Theme.of(context).textTheme.labelLarge?.copyWith(color:selected?(pirate?colors.onPrimaryContainer:colors.onSurface):colors.onSurfaceVariant,fontWeight:selected?FontWeight.w800:FontWeight.w600,letterSpacing:pirate ? .2 : null)),
-                              ]),
-                            ),
-                          ));
-                        }).toList()),
-                      )),
+                            );
+                          }).toList()),
+                        ),
+                      ),
                     ),
                   ),
                 ),

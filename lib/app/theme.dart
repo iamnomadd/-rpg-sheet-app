@@ -289,13 +289,13 @@ ThemeData buildTheme([String themeId = 'classic']) {
               secondary: const Color(0xFFB70F00),
               onSecondary: const Color(0xFFFFFFFF),
               secondaryContainer: const Color(0xFF242426),
-              onSecondaryContainer: const Color(0xFFF3F3F3),
+              onSecondaryContainer: const Color(0xFFB70F00),
               surface: const Color(0xFF1A1A1D),
               onSurface: const Color(0xFFF1F1F1),
               surfaceContainerHighest: const Color(0xFF242426),
               onSurfaceVariant: const Color(0xFFD2D2D2),
-              outline: const Color(0xFFB70F00),
-              outlineVariant: const Color(0xFFB70F00),
+              outline: const Color(0xFFB7211C),
+              outlineVariant: const Color(0xFFB7211C),
             )
           : baseScheme;
   final radius = preset.radius;
@@ -306,7 +306,7 @@ ThemeData buildTheme([String themeId = 'classic']) {
         )
       : RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radius.clamp(12, 18)),
-          side: BorderSide(color: vampire ? const Color(0xFFB70F00) : scheme.outlineVariant.withOpacity(.18), width: vampire ? 1.35 : 1),
+          side: BorderSide(color: vampire ? const Color(0xFFB7211C) : scheme.outlineVariant.withOpacity(.18), width: vampire ? 1.35 : 1),
         );
   final fieldShape = pirate
       ? BeveledRectangleBorder(borderRadius: BorderRadius.circular(7))
@@ -325,6 +325,18 @@ ThemeData buildTheme([String themeId = 'classic']) {
       actionsIconTheme: vampire ? const IconThemeData(color: Color(0xFFB70F00)) : null,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
+    ),
+    tabBarTheme: TabBarThemeData(
+      labelColor: scheme.primary,
+      unselectedLabelColor: scheme.onSurface,
+      labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+      indicatorColor: scheme.primary,
+      indicatorSize: TabBarIndicatorSize.tab,
+      dividerColor: vampire ? const Color(0xFFB7211C) : scheme.outlineVariant.withOpacity(.32),
+      dividerHeight: 1,
+      overlayColor: WidgetStateProperty.resolveWith((states) =>
+          states.contains(WidgetState.pressed) ? scheme.primary.withOpacity(.10) : Colors.transparent),
     ),
     navigationBarTheme: NavigationBarThemeData(
       height: 76,
@@ -364,15 +376,15 @@ ThemeData buildTheme([String themeId = 'classic']) {
       labelStyle: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(pirate ? 7 : 12),
-        borderSide: BorderSide(color: vampire ? const Color(0xFFB70F00) : scheme.outlineVariant.withOpacity(pirate ? .55 : .28), width: vampire ? 1.2 : 1),
+        borderSide: BorderSide(color: vampire ? const Color(0xFFB7211C) : scheme.outlineVariant.withOpacity(pirate ? .55 : .28), width: vampire ? 1.2 : 1),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(pirate ? 7 : 12),
-        borderSide: BorderSide(color: vampire ? const Color(0xFFB70F00) : scheme.outlineVariant.withOpacity(pirate ? .55 : .28), width: vampire ? 1.2 : 1),
+        borderSide: BorderSide(color: vampire ? const Color(0xFFB7211C) : scheme.outlineVariant.withOpacity(pirate ? .55 : .28), width: vampire ? 1.2 : 1),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(pirate ? 7 : 12),
-        borderSide: BorderSide(color: vampire ? const Color(0xFFB70F00) : scheme.primary.withOpacity(.85), width: vampire ? 1.6 : (pirate ? 1.4 : 1)),
+        borderSide: BorderSide(color: vampire ? const Color(0xFFB7211C) : scheme.primary.withOpacity(.85), width: vampire ? 1.6 : (pirate ? 1.4 : 1)),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
@@ -380,14 +392,14 @@ ThemeData buildTheme([String themeId = 'classic']) {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         backgroundColor: pirate ? const Color(0xFF151A20) : (vampire ? const Color(0xFFB70F00) : null),
         foregroundColor: pirate ? const Color(0xFFE2C98F) : (vampire ? Colors.white : null),
-        side: pirate ? const BorderSide(color: Color(0xFF8A6C3E), width: 1.1) : (vampire ? const BorderSide(color: Color(0xFFB70F00), width: 1.2) : null),
+        side: pirate ? const BorderSide(color: Color(0xFF8A6C3E), width: 1.1) : (vampire ? const BorderSide(color: Color(0xFFB7211C), width: 1.2) : null),
         shape: fieldShape,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        side: BorderSide(color: vampire ? const Color(0xFFB70F00) : (pirate ? scheme.primary.withOpacity(.42) : scheme.outlineVariant.withOpacity(.55)), width: vampire ? 1.2 : 1),
+        side: BorderSide(color: vampire ? const Color(0xFFB7211C) : (pirate ? scheme.primary.withOpacity(.42) : scheme.outlineVariant.withOpacity(.55)), width: vampire ? 1.2 : 1),
         shape: fieldShape,
       ),
     ),
@@ -403,7 +415,7 @@ ThemeData buildTheme([String themeId = 'classic']) {
             )
           : RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(18),
-              side: BorderSide(color: vampire ? const Color(0xFFB70F00) : scheme.outlineVariant.withOpacity(.18), width: vampire ? 1.3 : 1),
+              side: BorderSide(color: vampire ? const Color(0xFFB7211C) : scheme.outlineVariant.withOpacity(.18), width: vampire ? 1.3 : 1),
             ),
     ),
     bottomSheetTheme: BottomSheetThemeData(
@@ -413,7 +425,7 @@ ThemeData buildTheme([String themeId = 'classic']) {
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(pirate ? 12 : 22)),
-        side: pirate ? BorderSide(color: scheme.primary.withOpacity(.20)) : (vampire ? const BorderSide(color: Color(0xFFB70F00), width: 1.2) : BorderSide.none),
+        side: pirate ? BorderSide(color: scheme.primary.withOpacity(.20)) : (vampire ? const BorderSide(color: Color(0xFFB7211C), width: 1.2) : BorderSide.none),
       ),
       showDragHandle: true,
       dragHandleColor: pirate ? scheme.primary.withOpacity(.7) : (vampire ? const Color(0xFFB70F00) : null),
@@ -430,13 +442,13 @@ ThemeData buildTheme([String themeId = 'classic']) {
             )
           : RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: vampire ? const Color(0xFFB70F00) : scheme.outlineVariant.withOpacity(.18), width: vampire ? 1.2 : 1),
+              side: BorderSide(color: vampire ? const Color(0xFFB7211C) : scheme.outlineVariant.withOpacity(.18), width: vampire ? 1.2 : 1),
             ),
     ),
     chipTheme: ChipThemeData(
       backgroundColor: pirate ? const Color(0xFF171D24) : (vampire ? const Color(0xFF242426) : scheme.surfaceContainerHighest.withOpacity(.34)),
       selectedColor: pirate ? const Color(0xFF171D24) : (vampire ? const Color(0xFF2A2A2D) : scheme.primary.withOpacity(.18)),
-      side: BorderSide(color: vampire ? const Color(0xFFB70F00) : (pirate ? scheme.primary.withOpacity(.28) : scheme.outlineVariant.withOpacity(.22)), width: vampire ? 1.1 : 1),
+      side: BorderSide(color: vampire ? const Color(0xFFB7211C) : (pirate ? scheme.primary.withOpacity(.28) : scheme.outlineVariant.withOpacity(.22)), width: vampire ? 1.1 : 1),
       shape: pirate
           ? BeveledRectangleBorder(borderRadius: BorderRadius.circular(6))
           : RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -456,7 +468,7 @@ ThemeData buildTheme([String themeId = 'classic']) {
     dividerTheme: DividerThemeData(
       space: 20,
       thickness: pirate ? 1.2 : 1,
-      color: vampire ? const Color(0xFFB70F00) : (pirate ? scheme.primary.withOpacity(.20) : scheme.outlineVariant.withOpacity(.18)),
+      color: vampire ? const Color(0xFFB7211C) : (pirate ? scheme.primary.withOpacity(.20) : scheme.outlineVariant.withOpacity(.18)),
     ),
   );
 }
