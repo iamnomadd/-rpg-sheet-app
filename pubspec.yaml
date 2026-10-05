@@ -1,7 +1,7 @@
 name: rpg_sheet_app
 description: Aplicativo de fichas de RPG modular e personalizável.
 publish_to: "none"
-version: 1.3.18+118
+version: 1.3.19+119
 environment:
   sdk: ">=3.5.0 <4.0.0"
 
@@ -28,4 +28,5 @@ dev_dependencies:
 flutter:
   assets:
     - assets/character2d/
+    - assets/cyberpunk/
   uses-material-design: true

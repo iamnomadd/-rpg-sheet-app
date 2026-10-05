@@ -32,7 +32,7 @@ const appThemes = <AppThemePreset>[
   AppThemePreset(id: 'vampire', name: 'Vampírico', description: 'Preto absoluto, cinza escuro e vermelho sangue intenso como identidade visual.', icon: Icons.nightlight_round, seed: Color(0xFFB70F00), background: Color(0xFF000000), card: Color(0xFF1A1A1D), radius: 16),
   AppThemePreset(id: 'forest', name: 'Elemento Terra', description: 'Terra, pedra e cobre em uma base escura natural.', icon: Icons.landscape, seed: Color(0xFFB97945), background: Color(0xFF0F0B08), card: Color(0xFF1B1511)),
   AppThemePreset(id: 'ocean', name: 'Elemento Ar', description: 'Cinza frio e branco suave com sensação leve.', icon: Icons.air, seed: Color(0xFFDDE6F0), background: Color(0xFF0C0E11), card: Color(0xFF171A1D)),
-  AppThemePreset(id: 'cyberpunk', name: 'Cyberpunk', description: 'Azul elétrico pontual sobre superfícies tecnológicas escuras.', icon: Icons.memory, seed: Color(0xFF0401FE), background: Color(0xFF08090E), card: Color(0xFF12141B), radius: 8),
+  AppThemePreset(id: 'cyberpunk', name: 'Cyberpunk', description: 'Azul elétrico pontual sobre superfícies tecnológicas escuras.', icon: Icons.memory, seed: Color(0xFF1755FF), background: Color(0xFF08090E), card: Color(0xFF12141B), radius: 8),
   AppThemePreset(id: 'infernal', name: 'Infernal', description: 'Vermelho e brasa usados como acento em uma base carbonizada.', icon: Icons.local_fire_department, seed: Color(0xFFFD0F04), background: Color(0xFF100605), card: Color(0xFF1D0D0A), radius: 14),
   AppThemePreset(id: 'ice', name: 'Gelo', description: 'Azul glacial em superfícies frias e minimalistas.', icon: Icons.ac_unit, seed: Color(0xFF62D8F2), background: Color(0xFF071014), card: Color(0xFF0E1B20)),
 ];
@@ -141,7 +141,7 @@ IconData themedSelectedMainIcon(String themeId, String role) {
 List<Color> themedResourceBarColors(String themeId, {bool secondary = false}) {
   switch (themeId) {
     case 'cyberpunk':
-      return secondary ? [const Color(0xFF6A00F4), const Color(0xFF00E5FF)] : [const Color(0xFF00E5FF), const Color(0xFF00FFC6)];
+      return secondary ? [const Color(0xFF0E36B8), const Color(0xFF1755FF), const Color(0xFF6B93FF)] : [const Color(0xFF0E36B8), const Color(0xFF1755FF), const Color(0xFF6B93FF)];
     case 'arcane':
       return secondary ? [const Color(0xFF6A1B9A), const Color(0xFFB388FF)] : [const Color(0xFF8E24AA), const Color(0xFFD1C4E9)];
     case 'parchment':
@@ -206,6 +206,19 @@ ShapeBorder themedNavigationIndicatorShape(String themeId, double radius) {
 }
 
 Widget themedCharacterTabIcon(String themeId, String role, {double size = 18, Color? color}) {
+  if (themeId == 'cyberpunk') {
+    final iconColor = color ?? const Color(0xFF1755FF);
+    if (role == 'general') {
+      return Image.asset('assets/cyberpunk/skull.png', width: size, height: size, fit: BoxFit.contain, color: iconColor, colorBlendMode: BlendMode.srcIn);
+    }
+    if (role == 'abilities') {
+      return Image.asset('assets/cyberpunk/demon.png', width: size * 1.15, height: size * 1.15, fit: BoxFit.contain);
+    }
+    if (role == 'skills') {
+      return Image.asset('assets/cyberpunk/chip.png', width: size, height: size, fit: BoxFit.contain, color: iconColor, colorBlendMode: BlendMode.srcIn);
+    }
+    return Icon(themedIcon(themeId, role), size: size, color: iconColor);
+  }
   if (themeId != 'vampire') return Icon(themedIcon(themeId, role), size: size, color: color);
   final iconColor = color ?? const Color(0xFFB70F00);
   if (role == 'general') return Icon(Icons.circle, size: size, color: iconColor);
@@ -264,6 +277,8 @@ ThemeData buildTheme([String themeId = 'classic']) {
   final preset = themePreset(themeId);
   final pirate = themeId == 'parchment';
   final vampire = themeId == 'vampire';
+  final arcane = themeId == 'arcane';
+  final cyberpunk = themeId == 'cyberpunk';
   final baseScheme = ColorScheme.fromSeed(seedColor: preset.seed, brightness: preset.brightness);
   final scheme = pirate
       ? baseScheme.copyWith(
@@ -294,10 +309,19 @@ ThemeData buildTheme([String themeId = 'classic']) {
               onSurface: const Color(0xFFF1F1F1),
               surfaceContainerHighest: const Color(0xFF242426),
               onSurfaceVariant: const Color(0xFFD2D2D2),
-              outline: const Color(0xFFB7211C),
-              outlineVariant: const Color(0xFFB7211C),
+              outline: const Color(0xFFFF2B2B),
+              outlineVariant: const Color(0xFFFF2B2B),
             )
-          : baseScheme;
+          : cyberpunk
+              ? baseScheme.copyWith(
+                  primary: const Color(0xFF1755FF),
+                  onPrimary: const Color(0xFFFFFFFF),
+                  primaryContainer: const Color(0xFF10265E),
+                  onPrimaryContainer: const Color(0xFFEAF0FF),
+                  secondary: const Color(0xFF1755FF),
+                  onSecondary: const Color(0xFFFFFFFF),
+                )
+              : baseScheme;
   final radius = preset.radius;
   final cardShape = pirate
       ? BeveledRectangleBorder(
@@ -306,7 +330,14 @@ ThemeData buildTheme([String themeId = 'classic']) {
         )
       : RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radius.clamp(12, 18)),
-          side: BorderSide(color: vampire ? const Color(0xFFB7211C) : scheme.outlineVariant.withOpacity(.18), width: vampire ? 1.35 : 1),
+          side: BorderSide(
+            color: vampire
+                ? const Color(0xFFFF2B2B)
+                : (arcane
+                    ? const Color(0xFFD0C3E8)
+                    : (cyberpunk ? const Color(0xFF6B93FF) : scheme.outlineVariant.withOpacity(.18))),
+            width: (vampire || arcane || cyberpunk) ? 1.35 : 1,
+          ),
         );
   final fieldShape = pirate
       ? BeveledRectangleBorder(borderRadius: BorderRadius.circular(7))
@@ -333,7 +364,7 @@ ThemeData buildTheme([String themeId = 'classic']) {
       unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
       indicatorColor: scheme.primary,
       indicatorSize: TabBarIndicatorSize.tab,
-      dividerColor: vampire ? const Color(0xFFB7211C) : scheme.outlineVariant.withOpacity(.32),
+      dividerColor: vampire ? const Color(0xFFFF2B2B) : scheme.outlineVariant.withOpacity(.32),
       dividerHeight: 1,
       overlayColor: WidgetStateProperty.resolveWith((states) =>
           states.contains(WidgetState.pressed) ? scheme.primary.withOpacity(.10) : Colors.transparent),
@@ -376,15 +407,15 @@ ThemeData buildTheme([String themeId = 'classic']) {
       labelStyle: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(pirate ? 7 : 12),
-        borderSide: BorderSide(color: vampire ? const Color(0xFFB7211C) : scheme.outlineVariant.withOpacity(pirate ? .55 : .28), width: vampire ? 1.2 : 1),
+        borderSide: BorderSide(color: vampire ? const Color(0xFFFF2B2B) : scheme.outlineVariant.withOpacity(pirate ? .55 : .28), width: vampire ? 1.2 : 1),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(pirate ? 7 : 12),
-        borderSide: BorderSide(color: vampire ? const Color(0xFFB7211C) : scheme.outlineVariant.withOpacity(pirate ? .55 : .28), width: vampire ? 1.2 : 1),
+        borderSide: BorderSide(color: vampire ? const Color(0xFFFF2B2B) : scheme.outlineVariant.withOpacity(pirate ? .55 : .28), width: vampire ? 1.2 : 1),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(pirate ? 7 : 12),
-        borderSide: BorderSide(color: vampire ? const Color(0xFFB7211C) : scheme.primary.withOpacity(.85), width: vampire ? 1.6 : (pirate ? 1.4 : 1)),
+        borderSide: BorderSide(color: vampire ? const Color(0xFFFF2B2B) : scheme.primary.withOpacity(.85), width: vampire ? 1.6 : (pirate ? 1.4 : 1)),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
@@ -392,14 +423,14 @@ ThemeData buildTheme([String themeId = 'classic']) {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         backgroundColor: pirate ? const Color(0xFF151A20) : (vampire ? const Color(0xFFB70F00) : null),
         foregroundColor: pirate ? const Color(0xFFE2C98F) : (vampire ? Colors.white : null),
-        side: pirate ? const BorderSide(color: Color(0xFF8A6C3E), width: 1.1) : (vampire ? const BorderSide(color: Color(0xFFB7211C), width: 1.2) : null),
+        side: pirate ? const BorderSide(color: Color(0xFF8A6C3E), width: 1.1) : (vampire ? const BorderSide(color: Color(0xFFFF2B2B), width: 1.2) : null),
         shape: fieldShape,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        side: BorderSide(color: vampire ? const Color(0xFFB7211C) : (pirate ? scheme.primary.withOpacity(.42) : scheme.outlineVariant.withOpacity(.55)), width: vampire ? 1.2 : 1),
+        side: BorderSide(color: vampire ? const Color(0xFFFF2B2B) : (pirate ? scheme.primary.withOpacity(.42) : scheme.outlineVariant.withOpacity(.55)), width: vampire ? 1.2 : 1),
         shape: fieldShape,
       ),
     ),
@@ -415,7 +446,7 @@ ThemeData buildTheme([String themeId = 'classic']) {
             )
           : RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(18),
-              side: BorderSide(color: vampire ? const Color(0xFFB7211C) : scheme.outlineVariant.withOpacity(.18), width: vampire ? 1.3 : 1),
+              side: BorderSide(color: vampire ? const Color(0xFFFF2B2B) : scheme.outlineVariant.withOpacity(.18), width: vampire ? 1.3 : 1),
             ),
     ),
     bottomSheetTheme: BottomSheetThemeData(
@@ -425,7 +456,7 @@ ThemeData buildTheme([String themeId = 'classic']) {
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(pirate ? 12 : 22)),
-        side: pirate ? BorderSide(color: scheme.primary.withOpacity(.20)) : (vampire ? const BorderSide(color: Color(0xFFB7211C), width: 1.2) : BorderSide.none),
+        side: pirate ? BorderSide(color: scheme.primary.withOpacity(.20)) : (vampire ? const BorderSide(color: Color(0xFFFF2B2B), width: 1.2) : BorderSide.none),
       ),
       showDragHandle: true,
       dragHandleColor: pirate ? scheme.primary.withOpacity(.7) : (vampire ? const Color(0xFFB70F00) : null),
@@ -442,13 +473,13 @@ ThemeData buildTheme([String themeId = 'classic']) {
             )
           : RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: vampire ? const Color(0xFFB7211C) : scheme.outlineVariant.withOpacity(.18), width: vampire ? 1.2 : 1),
+              side: BorderSide(color: vampire ? const Color(0xFFFF2B2B) : scheme.outlineVariant.withOpacity(.18), width: vampire ? 1.2 : 1),
             ),
     ),
     chipTheme: ChipThemeData(
       backgroundColor: pirate ? const Color(0xFF171D24) : (vampire ? const Color(0xFF242426) : scheme.surfaceContainerHighest.withOpacity(.34)),
       selectedColor: pirate ? const Color(0xFF171D24) : (vampire ? const Color(0xFF2A2A2D) : scheme.primary.withOpacity(.18)),
-      side: BorderSide(color: vampire ? const Color(0xFFB7211C) : (pirate ? scheme.primary.withOpacity(.28) : scheme.outlineVariant.withOpacity(.22)), width: vampire ? 1.1 : 1),
+      side: BorderSide(color: vampire ? const Color(0xFFFF2B2B) : (pirate ? scheme.primary.withOpacity(.28) : scheme.outlineVariant.withOpacity(.22)), width: vampire ? 1.1 : 1),
       shape: pirate
           ? BeveledRectangleBorder(borderRadius: BorderRadius.circular(6))
           : RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -468,7 +499,7 @@ ThemeData buildTheme([String themeId = 'classic']) {
     dividerTheme: DividerThemeData(
       space: 20,
       thickness: pirate ? 1.2 : 1,
-      color: vampire ? const Color(0xFFB7211C) : (pirate ? scheme.primary.withOpacity(.20) : scheme.outlineVariant.withOpacity(.18)),
+      color: vampire ? const Color(0xFFFF2B2B) : (pirate ? scheme.primary.withOpacity(.20) : scheme.outlineVariant.withOpacity(.18)),
     ),
   );
 }

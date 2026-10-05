@@ -552,7 +552,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
                       decoration: BoxDecoration(
                         border: Border(bottom: BorderSide(
                           color: state.themeId == 'vampire'
-                              ? const Color(0xFFB7211C)
+                              ? const Color(0xFFFF2B2B)
                               : Theme.of(context).colorScheme.outlineVariant.withOpacity(.32),
                         )),
                       ),

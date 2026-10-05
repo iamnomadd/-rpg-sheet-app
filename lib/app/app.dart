@@ -156,7 +156,7 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
                 decoration: BoxDecoration(
                   border: Border(top: BorderSide(
                     color: appState.themeId == 'vampire'
-                        ? const Color(0xFFB7211C)
+                        ? const Color(0xFFFF2B2B)
                         : Theme.of(context).colorScheme.outlineVariant.withOpacity(.32),
                   )),
                 ),
