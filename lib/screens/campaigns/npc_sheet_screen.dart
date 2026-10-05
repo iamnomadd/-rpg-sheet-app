@@ -6,6 +6,7 @@ import '../../models/campaign.dart';
 import '../../models/character.dart';
 import '../../services/app_state.dart';
 import '../../utils/resource_math.dart';
+import '../../utils/spell_icon.dart';
 
 class NpcSheetScreen extends StatefulWidget {
   final String campaignId;
@@ -398,8 +399,11 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
       const SizedBox(height: 14),
       Row(children: [Expanded(child: Text('Poderes / Magias', style: Theme.of(context).textTheme.titleMedium)), IconButton(onPressed: () => _addAction(campaign, npc, sheet, weapon: false), icon: const Icon(Icons.add))]),
       if (sheet.abilities.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('Nenhuma habilidade cadastrada.'))),
-      ...sheet.abilities.map((name) { final d = sheet.abilityDetails[name] ?? {}; return Card(child: ListTile(
-        leading: const Icon(Icons.auto_awesome),
+      ...sheet.abilities.map((name) { final d = sheet.abilityDetails[name] ?? {}; final isSpell = d['category'] == 'Magia'; return Card(child: ListTile(
+        leading: Icon(
+          isSpell ? SpellIconResolver.resolve(name, description: sheet.abilityDescriptions[name] ?? '') : Icons.auto_awesome,
+          color: Theme.of(context).colorScheme.primary,
+        ),
         title: Text(name),
         subtitle: Text([if ((d['damage'] ?? '').toString().isNotEmpty) 'Dano ${d['damage']}', if ((sheet.abilityDescriptions[name] ?? '').isNotEmpty) sheet.abilityDescriptions[name]!].join(' • ')),
         trailing: const Icon(Icons.edit_outlined),

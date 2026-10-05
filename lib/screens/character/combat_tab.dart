@@ -10,6 +10,7 @@ import '../../models/character.dart';
 import '../../models/rpg_system.dart';
 import '../../services/app_state.dart';
 import '../../services/local_image_provider.dart';
+import '../../utils/spell_icon.dart';
 
 class CombatTab extends StatefulWidget {
   final Character character;
@@ -422,7 +423,10 @@ class _CombatTabState extends State<CombatTab> with SingleTickerProviderStateMix
             return Card(
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
-                leading: const Icon(Icons.auto_awesome),
+                leading: Icon(
+                  SpellIconResolver.resolve(spell, description: widget.character.abilityDescriptions[spell] ?? ''),
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 title: Text(spell),
                 subtitle: Text([
                   if (damage.isNotEmpty) 'Dano: $damage',

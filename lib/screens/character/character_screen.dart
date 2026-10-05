@@ -12,6 +12,7 @@ import '../../app/theme.dart';
 import '../../app/condition_presets.dart';
 import '../../services/skill_tree_templates.dart';
 import '../../utils/resource_math.dart';
+import '../../utils/spell_icon.dart';
 
 
 Future<int?> _askResourceAmount(
@@ -1863,7 +1864,13 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
           child: Padding(
             padding: EdgeInsets.fromLTRB(compact ? 9 : 11, compact ? 7 : 9, compact ? 7 : 9, compact ? 7 : 9),
             child: Row(children: [
-              Icon(groupIcon, size: 20, color: Theme.of(context).colorScheme.primary),
+              Icon(
+                id == 'spells'
+                    ? SpellIconResolver.resolve(name, description: c.abilityDescriptions[name] ?? '')
+                    : groupIcon,
+                size: 20,
+                color: Theme.of(context).colorScheme.primary,
+              ),
               const SizedBox(width: 9),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -1879,7 +1886,14 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
                 ),
               FilledButton.tonalIcon(
                 onPressed: enabled ? () => id == 'spells' || id == 'abilities' ? _cast(name) : _useItem(name) : null,
-                icon: Icon(id == 'weapons' ? Icons.gps_fixed : id == 'spells' ? Icons.auto_awesome : Icons.play_arrow, size: 17),
+                icon: Icon(
+                  id == 'weapons'
+                      ? Icons.gps_fixed
+                      : id == 'spells'
+                          ? SpellIconResolver.resolve(name, description: c.abilityDescriptions[name] ?? '')
+                          : Icons.play_arrow,
+                  size: 17,
+                ),
                 label: Text(actionLabel),
               ),
             ]),
@@ -1975,7 +1989,21 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
     super.dispose();
   }
 
-  IconData _itemIcon(String category){if(widget.isAbility)return category=='Magia'?Icons.auto_awesome_outlined:category=='Técnica'?Icons.sports_martial_arts:Icons.bolt_outlined;return switch(category){'Arma'=>Icons.gps_fixed,'Armadura'=>Icons.shield_outlined,'Consumível'=>Icons.local_drink_outlined,'Munição'=>Icons.more_horiz,'Acessório'=>Icons.diamond_outlined,'Ferramenta'=>Icons.build_outlined,_=>Icons.inventory_2_outlined};}
+  IconData _itemIcon(String category, {String name = '', String description = ''}) {
+    if (widget.isAbility) {
+      if (category == 'Magia') return SpellIconResolver.resolve(name, description: description);
+      return category == 'Técnica' ? Icons.sports_martial_arts : Icons.bolt_outlined;
+    }
+    return switch (category) {
+      'Arma' => Icons.gps_fixed,
+      'Armadura' => Icons.shield_outlined,
+      'Consumível' => Icons.local_drink_outlined,
+      'Munição' => Icons.more_horiz,
+      'Acessório' => Icons.diamond_outlined,
+      'Ferramenta' => Icons.build_outlined,
+      _ => Icons.inventory_2_outlined,
+    };
+  }
   List<String> get _categories => widget.isAbility
       ? const ['Habilidade', 'Magia', 'Técnica', 'Passiva', 'Outro']
       : const ['Arma', 'Armadura', 'Consumível', 'Munição', 'Acessório', 'Ferramenta', 'Outro'];
@@ -2301,7 +2329,11 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
                       height: compact ? 36 : 42,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withOpacity(.42), borderRadius: BorderRadius.circular(11)),
-                      child: Icon(_itemIcon(category), size: compact ? 19 : 21, color: scheme.primary),
+                      child: Icon(
+                        _itemIcon(category, name: name, description: widget.descriptions[name] ?? ''),
+                        size: compact ? 19 : 21,
+                        color: scheme.primary,
+                      ),
                     ),
                     const SizedBox(width: 11),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
