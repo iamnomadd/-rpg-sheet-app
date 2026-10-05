@@ -7,7 +7,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-and-deploy:
@@ -16,40 +16,68 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Prepare Flutter project
+      - name: Bootstrap Flutter source at repository root
         shell: bash
         run: |
           set -euo pipefail
 
-          if [ -f "pubspec.yaml" ]; then
-            PROJECT_DIR="$GITHUB_WORKSPACE"
-            echo "Flutter project found at repository root."
-          else
-            ZIP_FILE="$(find "$GITHUB_WORKSPACE" -maxdepth 1 -type f -name 'rpg_sheet_app_v*.zip' -printf '%f\n' | sort -V | tail -n 1)"
-
-            if [ -z "$ZIP_FILE" ]; then
-              echo "No Flutter project or rpg_sheet_app_v*.zip package was found."
-              exit 1
-            fi
-
-            echo "Using package: $ZIP_FILE"
-            EXTRACT_DIR="$RUNNER_TEMP/rpg-sheet-source"
-            rm -rf "$EXTRACT_DIR"
-            mkdir -p "$EXTRACT_DIR"
-            unzip -q "$GITHUB_WORKSPACE/$ZIP_FILE" -d "$EXTRACT_DIR"
-
-            PUBSPEC="$(find "$EXTRACT_DIR" -type f -name pubspec.yaml -print -quit)"
-            if [ -z "$PUBSPEC" ]; then
-              echo "pubspec.yaml was not found inside $ZIP_FILE."
-              exit 1
-            fi
-
-            PROJECT_DIR="$(dirname "$PUBSPEC")"
-            echo "Flutter project extracted to: $PROJECT_DIR"
+          if [ -f "$GITHUB_WORKSPACE/pubspec.yaml" ]; then
+            echo "Flutter source already lives at repository root."
+            exit 0
           fi
 
-          echo "FLUTTER_PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          ZIP_FILE="$(find "$GITHUB_WORKSPACE" -maxdepth 1 -type f -name 'rpg_sheet_app_v*.zip' -printf '%f\n' | sort -V | tail -n 1)"
+          if [ -z "$ZIP_FILE" ]; then
+            echo "No Flutter project or rpg_sheet_app_v*.zip package was found."
+            exit 1
+          fi
+
+          echo "Bootstrapping repository from: $ZIP_FILE"
+          EXTRACT_DIR="$RUNNER_TEMP/rpg-sheet-bootstrap"
+          rm -rf "$EXTRACT_DIR"
+          mkdir -p "$EXTRACT_DIR"
+          unzip -q "$GITHUB_WORKSPACE/$ZIP_FILE" -d "$EXTRACT_DIR"
+
+          PUBSPEC="$(find "$EXTRACT_DIR" -type f -name pubspec.yaml -print -quit)"
+          if [ -z "$PUBSPEC" ]; then
+            echo "pubspec.yaml was not found inside $ZIP_FILE."
+            exit 1
+          fi
+
+          SOURCE_DIR="$(dirname "$PUBSPEC")"
+          rsync -a --exclude '.github/' --exclude '__pycache__/' "$SOURCE_DIR/" "$GITHUB_WORKSPACE/"
+
+          cat > "$GITHUB_WORKSPACE/.gitignore" <<'EOF'
+          .dart_tool/
+          .packages
+          build/
+          .flutter-plugins
+          .flutter-plugins-dependencies
+          .idea/
+          .vscode/
+          **/__pycache__/
+          *.pyc
+          EOF
+
+          cd "$GITHUB_WORKSPACE"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add . ':!*.zip'
+
+          if git diff --cached --quiet; then
+            echo "Nothing to bootstrap."
+          else
+            git commit -m "chore: move Flutter source to repository root"
+            git push origin HEAD:main
+          fi
+
+      - name: Verify Flutter project
+        shell: bash
+        run: |
+          test -f "$GITHUB_WORKSPACE/pubspec.yaml" || { echo "pubspec.yaml not found at repository root"; exit 1; }
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -59,39 +87,29 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        working-directory: ${{ env.FLUTTER_PROJECT_DIR }}
         run: flutter pub get
 
       - name: Analyze
-        working-directory: ${{ env.FLUTTER_PROJECT_DIR }}
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Run tests
-        working-directory: ${{ env.FLUTTER_PROJECT_DIR }}
         run: flutter test
 
       - name: Build Flutter Web
-        working-directory: ${{ env.FLUTTER_PROJECT_DIR }}
         run: |
           flutter build web --release \
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
             --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
 
-      - name: Prepare Cloudflare artifact
-        shell: bash
-        run: |
-          rm -rf "$GITHUB_WORKSPACE/cloudflare-dist"
-          cp -R "${{ env.FLUTTER_PROJECT_DIR }}/build/web" "$GITHUB_WORKSPACE/cloudflare-dist"
-
       - name: Upload web artifact
         uses: actions/upload-artifact@v4
         with:
           name: rpg-sheet-web
-          path: cloudflare-dist
+          path: build/web
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy cloudflare-dist --project-name=rpg-sheet-test --branch=main
+          command: pages deploy build/web --project-name=rpg-sheet-test --branch=main
