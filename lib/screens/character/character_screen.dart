@@ -2330,7 +2330,7 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
                       alignment: Alignment.center,
                       decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withOpacity(.42), borderRadius: BorderRadius.circular(11)),
                       child: Icon(
-                        _itemIcon(category, name: name, description: widget.descriptions[name] ?? ''),
+                        _itemIcon(category, name: item, description: widget.descriptions[item] ?? ''),
                         size: compact ? 19 : 21,
                         color: scheme.primary,
                       ),
