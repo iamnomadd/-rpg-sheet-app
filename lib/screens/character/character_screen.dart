@@ -1377,7 +1377,7 @@ class _PirateSkeletonPainter extends CustomPainter {
       boneLine(Offset(113,shoulderY),re); boneLine(re,rw,4); boneLine(Offset(110,shoulderY),Offset(rw.dx-4,rw.dy),2);
       f.color=brown; canvas.drawRect(Rect.fromCenter(center:lw,width:10,height:7),f); canvas.drawRect(Rect.fromCenter(center:rw,width:10,height:7),f);
       hand(Offset(lw.dx,lw.dy+7)); hand(Offset(rw.dx,rw.dy+7)); rope(Offset(119,hipY+8)); medal(Offset(84,shoulderY+22));
-      head(critical?const Offset(82,50):const Offset(84,43),tilt:critical?.13:0);
+      head(critical ? const Offset(82, 50) : const Offset(84, 43), tilt: critical ? .13 : 0);
     }
     canvas.restore();
   }
