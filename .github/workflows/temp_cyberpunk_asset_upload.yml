@@ -1,0 +1,37 @@
+name: Temporary Cyberpunk Asset Import
+
+on:
+  push:
+    branches:
+      - asset-cyberpunk-approved
+    paths:
+      - '.asset_upload/READY'
+
+permissions:
+  contents: write
+
+jobs:
+  import-assets:
+    if: ${{ hashFiles('.asset_upload/READY') != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Decode approved sprites
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .asset_upload/normal.part* | base64 -d > assets/character2d/cyberpunk_normal.png
+          cat .asset_upload/agony.part* | base64 -d > assets/character2d/cyberpunk_agony.png
+          cat .asset_upload/incapacitated.part* | base64 -d > assets/character2d/cyberpunk_incapacitated.png
+          rm -rf .asset_upload
+          rm -f .github/workflows/temp_cyberpunk_asset_upload.yml
+      - name: Commit approved sprites
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix: replace Cyberpunk sprites with approved reference'
+          git push
