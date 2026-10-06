@@ -1,7 +1,12 @@
 name: Apply RPG Sheet v1.3.25 temp
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - v1-3-25-pirate-sprite
+    paths:
+      - scripts/apply_pirate_sprite_v1325.py
+      - .github/workflows/apply-v1325-temp.yml
 
 permissions:
   contents: write
@@ -16,7 +21,7 @@ jobs:
           fetch-depth: 0
 
       - name: Apply v1.3.25 changes
-        run: python3 scripts/apply_pirate_character_v1325.py
+        run: python3 scripts/apply_pirate_sprite_v1325.py
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -34,12 +39,12 @@ jobs:
       - name: Run tests
         run: flutter test
 
-      - name: Commit v1.3.25
+      - name: Commit v1.3.25 to staging branch
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add lib/screens/character/character_screen.dart lib/core/app_version.dart pubspec.yaml web/rpg_service_worker.js RELEASE_NOTES_1.3.25.md
-          git commit -m "feat: pirate skeleton character test v1.3.25"
-          git push origin HEAD:v1-3-25-pirate-character
+          git commit -m "feat: pirate skeleton themed character v1.3.25"
+          git push origin HEAD:v1-3-25-pirate-sprite
