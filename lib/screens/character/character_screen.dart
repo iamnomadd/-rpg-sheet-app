@@ -1613,16 +1613,28 @@ class _CombatCharacter2D extends StatelessWidget {
                         child: Transform.scale(
                           scale: scale,
                           child: pirateTheme
-                              ? Image.asset(
-                                  _pose == 'incapacitated'
-                                      ? 'assets/character2d/pirate_incapacitated.webp'
-                                      : _pose == 'agony'
-                                          ? 'assets/character2d/pirate_critical.webp'
-                                          : 'assets/character2d/pirate_normal.webp',
-                                  height: _pose == 'incapacitated' ? 164 : 198,
-                                  fit: BoxFit.contain,
-                                  filterQuality: FilterQuality.none,
-                                  isAntiAlias: false,
+                              ? SizedBox(
+                                  height: 198,
+                                  width: 198,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8),
+                                    child: Align(
+                                      alignment: Alignment.bottomCenter,
+                                      child: Image.asset(
+                                        _pose == 'incapacitated'
+                                            ? 'assets/character2d/pirate_incapacitated.webp'
+                                            : _pose == 'agony'
+                                                ? 'assets/character2d/pirate_critical.webp'
+                                                : 'assets/character2d/pirate_normal.webp',
+                                        width: 182,
+                                        height: 182,
+                                        fit: BoxFit.contain,
+                                        alignment: Alignment.bottomCenter,
+                                        filterQuality: FilterQuality.none,
+                                        isAntiAlias: false,
+                                      ),
+                                    ),
+                                  ),
                                 )
                               : incapacitated
                                   ? ClipRect(
