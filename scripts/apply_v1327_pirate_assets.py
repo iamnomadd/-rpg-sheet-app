@@ -1,4 +1,15 @@
 from pathlib import Path
+import base64
+
+assets = Path('assets/character2d')
+assets.mkdir(parents=True, exist_ok=True)
+for source, target in [
+    ('scripts/pirate_normal.b64', 'pirate_normal.webp'),
+    ('scripts/pirate_critical.b64', 'pirate_critical.webp'),
+    ('scripts/pirate_incapacitated.b64', 'pirate_incapacitated.webp'),
+]:
+    raw = Path(source).read_text(encoding='utf-8').strip()
+    (assets / target).write_bytes(base64.b64decode(raw))
 
 p = Path('lib/screens/character/character_screen.dart')
 s = p.read_text(encoding='utf-8')
