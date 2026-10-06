@@ -1279,7 +1279,20 @@ class _SectionsTab extends StatelessWidget {
       ]),
       const SizedBox(height: 10),
       if (system.sections.isEmpty) const Text('Este sistema não possui seções configuradas.'),
-      ...system.sections.map((section) => Card(child: ListTile(title: Text(section), subtitle: Text((character.sectionNotes[section] ?? '').isEmpty ? 'Toque para preencher.' : character.sectionNotes[section]!), trailing: const Icon(Icons.edit), onTap: () => onEdit(character, section)))),
+      ...system.sections.map((section) => Card(
+        margin: const EdgeInsets.only(bottom: 9),
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+          title: Text(section, style: const TextStyle(fontWeight: FontWeight.w700)),
+          subtitle: Text(
+            (character.sectionNotes[section] ?? '').isEmpty ? 'Toque para preencher.' : character.sectionNotes[section]!,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: const Icon(Icons.edit),
+          onTap: () => onEdit(character, section),
+        ),
+      )),
     ]);
   }
 }

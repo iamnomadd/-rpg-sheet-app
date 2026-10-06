@@ -63,7 +63,7 @@ class SettingsScreen extends StatelessWidget {
                   SwitchListTile(
                     secondary: const Icon(Icons.density_small),
                     title: const Text('Modo compacto'),
-                    subtitle: const Text('Reduz o espaço de controles para mostrar mais conteúdo na tela.'),
+                    subtitle: const Text('Usa uma densidade ainda menor para mostrar mais conteúdo na tela.'),
                     value: state.compactMode,
                     onChanged: state.setCompactMode,
                   ),

@@ -78,20 +78,37 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
       title: 'RPG Sheet',
       debugShowCheckedModeBanner: false,
       theme: baseTheme.copyWith(
-        visualDensity: compact ? const VisualDensity(horizontal: -3, vertical: -3) : VisualDensity.standard,
-        cardTheme: compact ? baseTheme.cardTheme.copyWith(margin: EdgeInsets.zero) : baseTheme.cardTheme,
-        inputDecorationTheme: compact
-            ? baseTheme.inputDecorationTheme.copyWith(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                isDense: true,
-                constraints: const BoxConstraints(minHeight: 48),
-                labelStyle: baseTheme.inputDecorationTheme.labelStyle?.copyWith(fontSize: 11.5),
-                floatingLabelStyle: baseTheme.inputDecorationTheme.labelStyle?.copyWith(fontSize: 11.5),
-              )
-            : baseTheme.inputDecorationTheme,
-        listTileTheme: compact ? const ListTileThemeData(dense: true, minVerticalPadding: 2, contentPadding: EdgeInsets.symmetric(horizontal: 10)) : const ListTileThemeData(),
-        filledButtonTheme: compact ? FilledButtonThemeData(style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), minimumSize: const Size(44, 38), shape: appState.themeId == 'parchment' ? BeveledRectangleBorder(borderRadius: BorderRadius.circular(7)) : RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)))) : baseTheme.filledButtonTheme,
-        outlinedButtonTheme: compact ? OutlinedButtonThemeData(style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), minimumSize: const Size(44, 38), shape: appState.themeId == 'parchment' ? BeveledRectangleBorder(borderRadius: BorderRadius.circular(7)) : RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)))) : baseTheme.outlinedButtonTheme,
+        visualDensity: compact
+            ? const VisualDensity(horizontal: -4, vertical: -4)
+            : const VisualDensity(horizontal: -3, vertical: -3),
+        cardTheme: baseTheme.cardTheme.copyWith(margin: EdgeInsets.zero),
+        inputDecorationTheme: baseTheme.inputDecorationTheme.copyWith(
+          contentPadding: EdgeInsets.symmetric(horizontal: compact ? 8 : 10, vertical: compact ? 7 : 10),
+          isDense: true,
+          constraints: BoxConstraints(minHeight: compact ? 42 : 48),
+          labelStyle: baseTheme.inputDecorationTheme.labelStyle?.copyWith(fontSize: compact ? 11 : 11.5),
+          floatingLabelStyle: baseTheme.inputDecorationTheme.labelStyle?.copyWith(fontSize: compact ? 11 : 11.5),
+        ),
+        listTileTheme: ListTileThemeData(
+          dense: true,
+          minVerticalPadding: compact ? 0 : 2,
+          minLeadingWidth: compact ? 30 : 34,
+          contentPadding: EdgeInsets.symmetric(horizontal: compact ? 8 : 10),
+        ),
+        filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(
+          padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12, vertical: compact ? 6 : 8),
+          minimumSize: Size(44, compact ? 34 : 38),
+          shape: appState.themeId == 'parchment'
+              ? BeveledRectangleBorder(borderRadius: BorderRadius.circular(7))
+              : RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        )),
+        outlinedButtonTheme: OutlinedButtonThemeData(style: OutlinedButton.styleFrom(
+          padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12, vertical: compact ? 6 : 8),
+          minimumSize: Size(44, compact ? 34 : 38),
+          shape: appState.themeId == 'parchment'
+              ? BeveledRectangleBorder(borderRadius: BorderRadius.circular(7))
+              : RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        )),
       ),
       builder: (context, child) {
         final media = MediaQuery.of(context);

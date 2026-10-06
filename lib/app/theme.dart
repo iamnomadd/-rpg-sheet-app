@@ -212,7 +212,7 @@ Widget themedCharacterTabIcon(String themeId, String role, {double size = 18, Co
       return ImageIcon(const AssetImage('assets/cyberpunk/skull.png'), size: size * 1.12, color: iconColor);
     }
     if (role == 'abilities') {
-      return ImageIcon(const AssetImage('assets/cyberpunk/demon.png'), size: size * 1.22, color: iconColor);
+      return Icon(Icons.precision_manufacturing_outlined, size: size * 1.12, color: iconColor);
     }
     if (role == 'skills') {
       return ImageIcon(const AssetImage('assets/cyberpunk/chip.png'), size: size * 1.12, color: iconColor);
@@ -494,8 +494,8 @@ ThemeData buildTheme([String themeId = 'classic']) {
     ),
     dividerTheme: DividerThemeData(
       space: 20,
-      thickness: pirate ? 1.2 : 1,
-      color: vampire ? const Color(0xFFFF5C5C) : (pirate ? scheme.primary.withOpacity(.20) : scheme.outlineVariant.withOpacity(.18)),
+      thickness: 1,
+      color: borderlessCards ? Colors.transparent : scheme.outlineVariant.withOpacity(.18),
     ),
   );
 }
