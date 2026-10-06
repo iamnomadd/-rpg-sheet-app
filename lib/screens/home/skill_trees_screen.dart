@@ -31,7 +31,9 @@ class SkillTreesScreen extends StatelessWidget {
                   final c = state.characters[i];
                   final unlocked = c.skillTree.where((n) => n['unlocked'] == true).length;
                   return Card(
+                    margin: const EdgeInsets.only(bottom: 9),
                     child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                       leading: CircleAvatar(child: Icon(themedMainIcon(state.themeId, 'tree'))),
                       title: Text(c.name),
                       subtitle: Text('${c.skillTree.length} habilidade(s) • $unlocked desbloqueada(s)'),

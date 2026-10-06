@@ -193,16 +193,6 @@ class _SystemsScreenState extends State<SystemsScreen> {
           title: const Text('Sistemas de RPG'),
           actions: [
             IconButton(
-              onPressed: _busy ? null : () => _importSystem(context),
-              icon: const Icon(Icons.file_open_outlined),
-              tooltip: 'Importar sistema .rpg',
-            ),
-            IconButton(
-              onPressed: () => _showTemplates(context),
-              icon: const Icon(Icons.library_books_outlined),
-              tooltip: 'Biblioteca de modelos',
-            ),
-            IconButton(
               onPressed: () => _addSystem(context),
               icon: const Icon(Icons.add),
               tooltip: 'Criar sistema',

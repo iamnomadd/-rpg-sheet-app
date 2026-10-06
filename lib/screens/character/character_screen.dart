@@ -921,26 +921,26 @@ class _GeneralTab extends StatelessWidget {
           ),
         );
       case 'inventory':
-        final lines = character.inventory;
+        final lines = character.inventory.where((name) => character.inventoryDetails[name]?['showInScene'] == true).toList();
         return Card(
           key: const ValueKey('general-inventory'),
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [Icon(themedIcon(themeId, 'inventory')), const SizedBox(width: 8), const Text('Inventário', style: TextStyle(fontWeight: FontWeight.bold)), const Spacer(), Text('${character.inventory.length} item(ns)')]),
+              Row(children: [Icon(themedIcon(themeId, 'inventory')), const SizedBox(width: 8), const Text('Inventário', style: TextStyle(fontWeight: FontWeight.bold)), const Spacer(), Text('${lines.length} item(ns)')]),
               const SizedBox(height: 8),
               _verticalSummaryItems(context, lines, character.inventoryDetails, ability: false),
             ]),
           ),
         );
       case 'abilities':
-        final lines = character.abilities;
+        final lines = character.abilities.where((name) => character.abilityDetails[name]?['showInScene'] == true).toList();
         return Card(
           key: const ValueKey('general-abilities'),
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [Icon(themedIcon(themeId, 'abilities')), const SizedBox(width: 8), const Text('Habilidades', style: TextStyle(fontWeight: FontWeight.bold)), const Spacer(), Text('${character.abilities.length}')]),
+              Row(children: [Icon(themedIcon(themeId, 'abilities')), const SizedBox(width: 8), const Text('Habilidades', style: TextStyle(fontWeight: FontWeight.bold)), const Spacer(), Text('${lines.length}')]),
               const SizedBox(height: 8),
               _verticalSummaryItems(context, lines, character.abilityDetails, ability: true),
             ]),
@@ -2025,9 +2025,11 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
   String _inventoryFilter = 'Todos';
   String _abilityFilter = 'Todos';
   final TextEditingController _abilitySearch = TextEditingController();
+  final TextEditingController _inventorySearch = TextEditingController();
   @override
   void dispose() {
     _abilitySearch.dispose();
+    _inventorySearch.dispose();
     super.dispose();
   }
 
@@ -2054,6 +2056,7 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
     final editing = index != null;
     final oldName = editing ? widget.items[index] : '';
     final old = editing ? (widget.details[oldName] ?? <String, dynamic>{}) : <String, dynamic>{};
+    final showInScene = old['showInScene'] == true;
     final name = TextEditingController(text: oldName);
     final description = TextEditingController(text: editing ? (widget.descriptions[oldName] ?? '') : '');
     final damage = TextEditingController(text: old['damage']?.toString() ?? '');
@@ -2206,6 +2209,7 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
     }
     widget.descriptions[newName] = result['description'] as String? ?? '';
     widget.details[newName] = Map<String, dynamic>.from(result)..remove('name')..remove('description');
+    widget.details[newName]!['showInScene'] = showInScene;
     await context.read<AppState>().updateCharacter(widget.character);
     if (mounted) setState(() {});
   }
@@ -2229,6 +2233,14 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
     if (mounted) setState(() {});
   }
 
+
+  Future<void> _toggleInScene(String item) async {
+    final detail = widget.details[item] ??= <String, dynamic>{};
+    detail['showInScene'] = detail['showInScene'] != true;
+    await context.read<AppState>().updateCharacter(widget.character);
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final icon = themedIcon(context.watch<AppState>().themeId, widget.iconRole);
@@ -2238,15 +2250,15 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
     final inventoryFilters = const ['Todos', 'Arma', 'Armadura', 'Consumível', 'Munição', 'Acessório', 'Ferramenta', 'Outro'];
     final abilityFilters = const ['Todos', 'Habilidade', 'Magia', 'Técnica', 'Passiva', 'Outro'];
     final activeFilter = widget.isAbility ? _abilityFilter : _inventoryFilter;
-    final abilityQuery = widget.isAbility ? _abilitySearch.text.trim().toLowerCase() : '';
+    final searchQuery = (widget.isAbility ? _abilitySearch : _inventorySearch).text.trim().toLowerCase();
     final visibleEntries = widget.items.asMap().entries.where((entry) {
       final category = widget.details[entry.value]?['category']?.toString() ?? 'Outro';
       if (activeFilter != 'Todos' && category != activeFilter) return false;
-      if (abilityQuery.isEmpty) return true;
+      if (searchQuery.isEmpty) return true;
       final description = widget.descriptions[entry.value]?.toLowerCase() ?? '';
-      return entry.value.toLowerCase().contains(abilityQuery) ||
-          category.toLowerCase().contains(abilityQuery) ||
-          description.contains(abilityQuery);
+      return entry.value.toLowerCase().contains(searchQuery) ||
+          category.toLowerCase().contains(searchQuery) ||
+          description.contains(searchQuery);
     }).toList();
 
     return ListView(
@@ -2262,23 +2274,28 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
           IconButton(onPressed: () => _openEditor(), tooltip: 'Adicionar', icon: const Icon(Icons.add)),
         ]),
         const SizedBox(height: 8),
-        if (widget.isAbility) ...[
-          TextField(
-            controller: _abilitySearch,
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              hintText: 'Buscar habilidades, magias ou técnicas',
-              prefixIcon: const Icon(Icons.search),
-              isDense: true,
-              suffixIcon: _abilitySearch.text.isEmpty ? null : IconButton(
-                tooltip: 'Limpar busca',
-                icon: const Icon(Icons.close, size: 19),
-                onPressed: () { _abilitySearch.clear(); setState(() {}); },
-              ),
-            ),
+        TextField(
+          controller: widget.isAbility ? _abilitySearch : _inventorySearch,
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            hintText: widget.isAbility
+                ? 'Buscar habilidades, magias ou técnicas'
+                : 'Buscar itens, armas, consumíveis ou equipamentos',
+            prefixIcon: const Icon(Icons.search),
+            isDense: true,
+            suffixIcon: (widget.isAbility ? _abilitySearch : _inventorySearch).text.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: 'Limpar busca',
+                    icon: const Icon(Icons.close, size: 19),
+                    onPressed: () {
+                      (widget.isAbility ? _abilitySearch : _inventorySearch).clear();
+                      setState(() {});
+                    },
+                  ),
           ),
-          const SizedBox(height: 10),
-        ],
+        ),
+        const SizedBox(height: 10),
         SizedBox(
           height: 38,
           child: ListView.separated(
@@ -2404,6 +2421,16 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
                       IconButton(visualDensity: VisualDensity.compact, tooltip: 'Diminuir quantidade', onPressed: qty > 0 ? () => _changeItemQuantity(item, -1) : null, icon: const Icon(Icons.remove_circle_outline, size: 20)),
                       IconButton(visualDensity: VisualDensity.compact, tooltip: 'Aumentar quantidade', onPressed: () => _changeItemQuantity(item, 1), icon: const Icon(Icons.add_circle_outline, size: 20)),
                     ],
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      tooltip: detail['showInScene'] == true ? 'Remover de Em Cena' : 'Em Cena',
+                      onPressed: () => _toggleInScene(item),
+                      icon: Icon(
+                        detail['showInScene'] == true ? Icons.visibility : Icons.visibility_off_outlined,
+                        size: 20,
+                        color: detail['showInScene'] == true ? scheme.primary : scheme.onSurfaceVariant,
+                      ),
+                    ),
                     PopupMenuButton<String>(
                       tooltip: 'Opções',
                       onSelected: (v) {
