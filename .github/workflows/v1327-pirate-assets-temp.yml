@@ -1,0 +1,47 @@
+name: Validate and apply v1.3.27 pirate sprites
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - scripts/v1327_trigger.txt
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply approved pirate sprites
+        run: python3 scripts/apply_v1327_pirate_assets.py
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.5'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Commit validated v1.3.27
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/screens/character/character_screen.dart lib/core/app_version.dart pubspec.yaml web/rpg_service_worker.js assets/character2d/pirate_normal.webp assets/character2d/pirate_critical.webp assets/character2d/pirate_incapacitated.webp RELEASE_NOTES_1.3.27.md docs/PIRATE_CHARACTER_CHECKLIST.md
+          git commit -m "feat: approved pirate pixel-art sprites v1.3.27"
+          git push origin HEAD:main
