@@ -1613,10 +1613,16 @@ class _CombatCharacter2D extends StatelessWidget {
                         child: Transform.scale(
                           scale: scale,
                           child: pirateTheme
-                              ? SizedBox(
-                                  width: 168,
-                                  height: 198,
-                                  child: CustomPaint(painter: _PirateSkeletonPainter(pose: _pose)),
+                              ? Image.asset(
+                                  _pose == 'incapacitated'
+                                      ? 'assets/character2d/pirate_incapacitated.webp'
+                                      : _pose == 'agony'
+                                          ? 'assets/character2d/pirate_critical.webp'
+                                          : 'assets/character2d/pirate_normal.webp',
+                                  height: _pose == 'incapacitated' ? 164 : 198,
+                                  fit: BoxFit.contain,
+                                  filterQuality: FilterQuality.none,
+                                  isAntiAlias: false,
                                 )
                               : incapacitated
                                   ? ClipRect(
