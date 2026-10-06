@@ -1300,203 +1300,90 @@ class _SectionsTab extends StatelessWidget {
 
 
 class _PirateSkeletonPainter extends CustomPainter {
-  const _PirateSkeletonPainter();
+  final String pose;
+  const _PirateSkeletonPainter({this.pose = 'normal'});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final sx = size.width / 168.0;
-    final sy = size.height / 198.0;
     canvas.save();
-    canvas.scale(sx, sy);
+    canvas.scale(size.width / 168.0, size.height / 198.0);
+    const bone = Color(0xFFE2D1AD), boneShade = Color(0xFF9B8768);
+    const brown = Color(0xFF65442E), darkBrown = Color(0xFF35241A);
+    const navy = Color(0xFF17283D), red = Color(0xFF9E332D);
+    const gold = Color(0xFFB88B43), black = Color(0xFF101114);
+    final f = Paint()..style=PaintingStyle.fill..isAntiAlias=false;
+    final st = Paint()..style=PaintingStyle.stroke..strokeCap=StrokeCap.square..isAntiAlias=false;
 
-    const bone = Color(0xFFD8C7A1);
-    const boneShadow = Color(0xFF9E8E6C);
-    const brown = Color(0xFF6B4A2F);
-    const brownDark = Color(0xFF3C291B);
-    const navy = Color(0xFF14263D);
-    const navyLight = Color(0xFF243D5A);
-    const gold = Color(0xFFB08A4B);
-    const soot = Color(0xFF181818);
-
-    final fill = Paint()..style = PaintingStyle.fill;
-    final stroke = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    // Soft shadow under the character.
-    fill.color = const Color(0x33000000);
-    canvas.drawOval(const Rect.fromLTWH(34, 180, 100, 10), fill);
-
-    // Boots.
-    fill.color = brownDark;
-    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(43, 155, 29, 29), const Radius.circular(6)), fill);
-    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(96, 155, 29, 29), const Radius.circular(6)), fill);
-    fill.color = brown;
-    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(39, 176, 38, 10), const Radius.circular(4)), fill);
-    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(92, 176, 38, 10), const Radius.circular(4)), fill);
-
-    // Bone legs with worn dark-blue trousers.
-    stroke
-      ..color = bone
-      ..strokeWidth = 8;
-    canvas.drawLine(const Offset(62, 123), const Offset(58, 158), stroke);
-    canvas.drawLine(const Offset(106, 123), const Offset(110, 158), stroke);
-    fill.color = navy;
-    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(48, 116, 25, 40), const Radius.circular(7)), fill);
-    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(95, 116, 25, 40), const Radius.circular(7)), fill);
-
-    // Torso / beige shirt.
-    fill.color = bone;
-    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(50, 61, 68, 62), const Radius.circular(13)), fill);
-
-    // Dark-blue worn undershirt.
-    fill.color = navy;
-    final shirt = Path()
-      ..moveTo(57, 69)
-      ..lineTo(78, 61)
-      ..lineTo(85, 80)
-      ..lineTo(92, 61)
-      ..lineTo(112, 69)
-      ..lineTo(113, 116)
-      ..lineTo(55, 116)
-      ..close();
-    canvas.drawPath(shirt, fill);
-
-    // Brown vest.
-    fill.color = brown;
-    final leftVest = Path()
-      ..moveTo(52, 66)
-      ..lineTo(73, 60)
-      ..lineTo(79, 81)
-      ..lineTo(77, 115)
-      ..lineTo(54, 115)
-      ..close();
-    final rightVest = Path()
-      ..moveTo(116, 66)
-      ..lineTo(95, 60)
-      ..lineTo(89, 81)
-      ..lineTo(91, 115)
-      ..lineTo(114, 115)
-      ..close();
-    canvas.drawPath(leftVest, fill);
-    canvas.drawPath(rightVest, fill);
-
-    // Worn fabric scratches.
-    stroke
-      ..color = const Color(0x55735C45)
-      ..strokeWidth = 2;
-    canvas.drawLine(const Offset(60, 80), const Offset(69, 76), stroke);
-    canvas.drawLine(const Offset(99, 88), const Offset(108, 83), stroke);
-    canvas.drawLine(const Offset(61, 101), const Offset(70, 98), stroke);
-
-    // Belt + buckle.
-    fill.color = brownDark;
-    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(49, 111, 70, 11), const Radius.circular(3)), fill);
-    fill.color = gold;
-    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(79, 112, 11, 9), const Radius.circular(2)), fill);
-
-    // Bone arms and wrist wraps.
-    stroke
-      ..color = bone
-      ..strokeWidth = 7;
-    canvas.drawLine(const Offset(54, 75), const Offset(36, 109), stroke);
-    canvas.drawLine(const Offset(114, 75), const Offset(132, 109), stroke);
-    canvas.drawLine(const Offset(36, 109), const Offset(43, 129), stroke);
-    canvas.drawLine(const Offset(132, 109), const Offset(125, 129), stroke);
-    stroke
-      ..color = brown
-      ..strokeWidth = 6;
-    canvas.drawLine(const Offset(38, 112), const Offset(42, 122), stroke);
-    canvas.drawLine(const Offset(130, 112), const Offset(126, 122), stroke);
-
-    // Rope coil on right hip.
-    stroke
-      ..color = const Color(0xFFC0A476)
-      ..strokeWidth = 3;
-    canvas.drawArc(const Rect.fromLTWH(109, 112, 24, 24), 0.2, 5.4, false, stroke);
-    canvas.drawArc(const Rect.fromLTWH(113, 116, 16, 16), 0.2, 5.4, false, stroke);
-
-    // Neck / spine.
-    stroke
-      ..color = bone
-      ..strokeWidth = 7;
-    canvas.drawLine(const Offset(84, 58), const Offset(84, 66), stroke);
-
-    // Skull.
-    fill.color = bone;
-    canvas.drawOval(const Rect.fromLTWH(62, 23, 44, 39), fill);
-    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(69, 49, 30, 20), const Radius.circular(7)), fill);
-
-    // Skull shadow / cheek structure.
-    stroke
-      ..color = boneShadow
-      ..strokeWidth = 2;
-    canvas.drawLine(const Offset(68, 49), const Offset(73, 57), stroke);
-    canvas.drawLine(const Offset(100, 49), const Offset(95, 57), stroke);
-
-    // Eye sockets.
-    fill.color = soot;
-    canvas.drawOval(const Rect.fromLTWH(69, 35, 11, 10), fill);
-    canvas.drawOval(const Rect.fromLTWH(88, 35, 11, 10), fill);
-
-    // Nose.
-    final nose = Path()
-      ..moveTo(84, 44)
-      ..lineTo(79, 51)
-      ..lineTo(89, 51)
-      ..close();
-    canvas.drawPath(nose, fill);
-
-    // Teeth.
-    stroke
-      ..color = soot
-      ..strokeWidth = 1.2;
-    canvas.drawLine(const Offset(74, 58), const Offset(94, 58), stroke);
-    for (final x in [78.0, 82.0, 86.0, 90.0]) {
-      canvas.drawLine(Offset(x, 54), Offset(x, 62), stroke);
+    void boneLine(Offset a, Offset b, [double w=5]) {
+      st..color=boneShade..strokeWidth=w+2; canvas.drawLine(a,b,st);
+      st..color=bone..strokeWidth=w; canvas.drawLine(a,b,st);
+    }
+    void hand(Offset c) {
+      f.color=bone; canvas.drawRect(Rect.fromCenter(center:c,width:7,height:8),f);
+      st..color=bone..strokeWidth=2;
+      for(var i=0;i<4;i++) canvas.drawLine(Offset(c.dx-3+i*2,c.dy+3),Offset(c.dx-4+i*2,c.dy+10),st);
+    }
+    void boot(Rect r) {
+      f.color=darkBrown; canvas.drawRect(r,f);
+      f.color=brown; canvas.drawRect(Rect.fromLTWH(r.left-3,r.bottom-7,r.width+7,8),f);
+    }
+    void head(Offset c,{double tilt=0}) {
+      canvas.save(); canvas.translate(c.dx,c.dy); canvas.rotate(tilt);
+      f.color=const Color(0xFF25242B); canvas.drawRect(const Rect.fromLTWH(-22,-25,44,15),f);
+      canvas.drawRect(const Rect.fromLTWH(13,-16,9,34),f); canvas.drawRect(const Rect.fromLTWH(-21,-15,8,31),f);
+      f.color=boneShade; canvas.drawRect(const Rect.fromLTWH(-20,-17,40,30),f);
+      f.color=bone; canvas.drawRect(const Rect.fromLTWH(-18,-19,36,28),f); canvas.drawRect(const Rect.fromLTWH(-13,7,26,13),f);
+      f.color=black; canvas.drawRect(const Rect.fromLTWH(-12,-8,9,8),f); canvas.drawRect(const Rect.fromLTWH(4,-8,9,8),f); canvas.drawRect(const Rect.fromLTWH(-3,1,6,6),f);
+      st..color=black..strokeWidth=1.5; canvas.drawLine(const Offset(-9,13),const Offset(9,13),st);
+      for(final x in [-6.0,-2.0,2.0,6.0]) canvas.drawLine(Offset(x,10),Offset(x,18),st);
+      f.color=red; canvas.drawRect(const Rect.fromLTWH(-22,-22,44,11),f); canvas.drawRect(const Rect.fromLTWH(-31,-7,12,7),f); canvas.drawRect(const Rect.fromLTWH(-30,-2,6,19),f);
+      canvas.restore();
+    }
+    void medal(Offset c) {
+      st..color=gold..strokeWidth=2; canvas.drawLine(Offset(c.dx,c.dy-13),c,st);
+      f.color=gold; canvas.drawRect(Rect.fromCenter(center:c,width:9,height:9),f);
+    }
+    void rope(Offset c) {
+      st..color=const Color(0xFFC4A16A)..strokeWidth=3;
+      canvas.drawArc(Rect.fromCenter(center:c,width:22,height:25),.2,5.4,false,st);
+      canvas.drawArc(Rect.fromCenter(center:c,width:14,height:17),.2,5.4,false,st);
     }
 
-    // Dark-blue bandana and knot.
-    fill.color = navyLight;
-    final bandana = Path()
-      ..moveTo(61, 33)
-      ..quadraticBezierTo(84, 18, 108, 32)
-      ..lineTo(104, 39)
-      ..quadraticBezierTo(84, 29, 64, 40)
-      ..close();
-    canvas.drawPath(bandana, fill);
-    canvas.drawCircle(const Offset(106, 34), 5, fill);
-    final tail = Path()
-      ..moveTo(108, 36)
-      ..lineTo(127, 43)
-      ..lineTo(112, 47)
-      ..close();
-    canvas.drawPath(tail, fill);
+    f.color=const Color(0x33000000); canvas.drawOval(const Rect.fromLTWH(25,181,118,9),f);
 
-    // Medallion.
-    stroke
-      ..color = gold
-      ..strokeWidth = 2;
-    canvas.drawLine(const Offset(84, 72), const Offset(84, 86), stroke);
-    fill.color = gold;
-    canvas.drawCircle(const Offset(84, 90), 5, fill);
-    fill.color = navy;
-    canvas.drawCircle(const Offset(84, 90), 2, fill);
-
-    // Tiny fabric wear highlights.
-    stroke
-      ..color = const Color(0x447E91AA)
-      ..strokeWidth = 1.5;
-    canvas.drawLine(const Offset(57, 92), const Offset(64, 89), stroke);
-    canvas.drawLine(const Offset(102, 73), const Offset(108, 71), stroke);
-    canvas.drawLine(const Offset(101, 104), const Offset(109, 102), stroke);
-
+    if(pose=='incapacitated') {
+      boot(const Rect.fromLTWH(101,163,27,22)); boot(const Rect.fromLTWH(69,166,27,20));
+      f.color=navy; canvas.drawRect(const Rect.fromLTWH(82,140,31,28),f); canvas.drawRect(const Rect.fromLTWH(105,143,23,25),f);
+      boneLine(const Offset(83,139),const Offset(70,164)); boneLine(const Offset(107,141),const Offset(120,163));
+      canvas.save(); canvas.translate(76,122); canvas.rotate(.20);
+      f.color=navy; canvas.drawRect(const Rect.fromLTWH(-24,-31,48,52),f);
+      f.color=brown; canvas.drawRect(const Rect.fromLTWH(-24,-28,12,47),f); canvas.drawRect(const Rect.fromLTWH(12,-28,12,47),f);
+      f.color=darkBrown; canvas.drawRect(const Rect.fromLTWH(-25,13,50,8),f); canvas.restore();
+      boneLine(const Offset(55,101),const Offset(43,133)); boneLine(const Offset(43,133),const Offset(29,160),4); hand(const Offset(27,164));
+      boneLine(const Offset(96,103),const Offset(108,128)); boneLine(const Offset(108,128),const Offset(98,147),4); hand(const Offset(97,150));
+      rope(const Offset(58,145)); medal(const Offset(77,120)); head(const Offset(70,78),tilt:.18);
+    } else {
+      final critical=pose=='agony';
+      final shoulderY=critical?78.0:70.0, hipY=critical?124.0:119.0;
+      boot(Rect.fromLTWH(43,critical?158:154,28,31)); boot(Rect.fromLTWH(97,critical?158:154,28,31));
+      f.color=navy; canvas.drawRect(Rect.fromLTWH(48,hipY-4,25,40),f); canvas.drawRect(Rect.fromLTWH(95,hipY-4,25,40),f);
+      canvas.save(); if(critical){canvas.translate(84,98);canvas.rotate(.09);canvas.translate(-84,-98);}
+      f.color=navy; canvas.drawRect(Rect.fromLTWH(55,shoulderY-7,58,hipY-shoulderY+4),f);
+      f.color=brown; canvas.drawRect(Rect.fromLTWH(54,shoulderY-5,17,hipY-shoulderY+2),f); canvas.drawRect(Rect.fromLTWH(97,shoulderY-5,17,hipY-shoulderY+2),f);
+      f.color=darkBrown; canvas.drawRect(Rect.fromLTWH(50,hipY-5,69,10),f); f.color=gold; canvas.drawRect(Rect.fromLTWH(80,hipY-5,11,10),f); canvas.restore();
+      final le=critical?const Offset(42,112):const Offset(38,105), re=critical?const Offset(122,116):const Offset(130,106);
+      final lw=critical?const Offset(43,137):const Offset(42,132), rw=critical?const Offset(119,139):const Offset(126,132);
+      boneLine(Offset(55,shoulderY),le); boneLine(le,lw,4); boneLine(Offset(58,shoulderY),Offset(lw.dx+4,lw.dy),2);
+      boneLine(Offset(113,shoulderY),re); boneLine(re,rw,4); boneLine(Offset(110,shoulderY),Offset(rw.dx-4,rw.dy),2);
+      f.color=brown; canvas.drawRect(Rect.fromCenter(center:lw,width:10,height:7),f); canvas.drawRect(Rect.fromCenter(center:rw,width:10,height:7),f);
+      hand(Offset(lw.dx,lw.dy+7)); hand(Offset(rw.dx,rw.dy+7)); rope(Offset(119,hipY+8)); medal(Offset(84,shoulderY+22));
+      head(critical?const Offset(82,50):const Offset(84,43),tilt:critical?.13:0);
+    }
     canvas.restore();
   }
 
   @override
-  bool shouldRepaint(covariant _PirateSkeletonPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _PirateSkeletonPainter oldDelegate)=>oldDelegate.pose!=pose;
 }
 
 class _CombatCharacter2D extends StatelessWidget {
@@ -1671,7 +1558,7 @@ class _CombatCharacter2D extends StatelessWidget {
     final incapacitated = _pose == 'incapacitated';
     final agony = _pose == 'agony';
     final themeId = context.watch<AppState>().themeId;
-    final pirateNormal = themeId == 'parchment' && !incapacitated && !agony;
+    final pirateTheme = themeId == 'parchment';
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -1725,11 +1612,11 @@ class _CombatCharacter2D extends StatelessWidget {
                         angle: lean,
                         child: Transform.scale(
                           scale: scale,
-                          child: pirateNormal
-                              ? const SizedBox(
+                          child: pirateTheme
+                              ? SizedBox(
                                   width: 168,
                                   height: 198,
-                                  child: CustomPaint(painter: _PirateSkeletonPainter()),
+                                  child: CustomPaint(painter: _PirateSkeletonPainter(pose: _pose)),
                                 )
                               : incapacitated
                                   ? ClipRect(
