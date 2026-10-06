@@ -208,25 +208,15 @@ ShapeBorder themedNavigationIndicatorShape(String themeId, double radius) {
 Widget themedCharacterTabIcon(String themeId, String role, {double size = 18, Color? color}) {
   if (themeId == 'cyberpunk') {
     final iconColor = color ?? const Color(0xFF1755FF);
-    Widget cyberAsset(String path, {double scale = 1.0}) => SizedBox(
-      width: size,
-      height: size,
-      child: Center(
-        child: Image.asset(
-          path,
-          width: size * scale,
-          height: size * scale,
-          fit: BoxFit.contain,
-          filterQuality: FilterQuality.high,
-          color: iconColor,
-          colorBlendMode: BlendMode.srcIn,
-          gaplessPlayback: true,
-        ),
-      ),
-    );
-    if (role == 'general') return cyberAsset('assets/cyberpunk/skull.png', scale: 1.18);
-    if (role == 'abilities') return cyberAsset('assets/cyberpunk/demon.png', scale: 1.28);
-    if (role == 'skills') return cyberAsset('assets/cyberpunk/chip.png', scale: 1.16);
+    if (role == 'general') {
+      return ImageIcon(const AssetImage('assets/cyberpunk/skull.png'), size: size * 1.12, color: iconColor);
+    }
+    if (role == 'abilities') {
+      return ImageIcon(const AssetImage('assets/cyberpunk/demon.png'), size: size * 1.22, color: iconColor);
+    }
+    if (role == 'skills') {
+      return ImageIcon(const AssetImage('assets/cyberpunk/chip.png'), size: size * 1.12, color: iconColor);
+    }
     return Icon(themedIcon(themeId, role), size: size, color: iconColor);
   }
   if (themeId != 'vampire') return Icon(themedIcon(themeId, role), size: size, color: color);
@@ -333,21 +323,17 @@ ThemeData buildTheme([String themeId = 'classic']) {
                 )
               : baseScheme;
   final radius = preset.radius;
+  final borderlessCards = pirate || vampire || arcane || cyberpunk;
   final cardShape = pirate
       ? BeveledRectangleBorder(
           borderRadius: BorderRadius.circular(8),
-          side: BorderSide(color: scheme.primary.withOpacity(.26)),
+          side: BorderSide.none,
         )
       : RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radius.clamp(12, 18)),
-          side: BorderSide(
-            color: vampire
-                ? const Color(0xFFFF5C5C)
-                : (arcane
-                    ? const Color(0xFFD0C3E8)
-                    : (cyberpunk ? const Color(0xFF8BB4E0) : scheme.outlineVariant.withOpacity(.18))),
-            width: (vampire || arcane || cyberpunk) ? 1.35 : 1,
-          ),
+          side: borderlessCards
+              ? BorderSide.none
+              : BorderSide(color: scheme.outlineVariant.withOpacity(.18), width: 1),
         );
   final fieldShape = pirate
       ? BeveledRectangleBorder(borderRadius: BorderRadius.circular(7))
