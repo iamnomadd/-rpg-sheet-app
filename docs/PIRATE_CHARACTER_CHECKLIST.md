@@ -1,16 +1,28 @@
-# Checklist visual — Personagem 2D Sombrio Pirata
+# Checklist — Personagem 2D do Tema Pirata
 
-Este checklist define a regra obrigatória para o personagem 2D do tema **Sombrio Pirata**.
+## Regra visual obrigatória
+- [x] Usar exclusivamente o pirata esqueleto em pixel art aprovado.
+- [x] Não usar CustomPainter, formas geométricas ou versão simplificada como personagem final.
+- [x] Manter o mesmo personagem e a mesma identidade visual em todos os estados.
+- [x] Alterar somente pose/expressão corporal entre Normal, Crítico e Incapacitado.
 
-- [x] Usar exclusivamente o pirata esqueleto em **pixel art** aprovado como referência visual.
-- [x] Não usar versão simplificada, geométrica, vetorial ou blocada.
-- [x] Manter a mesma identidade do personagem nos estados **Normal**, **Crítico** e **Incapacitado**.
-- [x] Alterar apenas a pose e a expressão corporal entre os três estados.
-- [x] Manter crânio, braços, antebraços, mãos e dedos com aparência óssea.
-- [x] Manter bandana vermelha, colete azul-escuro, botas, cinto, corda, medalhão e acabamento gasto.
-- [x] Renderizar com filtro sem suavização para preservar o aspecto pixelizado.
-- [x] Estado Crítico continua ativando em 40% ou menos da Vida máxima.
-- [x] Estado Incapacitado continua ativando em 0 de Vida.
-- [x] Nunca trocar o personagem pirata pelo sprite humano base durante mudança de estado.
+## Identidade do personagem
+- [x] Caveira/esqueleto visível.
+- [x] Braços, antebraços, mãos e dedos com aparência óssea.
+- [x] Bandana vermelha.
+- [x] Colete azul-escuro.
+- [x] Botas e cinto em tons de marrom.
+- [x] Corda e medalhão.
+- [x] Roupa e acabamento gastos de aventureiro/pirata.
+- [x] Pixel art detalhada compatível com o estilo visual aprovado.
 
-Qualquer futura alteração do tema pirata deve respeitar este checklist antes de ser publicada.
+## Estados
+- [x] Normal: pirata esqueleto em pé.
+- [x] Crítico: o mesmo pirata esqueleto abatido/curvado.
+- [x] Incapacitado: o mesmo pirata esqueleto sentado/caído.
+- [x] Nenhum estado pode retornar ao sprite humano padrão.
+
+## Implementação
+- [x] Assets dedicados em assets/character2d/pirate_normal.webp, pirate_critical.webp e pirate_incapacitated.webp.
+- [x] Renderização com FilterQuality.none e antialias desativado para preservar o pixel art.
+- [x] Tema Sombrio Pirata seleciona os três assets conforme o estado atual.
