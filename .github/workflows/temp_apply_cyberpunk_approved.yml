@@ -1,0 +1,67 @@
+name: Apply Approved Cyberpunk Sprites
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.cyberpunk-approved-ready'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Decode staged approved sprites
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin asset-cyberpunk-approved
+          for part in normal.part01 normal.part02 normal.part03; do git show origin/asset-cyberpunk-approved:.asset_upload/$part; done | base64 -d > assets/character2d/cyberpunk_normal.png
+          for part in agony.part01 agony.part02 agony.part03; do git show origin/asset-cyberpunk-approved:.asset_upload/$part; done | base64 -d > assets/character2d/cyberpunk_agony.png
+          for part in incapacitated.part01 incapacitated.part02 incapacitated.part03; do git show origin/asset-cyberpunk-approved:.asset_upload/$part; done | base64 -d > assets/character2d/cyberpunk_incapacitated.png
+          python3 - <<'PY'
+          import struct, zlib
+          paths = [
+              'assets/character2d/cyberpunk_normal.png',
+              'assets/character2d/cyberpunk_agony.png',
+              'assets/character2d/cyberpunk_incapacitated.png',
+          ]
+          for path in paths:
+              data = open(path, 'rb').read()
+              assert data[:8] == b'\x89PNG\r\n\x1a\n', path
+              pos = 8
+              seen_iend = False
+              while pos < len(data):
+                  assert pos + 12 <= len(data), path
+                  n = struct.unpack('>I', data[pos:pos+4])[0]
+                  typ = data[pos+4:pos+8]
+                  end = pos + 12 + n
+                  assert end <= len(data), path
+                  chunk = data[pos+4:pos+8+n]
+                  crc = struct.unpack('>I', data[pos+8+n:end])[0]
+                  assert (zlib.crc32(chunk) & 0xffffffff) == crc, path
+                  pos = end
+                  if typ == b'IEND':
+                      seen_iend = True
+                      break
+              assert seen_iend and pos == len(data), path
+              assert data[12:16] == b'IHDR', path
+              w, h = struct.unpack('>II', data[16:24])
+              assert (w, h) == (320, 320), (path, w, h)
+          PY
+      - name: Commit sprites
+        shell: bash
+        run: |
+          rm -f .cyberpunk-approved-ready
+          rm -f .github/workflows/temp_apply_cyberpunk_approved.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix: replace Cyberpunk sprites with approved reference'
+          git push
