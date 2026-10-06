@@ -1,0 +1,51 @@
+name: Validate v1.3.27 pirate sprites
+
+on:
+  push:
+    branches:
+      - staging-v1.3.27-pirate-sprites
+    paths:
+      - scripts/pirate_normal.b64
+      - scripts/pirate_critical.b64
+      - scripts/pirate_incapacitated.b64
+      - scripts/apply_v1_3_27.py
+      - .github/workflows/validate-v1.3.27.yml
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply v1.3.27 changes
+        run: python3 scripts/apply_v1_3_27.py
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.5'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Commit validated source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/character2d/pirate_normal.png assets/character2d/pirate_critical.png assets/character2d/pirate_incapacitated.png lib/screens/character/character_screen.dart lib/core/app_version.dart pubspec.yaml web/rpg_service_worker.js docs/PIRATE_CHARACTER_CHECKLIST.md RELEASE_NOTES_1.3.27.md
+          git commit -m "feat: approved pirate pixel sprites v1.3.27"
+          git push origin HEAD:staging-v1.3.27-pirate-sprites
