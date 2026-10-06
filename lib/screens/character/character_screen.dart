@@ -552,7 +552,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
                       decoration: BoxDecoration(
                         border: Border(bottom: BorderSide(
                           color: state.themeId == 'vampire'
-                              ? const Color(0xFFFF2B2B)
+                              ? const Color(0xFFFF5C5C)
                               : Theme.of(context).colorScheme.outlineVariant.withOpacity(.32),
                         )),
                       ),
@@ -563,7 +563,6 @@ class _CharacterScreenState extends State<CharacterScreen> {
                           child: Row(children: order.asMap().entries.map((entry) {
                             final index = entry.key, id = entry.value, selected = tab == index;
                             final colors = Theme.of(context).colorScheme;
-                            final vampire = state.themeId == 'vampire';
                             return InkWell(
                               onTap: () {
                                 final previousTab = tab;
@@ -596,7 +595,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
                                       state.themeId,
                                       id,
                                       size: 22,
-                                      color: vampire ? colors.primary : (selected ? colors.primary : colors.onSurfaceVariant),
+                                      color: selected ? colors.primary : colors.onSurfaceVariant,
                                     ),
                                     const SizedBox(height: 4),
                                     Text(

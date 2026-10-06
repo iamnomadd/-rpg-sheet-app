@@ -141,7 +141,7 @@ IconData themedSelectedMainIcon(String themeId, String role) {
 List<Color> themedResourceBarColors(String themeId, {bool secondary = false}) {
   switch (themeId) {
     case 'cyberpunk':
-      return secondary ? [const Color(0xFF0E36B8), const Color(0xFF1755FF), const Color(0xFF6B93FF)] : [const Color(0xFF0E36B8), const Color(0xFF1755FF), const Color(0xFF6B93FF)];
+      return secondary ? [const Color(0xFF0E36B8), const Color(0xFF1755FF), const Color(0xFF8BB4E0)] : [const Color(0xFF0E36B8), const Color(0xFF1755FF), const Color(0xFF8BB4E0)];
     case 'arcane':
       return secondary ? [const Color(0xFF6A1B9A), const Color(0xFFB388FF)] : [const Color(0xFF8E24AA), const Color(0xFFD1C4E9)];
     case 'parchment':
@@ -208,15 +208,25 @@ ShapeBorder themedNavigationIndicatorShape(String themeId, double radius) {
 Widget themedCharacterTabIcon(String themeId, String role, {double size = 18, Color? color}) {
   if (themeId == 'cyberpunk') {
     final iconColor = color ?? const Color(0xFF1755FF);
-    if (role == 'general') {
-      return Image.asset('assets/cyberpunk/skull.png', width: size, height: size, fit: BoxFit.contain, color: iconColor, colorBlendMode: BlendMode.srcIn);
-    }
-    if (role == 'abilities') {
-      return Image.asset('assets/cyberpunk/demon.png', width: size * 1.15, height: size * 1.15, fit: BoxFit.contain);
-    }
-    if (role == 'skills') {
-      return Image.asset('assets/cyberpunk/chip.png', width: size, height: size, fit: BoxFit.contain, color: iconColor, colorBlendMode: BlendMode.srcIn);
-    }
+    Widget cyberAsset(String path, {double scale = 1.0}) => SizedBox(
+      width: size,
+      height: size,
+      child: Center(
+        child: Image.asset(
+          path,
+          width: size * scale,
+          height: size * scale,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.high,
+          color: iconColor,
+          colorBlendMode: BlendMode.srcIn,
+          gaplessPlayback: true,
+        ),
+      ),
+    );
+    if (role == 'general') return cyberAsset('assets/cyberpunk/skull.png', scale: 1.18);
+    if (role == 'abilities') return cyberAsset('assets/cyberpunk/demon.png', scale: 1.28);
+    if (role == 'skills') return cyberAsset('assets/cyberpunk/chip.png', scale: 1.16);
     return Icon(themedIcon(themeId, role), size: size, color: iconColor);
   }
   if (themeId != 'vampire') return Icon(themedIcon(themeId, role), size: size, color: color);
@@ -309,8 +319,8 @@ ThemeData buildTheme([String themeId = 'classic']) {
               onSurface: const Color(0xFFF1F1F1),
               surfaceContainerHighest: const Color(0xFF242426),
               onSurfaceVariant: const Color(0xFFD2D2D2),
-              outline: const Color(0xFFFF2B2B),
-              outlineVariant: const Color(0xFFFF2B2B),
+              outline: const Color(0xFFFF5C5C),
+              outlineVariant: const Color(0xFFFF5C5C),
             )
           : cyberpunk
               ? baseScheme.copyWith(
@@ -332,10 +342,10 @@ ThemeData buildTheme([String themeId = 'classic']) {
           borderRadius: BorderRadius.circular(radius.clamp(12, 18)),
           side: BorderSide(
             color: vampire
-                ? const Color(0xFFFF2B2B)
+                ? const Color(0xFFFF5C5C)
                 : (arcane
                     ? const Color(0xFFD0C3E8)
-                    : (cyberpunk ? const Color(0xFF6B93FF) : scheme.outlineVariant.withOpacity(.18))),
+                    : (cyberpunk ? const Color(0xFF8BB4E0) : scheme.outlineVariant.withOpacity(.18))),
             width: (vampire || arcane || cyberpunk) ? 1.35 : 1,
           ),
         );
@@ -364,7 +374,7 @@ ThemeData buildTheme([String themeId = 'classic']) {
       unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
       indicatorColor: scheme.primary,
       indicatorSize: TabBarIndicatorSize.tab,
-      dividerColor: vampire ? const Color(0xFFFF2B2B) : scheme.outlineVariant.withOpacity(.32),
+      dividerColor: vampire ? const Color(0xFFFF5C5C) : scheme.outlineVariant.withOpacity(.32),
       dividerHeight: 1,
       overlayColor: WidgetStateProperty.resolveWith((states) =>
           states.contains(WidgetState.pressed) ? scheme.primary.withOpacity(.10) : Colors.transparent),
@@ -407,15 +417,15 @@ ThemeData buildTheme([String themeId = 'classic']) {
       labelStyle: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(pirate ? 7 : 12),
-        borderSide: BorderSide(color: vampire ? const Color(0xFFFF2B2B) : scheme.outlineVariant.withOpacity(pirate ? .55 : .28), width: vampire ? 1.2 : 1),
+        borderSide: BorderSide(color: vampire ? const Color(0xFFFF5C5C) : scheme.outlineVariant.withOpacity(pirate ? .55 : .28), width: vampire ? 1.2 : 1),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(pirate ? 7 : 12),
-        borderSide: BorderSide(color: vampire ? const Color(0xFFFF2B2B) : scheme.outlineVariant.withOpacity(pirate ? .55 : .28), width: vampire ? 1.2 : 1),
+        borderSide: BorderSide(color: vampire ? const Color(0xFFFF5C5C) : scheme.outlineVariant.withOpacity(pirate ? .55 : .28), width: vampire ? 1.2 : 1),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(pirate ? 7 : 12),
-        borderSide: BorderSide(color: vampire ? const Color(0xFFFF2B2B) : scheme.primary.withOpacity(.85), width: vampire ? 1.6 : (pirate ? 1.4 : 1)),
+        borderSide: BorderSide(color: vampire ? const Color(0xFFFF5C5C) : scheme.primary.withOpacity(.85), width: vampire ? 1.6 : (pirate ? 1.4 : 1)),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
@@ -423,14 +433,14 @@ ThemeData buildTheme([String themeId = 'classic']) {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         backgroundColor: pirate ? const Color(0xFF151A20) : (vampire ? const Color(0xFFB70F00) : null),
         foregroundColor: pirate ? const Color(0xFFE2C98F) : (vampire ? Colors.white : null),
-        side: pirate ? const BorderSide(color: Color(0xFF8A6C3E), width: 1.1) : (vampire ? const BorderSide(color: Color(0xFFFF2B2B), width: 1.2) : null),
+        side: pirate ? const BorderSide(color: Color(0xFF8A6C3E), width: 1.1) : (vampire ? const BorderSide(color: Color(0xFFFF5C5C), width: 1.2) : null),
         shape: fieldShape,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        side: BorderSide(color: vampire ? const Color(0xFFFF2B2B) : (pirate ? scheme.primary.withOpacity(.42) : scheme.outlineVariant.withOpacity(.55)), width: vampire ? 1.2 : 1),
+        side: BorderSide(color: vampire ? const Color(0xFFFF5C5C) : (pirate ? scheme.primary.withOpacity(.42) : scheme.outlineVariant.withOpacity(.55)), width: vampire ? 1.2 : 1),
         shape: fieldShape,
       ),
     ),
@@ -446,7 +456,7 @@ ThemeData buildTheme([String themeId = 'classic']) {
             )
           : RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(18),
-              side: BorderSide(color: vampire ? const Color(0xFFFF2B2B) : scheme.outlineVariant.withOpacity(.18), width: vampire ? 1.3 : 1),
+              side: BorderSide(color: vampire ? const Color(0xFFFF5C5C) : scheme.outlineVariant.withOpacity(.18), width: vampire ? 1.3 : 1),
             ),
     ),
     bottomSheetTheme: BottomSheetThemeData(
@@ -456,7 +466,7 @@ ThemeData buildTheme([String themeId = 'classic']) {
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(pirate ? 12 : 22)),
-        side: pirate ? BorderSide(color: scheme.primary.withOpacity(.20)) : (vampire ? const BorderSide(color: Color(0xFFFF2B2B), width: 1.2) : BorderSide.none),
+        side: pirate ? BorderSide(color: scheme.primary.withOpacity(.20)) : (vampire ? const BorderSide(color: Color(0xFFFF5C5C), width: 1.2) : BorderSide.none),
       ),
       showDragHandle: true,
       dragHandleColor: pirate ? scheme.primary.withOpacity(.7) : (vampire ? const Color(0xFFB70F00) : null),
@@ -473,13 +483,13 @@ ThemeData buildTheme([String themeId = 'classic']) {
             )
           : RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: vampire ? const Color(0xFFFF2B2B) : scheme.outlineVariant.withOpacity(.18), width: vampire ? 1.2 : 1),
+              side: BorderSide(color: vampire ? const Color(0xFFFF5C5C) : scheme.outlineVariant.withOpacity(.18), width: vampire ? 1.2 : 1),
             ),
     ),
     chipTheme: ChipThemeData(
       backgroundColor: pirate ? const Color(0xFF171D24) : (vampire ? const Color(0xFF242426) : scheme.surfaceContainerHighest.withOpacity(.34)),
       selectedColor: pirate ? const Color(0xFF171D24) : (vampire ? const Color(0xFF2A2A2D) : scheme.primary.withOpacity(.18)),
-      side: BorderSide(color: vampire ? const Color(0xFFFF2B2B) : (pirate ? scheme.primary.withOpacity(.28) : scheme.outlineVariant.withOpacity(.22)), width: vampire ? 1.1 : 1),
+      side: BorderSide(color: vampire ? const Color(0xFFFF5C5C) : (pirate ? scheme.primary.withOpacity(.28) : scheme.outlineVariant.withOpacity(.22)), width: vampire ? 1.1 : 1),
       shape: pirate
           ? BeveledRectangleBorder(borderRadius: BorderRadius.circular(6))
           : RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -499,7 +509,7 @@ ThemeData buildTheme([String themeId = 'classic']) {
     dividerTheme: DividerThemeData(
       space: 20,
       thickness: pirate ? 1.2 : 1,
-      color: vampire ? const Color(0xFFFF2B2B) : (pirate ? scheme.primary.withOpacity(.20) : scheme.outlineVariant.withOpacity(.18)),
+      color: vampire ? const Color(0xFFFF5C5C) : (pirate ? scheme.primary.withOpacity(.20) : scheme.outlineVariant.withOpacity(.18)),
     ),
   );
 }
