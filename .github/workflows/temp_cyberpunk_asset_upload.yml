@@ -6,6 +6,7 @@ on:
       - asset-cyberpunk-approved
     paths:
       - '.asset_upload/READY'
+      - '.github/workflows/temp_cyberpunk_asset_upload.yml'
 
 permissions:
   contents: write
