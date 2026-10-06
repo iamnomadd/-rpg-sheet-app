@@ -22,9 +22,22 @@ jobs:
         run: |
           set -euo pipefail
           test -f .asset_upload/READY
-          cat .asset_upload/normal.part* | base64 -d > assets/character2d/cyberpunk_normal.png
-          cat .asset_upload/agony.part* | base64 -d > assets/character2d/cyberpunk_agony.png
-          cat .asset_upload/incapacitated.part* | base64 -d > assets/character2d/cyberpunk_incapacitated.png
+
+          : > assets/character2d/cyberpunk_normal.png
+          for part in .asset_upload/normal.part*; do
+            base64 -d "$part" >> assets/character2d/cyberpunk_normal.png
+          done
+
+          : > assets/character2d/cyberpunk_agony.png
+          for part in .asset_upload/agony.part*; do
+            base64 -d "$part" >> assets/character2d/cyberpunk_agony.png
+          done
+
+          : > assets/character2d/cyberpunk_incapacitated.png
+          for part in .asset_upload/incapacitated.part*; do
+            base64 -d "$part" >> assets/character2d/cyberpunk_incapacitated.png
+          done
+
           file assets/character2d/cyberpunk_normal.png | grep -q 'PNG image data'
           file assets/character2d/cyberpunk_agony.png | grep -q 'PNG image data'
           file assets/character2d/cyberpunk_incapacitated.png | grep -q 'PNG image data'
