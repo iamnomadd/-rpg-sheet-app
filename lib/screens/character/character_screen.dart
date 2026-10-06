@@ -1559,6 +1559,7 @@ class _CombatCharacter2D extends StatelessWidget {
     final agony = _pose == 'agony';
     final themeId = context.watch<AppState>().themeId;
     final pirateTheme = themeId == 'parchment';
+    final cyberpunkTheme = themeId == 'cyberpunk';
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -1612,7 +1613,7 @@ class _CombatCharacter2D extends StatelessWidget {
                         angle: lean,
                         child: Transform.scale(
                           scale: scale,
-                          child: pirateTheme
+                          child: pirateTheme || cyberpunkTheme
                               ? SizedBox(
                                   height: 198,
                                   width: 198,
@@ -1621,11 +1622,17 @@ class _CombatCharacter2D extends StatelessWidget {
                                     child: Align(
                                       alignment: Alignment.bottomCenter,
                                       child: Image.asset(
-                                        _pose == 'incapacitated'
-                                            ? 'assets/character2d/pirate_incapacitated.webp'
-                                            : _pose == 'agony'
-                                                ? 'assets/character2d/pirate_critical.webp'
-                                                : 'assets/character2d/pirate_normal.webp',
+                                        cyberpunkTheme
+                                            ? (_pose == 'incapacitated'
+                                                ? 'assets/character2d/cyberpunk_incapacitated.png'
+                                                : _pose == 'agony'
+                                                    ? 'assets/character2d/cyberpunk_agony.png'
+                                                    : 'assets/character2d/cyberpunk_normal.png')
+                                            : (_pose == 'incapacitated'
+                                                ? 'assets/character2d/pirate_incapacitated.webp'
+                                                : _pose == 'agony'
+                                                    ? 'assets/character2d/pirate_critical.webp'
+                                                    : 'assets/character2d/pirate_normal.webp'),
                                         width: 182,
                                         height: 182,
                                         fit: BoxFit.contain,
