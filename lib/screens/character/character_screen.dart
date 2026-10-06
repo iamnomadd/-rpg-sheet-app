@@ -1339,7 +1339,7 @@ class _CombatCharacter2D extends StatelessWidget {
 
   String get _pose {
     if (_life <= 0) return 'incapacitated';
-    if (_lifeRatio <= .30) return 'agony';
+    if (_lifeRatio <= .40) return 'agony';
     if (_negativeStatuses.isNotEmpty) return 'agony';
     return 'normal';
   }
@@ -1522,7 +1522,17 @@ class _CombatCharacter2D extends StatelessWidget {
                         angle: lean,
                         child: Transform.scale(
                           scale: scale,
-                          child: Image.asset(_asset, height: 198, fit: BoxFit.contain, filterQuality: FilterQuality.none),
+                          child: incapacitated
+                              ? ClipRect(
+                                  child: SizedBox(
+                                    height: 174,
+                                    child: Align(
+                                      alignment: Alignment.topCenter,
+                                      child: Image.asset(_asset, height: 198, fit: BoxFit.contain, filterQuality: FilterQuality.none),
+                                    ),
+                                  ),
+                                )
+                              : Image.asset(_asset, height: 198, fit: BoxFit.contain, filterQuality: FilterQuality.none),
                         ),
                       ),
                     ),
@@ -2426,7 +2436,7 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
                       tooltip: detail['showInScene'] == true ? 'Remover de Em Cena' : 'Em Cena',
                       onPressed: () => _toggleInScene(item),
                       icon: Icon(
-                        detail['showInScene'] == true ? Icons.visibility : Icons.visibility_off_outlined,
+                        detail['showInScene'] == true ? Icons.star : Icons.star_border,
                         size: 20,
                         color: detail['showInScene'] == true ? scheme.primary : scheme.onSurfaceVariant,
                       ),

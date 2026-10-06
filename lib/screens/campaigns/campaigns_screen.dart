@@ -147,8 +147,8 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
       Expanded(child:_metricCard(context,Icons.sports_martial_arts_outlined,'Rodada','${c.sessionRound}')),
     ]),
     const SizedBox(height:8),
-    Card(child:ListTile(leading:Icon(c.combatActive?Icons.play_circle_fill:Icons.pause_circle_outline),title:Text(c.combatActive?'Sessão em andamento':'Sessão preparada'),subtitle:Text('${c.initiative.length} na iniciativa • ${c.conditions.length} condições'),trailing:const Icon(Icons.chevron_right),onTap:(){_tabs.animateTo(3);})), 
-    Card(child: ListTile(leading: const Icon(Icons.movie_filter_outlined), title: const Text('Cena atual'), subtitle: Text(c.masterScene.isEmpty ? 'Nenhuma cena definida.' : c.masterScene), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MasterToolsScreen(campaignId: c.id))))),
+    Card(margin: const EdgeInsets.only(bottom: 9), child:ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2), leading:Icon(c.combatActive?Icons.play_circle_fill:Icons.pause_circle_outline),title:Text(c.combatActive?'Sessão em andamento':'Sessão preparada'),subtitle:Text('${c.initiative.length} na iniciativa • ${c.conditions.length} condições'),trailing:const Icon(Icons.chevron_right),onTap:(){_tabs.animateTo(3);})), 
+    Card(margin: const EdgeInsets.only(bottom: 9), child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2), leading: const Icon(Icons.movie_filter_outlined), title: const Text('Cena atual'), subtitle: Text(c.masterScene.isEmpty ? 'Nenhuma cena definida.' : c.masterScene), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MasterToolsScreen(campaignId: c.id))))),
   ]);
 
   Widget _masterStatusCard(BuildContext context, Campaign c) {
