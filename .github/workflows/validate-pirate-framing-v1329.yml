@@ -1,0 +1,48 @@
+name: Validate pirate framing v1.3.29
+
+on:
+  push:
+    branches:
+      - fix-pirate-framing-v1.3.29
+    paths:
+      - scripts/fix_pirate_framing_v1329.py
+      - .github/workflows/validate-pirate-framing-v1329.yml
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply framing patch
+        run: python3 scripts/fix_pirate_framing_v1329.py
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.5'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Commit validated framing change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/screens/character/character_screen.dart
+          git commit -m "fix: pirate character framing v1.3.29"
+          git push origin HEAD:fix-pirate-framing-v1.3.29
