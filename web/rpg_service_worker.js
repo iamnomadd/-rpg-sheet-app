@@ -1,4 +1,4 @@
-const VERSION='1.3.29+129';
+const VERSION='1.3.30+130';
 const CACHE='rpg-sheet-'+VERSION;
 const CORE=['/','/index.html','/manifest.json','/icons/Icon-192.png','/icons/Icon-512.png','/icons/apple-touch-icon.png','/icons/apple-touch-icon-167.png'];
 
