@@ -104,21 +104,6 @@ class _CharacterScreenState extends State<CharacterScreen> {
     return state.systems.isNotEmpty ? state.systems.first : null;
   }
 
-  Widget _compactLines(List<String> lines, String emptyText) {
-    if (lines.isEmpty) {
-      return Text(emptyText);
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: lines
-          .map((line) => Padding(
-                padding: const EdgeInsets.only(bottom: 3),
-                child: Text(line, maxLines: 2, overflow: TextOverflow.ellipsis),
-              ))
-          .toList(),
-    );
-  }
-
   Future<void> _editBasic() async {
     final state = context.read<AppState>();
     final c = _findCharacter(state);
@@ -362,75 +347,6 @@ class _CharacterScreenState extends State<CharacterScreen> {
     'sections' => _SectionsTab(character: c, system: system, onEdit: _editSection),
     _ => const SizedBox.shrink(),
   };
-
-  Future<void> _customizeSheet(Character c) async {
-    var draft = _normalizedTabOrder(c);
-    final saved = await showModalBottomSheet<List<String>>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setSheetState) => SafeArea(
-          child: SizedBox(
-            height: MediaQuery.sizeOf(context).height * .72,
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.dashboard_customize_outlined),
-                  title: const Text('Personalizar ficha'),
-                  subtitle: const Text('Arraste para escolher a ordem das abas. A aba Resumo também pode ser reposicionada.'),
-                  trailing: TextButton(
-                    onPressed: () => setSheetState(() => draft = List<String>.from(_defaultTabOrder)),
-                    child: const Text('Restaurar'),
-                  ),
-                ),
-                const Divider(height: 1),
-                Expanded(
-                  child: ReorderableListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: draft.length,
-                    onReorder: (oldIndex, newIndex) {
-                      setSheetState(() {
-                        if (newIndex > oldIndex) newIndex--;
-                        final item = draft.removeAt(oldIndex);
-                        draft.insert(newIndex, item);
-                      });
-                    },
-                    itemBuilder: (context, index) {
-                      final id = draft[index];
-                      return ListTile(
-                        key: ValueKey('sheet-tab-$id'),
-                        leading: themedCharacterTabIcon(context.read<AppState>().themeId, id, size: 22, color: Theme.of(context).colorScheme.primary),
-                        title: Text(_tabLabel(id)),
-                        trailing: const Icon(Icons.drag_handle),
-                      );
-                    },
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: () => Navigator.pop(sheetContext, draft),
-                      icon: const Icon(Icons.save_outlined),
-                      label: const Text('Salvar organização'),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-    if (saved == null) return;
-    c.sheetTabOrder = saved;
-    tab = 0;
-    if (_tabController.hasClients) _tabController.jumpToPage(0);
-    await context.read<AppState>().updateCharacter(c);
-    if (mounted) setState(() {});
-  }
 
   Future<void> _manageMasterRequests(BuildContext context) async {
     try {
@@ -1297,93 +1213,6 @@ class _SectionsTab extends StatelessWidget {
 
 
 
-class _PirateSkeletonPainter extends CustomPainter {
-  final String pose;
-  const _PirateSkeletonPainter({this.pose = 'normal'});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.save();
-    canvas.scale(size.width / 168.0, size.height / 198.0);
-    const bone = Color(0xFFE2D1AD), boneShade = Color(0xFF9B8768);
-    const brown = Color(0xFF65442E), darkBrown = Color(0xFF35241A);
-    const navy = Color(0xFF17283D), red = Color(0xFF9E332D);
-    const gold = Color(0xFFB88B43), black = Color(0xFF101114);
-    final f = Paint()..style=PaintingStyle.fill..isAntiAlias=false;
-    final st = Paint()..style=PaintingStyle.stroke..strokeCap=StrokeCap.square..isAntiAlias=false;
-
-    void boneLine(Offset a, Offset b, [double w=5]) {
-      st..color=boneShade..strokeWidth=w+2; canvas.drawLine(a,b,st);
-      st..color=bone..strokeWidth=w; canvas.drawLine(a,b,st);
-    }
-    void hand(Offset c) {
-      f.color=bone; canvas.drawRect(Rect.fromCenter(center:c,width:7,height:8),f);
-      st..color=bone..strokeWidth=2;
-      for(var i=0;i<4;i++) canvas.drawLine(Offset(c.dx-3+i*2,c.dy+3),Offset(c.dx-4+i*2,c.dy+10),st);
-    }
-    void boot(Rect r) {
-      f.color=darkBrown; canvas.drawRect(r,f);
-      f.color=brown; canvas.drawRect(Rect.fromLTWH(r.left-3,r.bottom-7,r.width+7,8),f);
-    }
-    void head(Offset c,{double tilt=0}) {
-      canvas.save(); canvas.translate(c.dx,c.dy); canvas.rotate(tilt);
-      f.color=const Color(0xFF25242B); canvas.drawRect(const Rect.fromLTWH(-22,-25,44,15),f);
-      canvas.drawRect(const Rect.fromLTWH(13,-16,9,34),f); canvas.drawRect(const Rect.fromLTWH(-21,-15,8,31),f);
-      f.color=boneShade; canvas.drawRect(const Rect.fromLTWH(-20,-17,40,30),f);
-      f.color=bone; canvas.drawRect(const Rect.fromLTWH(-18,-19,36,28),f); canvas.drawRect(const Rect.fromLTWH(-13,7,26,13),f);
-      f.color=black; canvas.drawRect(const Rect.fromLTWH(-12,-8,9,8),f); canvas.drawRect(const Rect.fromLTWH(4,-8,9,8),f); canvas.drawRect(const Rect.fromLTWH(-3,1,6,6),f);
-      st..color=black..strokeWidth=1.5; canvas.drawLine(const Offset(-9,13),const Offset(9,13),st);
-      for(final x in [-6.0,-2.0,2.0,6.0]) canvas.drawLine(Offset(x,10),Offset(x,18),st);
-      f.color=red; canvas.drawRect(const Rect.fromLTWH(-22,-22,44,11),f); canvas.drawRect(const Rect.fromLTWH(-31,-7,12,7),f); canvas.drawRect(const Rect.fromLTWH(-30,-2,6,19),f);
-      canvas.restore();
-    }
-    void medal(Offset c) {
-      st..color=gold..strokeWidth=2; canvas.drawLine(Offset(c.dx,c.dy-13),c,st);
-      f.color=gold; canvas.drawRect(Rect.fromCenter(center:c,width:9,height:9),f);
-    }
-    void rope(Offset c) {
-      st..color=const Color(0xFFC4A16A)..strokeWidth=3;
-      canvas.drawArc(Rect.fromCenter(center:c,width:22,height:25),.2,5.4,false,st);
-      canvas.drawArc(Rect.fromCenter(center:c,width:14,height:17),.2,5.4,false,st);
-    }
-
-    f.color=const Color(0x33000000); canvas.drawOval(const Rect.fromLTWH(25,181,118,9),f);
-
-    if(pose=='incapacitated') {
-      boot(const Rect.fromLTWH(101,163,27,22)); boot(const Rect.fromLTWH(69,166,27,20));
-      f.color=navy; canvas.drawRect(const Rect.fromLTWH(82,140,31,28),f); canvas.drawRect(const Rect.fromLTWH(105,143,23,25),f);
-      boneLine(const Offset(83,139),const Offset(70,164)); boneLine(const Offset(107,141),const Offset(120,163));
-      canvas.save(); canvas.translate(76,122); canvas.rotate(.20);
-      f.color=navy; canvas.drawRect(const Rect.fromLTWH(-24,-31,48,52),f);
-      f.color=brown; canvas.drawRect(const Rect.fromLTWH(-24,-28,12,47),f); canvas.drawRect(const Rect.fromLTWH(12,-28,12,47),f);
-      f.color=darkBrown; canvas.drawRect(const Rect.fromLTWH(-25,13,50,8),f); canvas.restore();
-      boneLine(const Offset(55,101),const Offset(43,133)); boneLine(const Offset(43,133),const Offset(29,160),4); hand(const Offset(27,164));
-      boneLine(const Offset(96,103),const Offset(108,128)); boneLine(const Offset(108,128),const Offset(98,147),4); hand(const Offset(97,150));
-      rope(const Offset(58,145)); medal(const Offset(77,120)); head(const Offset(70,78),tilt:.18);
-    } else {
-      final critical=pose=='agony';
-      final shoulderY=critical?78.0:70.0, hipY=critical?124.0:119.0;
-      boot(Rect.fromLTWH(43,critical?158:154,28,31)); boot(Rect.fromLTWH(97,critical?158:154,28,31));
-      f.color=navy; canvas.drawRect(Rect.fromLTWH(48,hipY-4,25,40),f); canvas.drawRect(Rect.fromLTWH(95,hipY-4,25,40),f);
-      canvas.save(); if(critical){canvas.translate(84,98);canvas.rotate(.09);canvas.translate(-84,-98);}
-      f.color=navy; canvas.drawRect(Rect.fromLTWH(55,shoulderY-7,58,hipY-shoulderY+4),f);
-      f.color=brown; canvas.drawRect(Rect.fromLTWH(54,shoulderY-5,17,hipY-shoulderY+2),f); canvas.drawRect(Rect.fromLTWH(97,shoulderY-5,17,hipY-shoulderY+2),f);
-      f.color=darkBrown; canvas.drawRect(Rect.fromLTWH(50,hipY-5,69,10),f); f.color=gold; canvas.drawRect(Rect.fromLTWH(80,hipY-5,11,10),f); canvas.restore();
-      final le=critical?const Offset(42,112):const Offset(38,105), re=critical?const Offset(122,116):const Offset(130,106);
-      final lw=critical?const Offset(43,137):const Offset(42,132), rw=critical?const Offset(119,139):const Offset(126,132);
-      boneLine(Offset(55,shoulderY),le); boneLine(le,lw,4); boneLine(Offset(58,shoulderY),Offset(lw.dx+4,lw.dy),2);
-      boneLine(Offset(113,shoulderY),re); boneLine(re,rw,4); boneLine(Offset(110,shoulderY),Offset(rw.dx-4,rw.dy),2);
-      f.color=brown; canvas.drawRect(Rect.fromCenter(center:lw,width:10,height:7),f); canvas.drawRect(Rect.fromCenter(center:rw,width:10,height:7),f);
-      hand(Offset(lw.dx,lw.dy+7)); hand(Offset(rw.dx,rw.dy+7)); rope(Offset(119,hipY+8)); medal(Offset(84,shoulderY+22));
-      head(critical?const Offset(82,50):const Offset(84,43),tilt: critical ? .13 : 0);
-    }
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _PirateSkeletonPainter oldDelegate)=>oldDelegate.pose!=pose;
-}
-
 class _CombatCharacter2D extends StatelessWidget {
   final Character character;
   final Animation<double> idle;
@@ -1991,10 +1820,12 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
     if (id == 'weapons') names = c.inventory.where((n) => c.inventoryDetails[n]?['category'] == 'Arma').toList();
     if (id == 'consumables') names = c.inventory.where((n) => c.inventoryDetails[n]?['category'] == 'Consumível').toList();
     if (id == 'spells') names = c.abilities.where((n) => c.abilityDetails[n]?['category'] == 'Magia').toList();
-    if (id == 'abilities') names = c.abilities.where((n) {
-      final x = c.abilityDetails[n]?['category'];
-      return x == 'Técnica' || x == 'Habilidade';
-    }).toList();
+    if (id == 'abilities') {
+      names = c.abilities.where((n) {
+        final x = c.abilityDetails[n]?['category'];
+        return x == 'Técnica' || x == 'Habilidade';
+      }).toList();
+    }
     if (names.isEmpty) return const SizedBox.shrink();
 
     final groupIcon = switch (id) {
@@ -2225,7 +2056,6 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
-          final isMagic = widget.isAbility && category == 'Magia';
           final isPassive = widget.isAbility && category == 'Passiva';
           final isActiveAbility = widget.isAbility && !isPassive;
           final isWeapon = !widget.isAbility && category == 'Arma';

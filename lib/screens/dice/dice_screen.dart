@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/character.dart';
-import '../../models/rpg_system.dart';
 import '../../services/app_state.dart';
 
 class DiceScreen extends StatefulWidget {
@@ -361,7 +360,7 @@ class _DiceScreenState extends State<DiceScreen> {
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<int>(
-                            value: count.clamp(1, 100) as int,
+                            value: count.clamp(1, 100),
                             isDense: true,
                             decoration: const InputDecoration(labelText: 'Quantidade'),
                             items: List.generate(100, (i) => DropdownMenuItem(value: i + 1, child: Text('${i + 1}'))),
