@@ -9,6 +9,7 @@ import '../../services/app_state.dart';
 import '../../services/cloud_service.dart';
 import '../../services/rpg_file_service.dart';
 import 'npc_sheet_screen.dart';
+import '../../widgets/confirm_delete_dialog.dart';
 
 
 IconData _npcKindIcon(String kind) => switch (kind) {
@@ -284,7 +285,7 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
           trailing:PopupMenuButton<String>(itemBuilder:(_)=>const [PopupMenuItem(value:'open',child:Text('Abrir ficha')),PopupMenuItem(value:'duplicate',child:Text('Duplicar')),PopupMenuItem(value:'delete',child:Text('Excluir'))],onSelected:(v)async{
             if(v=='open'){await Navigator.push(context,MaterialPageRoute(builder:(_)=>NpcSheetScreen(campaignId:c.id,npcId:'${npc['id']}')));}
             if(v=='duplicate'){await _duplicateNpc(context,c,npc);}
-            if(v=='delete'){c.npcSheets.remove(npc);c.initiative.removeWhere((e)=>e['id']=='npc:${npc['id']}');await context.read<AppState>().updateCampaign(c);}
+            if(v=='delete'){final npcName=sheet?.name ?? '${npc['name'] ?? 'NPC'}';if(!await confirmDelete(context,title:'Excluir NPC?',message:'"$npcName" e sua ficha serão removidos da campanha e da iniciativa.'))return;if(!context.mounted)return;c.npcSheets.remove(npc);c.initiative.removeWhere((e)=>e['id']=='npc:${npc['id']}');await context.read<AppState>().updateCampaign(c);}
           }),
           onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>NpcSheetScreen(campaignId:c.id,npcId:'${npc['id']}'))),
         ));
@@ -293,7 +294,7 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
         const SizedBox(height:10),
         Text('NPCs antigos',style:Theme.of(context).textTheme.labelLarge),
         const SizedBox(height:4),
-        ...c.npcs.asMap().entries.map((e)=>Card(child:ListTile(leading:const Icon(Icons.person_outline),title:Text(e.value),subtitle:const Text('Formato simples antigo'),trailing:PopupMenuButton<String>(itemBuilder:(_)=>const [PopupMenuItem(value:'convert',child:Text('Converter em ficha')),PopupMenuItem(value:'delete',child:Text('Excluir'))],onSelected:(v)async{if(v=='convert')await _convertLegacyNpc(context,c,e.key,e.value);if(v=='delete'){c.npcs.removeAt(e.key);await context.read<AppState>().updateCampaign(c);}})))),
+        ...c.npcs.asMap().entries.map((e)=>Card(child:ListTile(leading:const Icon(Icons.person_outline),title:Text(e.value),subtitle:const Text('Formato simples antigo'),trailing:PopupMenuButton<String>(itemBuilder:(_)=>const [PopupMenuItem(value:'convert',child:Text('Converter em ficha')),PopupMenuItem(value:'delete',child:Text('Excluir'))],onSelected:(v)async{if(v=='convert')await _convertLegacyNpc(context,c,e.key,e.value);if(v=='delete'){if(!await confirmDelete(context,title:'Excluir NPC?',message:'"${e.value}" será removido da campanha.'))return;if(!context.mounted)return;c.npcs.removeAt(e.key);await context.read<AppState>().updateCampaign(c);}})))),
       ],
     ]);
   }
