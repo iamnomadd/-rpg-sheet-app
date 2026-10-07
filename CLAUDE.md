@@ -110,3 +110,10 @@ Os arquivos estáticos usam cache primeiro, então sem subir a versão os usuár
 ### Deploy
 - O deploy é automático a partir da main (workflow "Build and Deploy RPG Sheet to Cloudflare Test"): pub get, analyze, testes, build e deploy. O CI usa `--no-fatal-infos --no-fatal-warnings`; os avisos antigos do analyze existem na main e não são regressão.
 - Nunca altere workflows, assinatura do Android ou configurações de nuvem (Supabase, Cloudflare) sem pedido explícito. Não inclua segredos, chaves ou senhas em nenhum arquivo.
+
+## Contexto do projeto
+
+- Alvo principal: Flutter Web/PWA. O deploy atual é no Cloudflare Pages, pelo workflow `.github/workflows/main.yml`. Há uma migração futura planejada para o Netlify, e por isso o `netlify.toml` é mantido de propósito na raiz. O APK é legado e hoje não há pasta `android/` no repositório.
+- O PWA depende do service worker com cache por versão. Por isso, toda mudança que chega ao app exige subir a versão nos 4 arquivos: `pubspec.yaml`, `lib/core/app_version.dart`, `web/version.json` e `web/rpg_service_worker.js`.
+- Arquivos antigos (zips, release notes e o build Android legado) ficam em `docs/archive/` e não devem ser usados como referência do estado atual.
+- Não crie workflows de "apply" de uso único. Mudanças entram por branch + Pull Request.
