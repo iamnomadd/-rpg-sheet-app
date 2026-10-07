@@ -15,6 +15,7 @@ import '../../utils/resource_math.dart';
 import '../../utils/spell_icon.dart';
 import 'character_sprites.dart';
 import 'resource_quick_adjust.dart';
+import '../../widgets/confirm_delete_dialog.dart';
 
 
 Future<int?> _askResourceAmount(
@@ -2183,6 +2184,12 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
 
   Future<void> _delete(int index) async {
     final removed = widget.items[index];
+    final confirmed = await confirmDelete(
+      context,
+      title: 'Excluir ${widget.singular}?',
+      message: '"$removed" será removido desta ficha.',
+    );
+    if (!confirmed || !mounted) return;
     widget.items.removeAt(index);
     widget.descriptions.remove(removed);
     widget.details.remove(removed);

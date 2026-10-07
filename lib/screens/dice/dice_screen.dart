@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/character.dart';
 import '../../services/app_state.dart';
+import '../../widgets/confirm_delete_dialog.dart';
 
 class DiceScreen extends StatefulWidget {
   const DiceScreen({super.key});
@@ -557,7 +558,15 @@ class _DiceScreenState extends State<DiceScreen> {
                         trailing: IconButton(
                           tooltip: 'Excluir favorito',
                           icon: const Icon(Icons.delete_outline),
-                          onPressed: () => state.deleteRollPreset(preset['id']?.toString() ?? ''),
+                          onPressed: () async {
+                            final confirmed = await confirmDelete(
+                              context,
+                              title: 'Excluir favorito?',
+                              message: '"${preset['name']?.toString() ?? 'Rolagem salva'}" será removido dos seus atalhos.',
+                            );
+                            if (!confirmed) return;
+                            state.deleteRollPreset(preset['id']?.toString() ?? '');
+                          },
                         ),
                       ),
                     ),
@@ -575,7 +584,18 @@ class _DiceScreenState extends State<DiceScreen> {
                     onPressed: () => setState(() => historyCompact = !historyCompact),
                     icon: Icon(historyCompact ? Icons.unfold_more : Icons.unfold_less),
                   ),
-                  TextButton(onPressed: state.clearDiceHistory, child: const Text('Limpar')),
+                  TextButton(
+                    onPressed: () async {
+                      final confirmed = await confirmDelete(
+                        context,
+                        title: 'Limpar histórico?',
+                        message: 'Todas as rolagens do histórico serão removidas.',
+                        confirmLabel: 'Limpar',
+                      );
+                      if (confirmed) state.clearDiceHistory();
+                    },
+                    child: const Text('Limpar'),
+                  ),
                 ],
               ],
             ),
