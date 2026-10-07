@@ -69,5 +69,33 @@
       }, {once:true});
     }
   </script>
+  <script>
+    // Manual update: called ONLY when the user taps "Atualizar" in the app.
+    // Checks for a new service worker, waits for it to activate (at most 5 s)
+    // and reloads the page exactly once. Never called by worker events.
+    window.rpgApplyUpdate = async () => {
+      try {
+        const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+        if (reg) {
+          try { await reg.update(); } catch (_) {}
+          const worker = reg.installing || reg.waiting;
+          if (worker && worker.state !== 'activated') {
+            await new Promise(resolve => {
+              const timer = setTimeout(resolve, 5000);
+              worker.addEventListener('statechange', () => {
+                if (worker.state === 'activated' || worker.state === 'redundant') {
+                  clearTimeout(timer);
+                  resolve();
+                }
+              });
+            });
+          }
+        }
+      } catch (_) {
+        // Any failure still ends in a single reload.
+      }
+      window.location.reload();
+    };
+  </script>
 </body>
 </html>
