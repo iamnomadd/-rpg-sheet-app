@@ -12,7 +12,7 @@ String characterPoseFor({required int life, required int lifeMax, required bool 
 
 const _defaultCharacterSprites = <String, String>{
   'incapacitated': 'assets/character2d/incapacitated.png',
-  'critical': 'assets/character2d/normal.png',
+  'critical': 'assets/character2d/critical.png',
   'agony': 'assets/character2d/agony.png',
   'normal': 'assets/character2d/normal.png',
 };

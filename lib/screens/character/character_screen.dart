@@ -1459,17 +1459,7 @@ class _CombatCharacter2D extends StatelessWidget {
                                     ),
                                   ),
                                 )
-                              : incapacitated
-                                  ? ClipRect(
-                                      child: SizedBox(
-                                        height: 174,
-                                        child: Align(
-                                          alignment: Alignment.topCenter,
-                                          child: Image.asset(spritePath, height: 198, fit: BoxFit.contain, filterQuality: FilterQuality.none),
-                                        ),
-                                      ),
-                                    )
-                                  : Image.asset(spritePath, height: 198, fit: BoxFit.contain, filterQuality: FilterQuality.none),
+                              : Image.asset(spritePath, height: 198, fit: BoxFit.contain, filterQuality: FilterQuality.none),
                         ),
                       ),
                     ),
