@@ -586,6 +586,7 @@ class AppState extends ChangeNotifier {
     int count = 1,
     int modifier = 0,
     String mode = 'normal',
+    String? label,
   }) {
     final random = Random();
     final rolls = <int>[];
@@ -616,6 +617,7 @@ class AppState extends ChangeNotifier {
       'rolls': rolls,
       'result': total,
       'timestamp': DateTime.now().millisecondsSinceEpoch,
+      if (label != null && label.trim().isNotEmpty) 'label': label.trim(),
     };
     diceHistory.insert(0, entry);
     if (diceHistory.length > 50) diceHistory.removeRange(50, diceHistory.length);

@@ -610,7 +610,7 @@ class _DiceScreenState extends State<DiceScreen> {
                   child: ListTile(
                     dense: true,
                     leading: const Icon(Icons.history, size: 20),
-                    title: Text('${entry['expression']} = ${entry['result']}'),
+                    title: Text('${entry['label'] is String ? '${entry['label']}: ' : ''}${entry['expression']} = ${entry['result']}'),
                     subtitle: Text(
                       'Dados: ${(entry['rolls'] as List).join(', ')}${entry['mode'] == 'normal' ? '' : ' • ${_modeLabel(entry['mode']?.toString())}'}',
                       maxLines: 2,
