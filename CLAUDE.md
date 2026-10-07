@@ -117,3 +117,4 @@ Os arquivos estáticos usam cache primeiro, então sem subir a versão os usuár
 - O PWA depende do service worker com cache por versão. Por isso, toda mudança que chega ao app exige subir a versão nos 4 arquivos: `pubspec.yaml`, `lib/core/app_version.dart`, `web/version.json` e `web/rpg_service_worker.js`.
 - Arquivos antigos (zips, release notes e o build Android legado) ficam em `docs/archive/` e não devem ser usados como referência do estado atual.
 - Não crie workflows de "apply" de uso único. Mudanças entram por branch + Pull Request.
+- O CI (`.github/workflows/main.yml`) roda `flutter analyze --no-fatal-infos`: qualquer **warning** do analyze faz o CI falhar e bloqueia o deploy; infos não bloqueiam. Warnings novos devem ser corrigidos antes de abrir o PR.
