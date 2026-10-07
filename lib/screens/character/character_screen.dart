@@ -1168,7 +1168,7 @@ class _SkillsTab extends StatelessWidget {
       Text('Perícias do sistema', style: Theme.of(context).textTheme.titleLarge),
       const SizedBox(height: 8),
       if (system.skills.isEmpty) const Text('Este sistema não possui perícias configuradas.')
-      else ...system.skills.map((skill) => Card(child: CheckboxListTile(value: character.skills.contains(skill), onChanged: (_) => onToggle(character, skill), title: Text(skill), secondary: const Icon(Icons.psychology)))),
+      else ...system.skills.map((skill) => Card(margin: const EdgeInsets.only(bottom: 9), child: CheckboxListTile(value: character.skills.contains(skill), onChanged: (_) => onToggle(character, skill), title: Text(skill), secondary: const Icon(Icons.psychology)))),
       const SizedBox(height: 16),
       if (character.skills.isNotEmpty) Text('Perícias selecionadas: ${character.skills.join(', ')}', style: Theme.of(context).textTheme.bodySmall),
     ]);
