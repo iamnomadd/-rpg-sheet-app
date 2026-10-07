@@ -98,16 +98,12 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
         filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(
           padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12, vertical: compact ? 6 : 8),
           minimumSize: Size(44, compact ? 34 : 38),
-          shape: appState.themeId == 'parchment'
-              ? BeveledRectangleBorder(borderRadius: BorderRadius.circular(7))
-              : RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         )),
         outlinedButtonTheme: OutlinedButtonThemeData(style: OutlinedButton.styleFrom(
           padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12, vertical: compact ? 6 : 8),
           minimumSize: Size(44, compact ? 34 : 38),
-          shape: appState.themeId == 'parchment'
-              ? BeveledRectangleBorder(borderRadius: BorderRadius.circular(7))
-              : RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         )),
       ),
       builder: (context, child) {
@@ -172,9 +168,7 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
                 height: 78,
                 decoration: BoxDecoration(
                   border: Border(top: BorderSide(
-                    color: appState.themeId == 'vampire'
-                        ? const Color(0xFFFF2B2B)
-                        : Theme.of(context).colorScheme.outlineVariant.withOpacity(.32),
+                    color: Theme.of(context).colorScheme.outlineVariant.withOpacity(.32),
                   )),
                 ),
                 child: Row(
@@ -182,7 +176,6 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
                     final item = destinations[value];
                     final selected = value == safeIndex;
                     final scheme = Theme.of(context).colorScheme;
-                    final vampire = appState.themeId == 'vampire';
                     return Expanded(
                       child: InkWell(
                         onTap: () {
@@ -207,11 +200,9 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                selected
-                                    ? themedSelectedMainIcon(appState.themeId, item.role)
-                                    : themedMainIcon(appState.themeId, item.role),
+                                themedMainIcon(appState.themeId, item.role),
                                 size: 24,
-                                color: vampire ? scheme.primary : (selected ? scheme.primary : scheme.onSurfaceVariant),
+                                color: selected ? scheme.primary : scheme.onSurfaceVariant,
                               ),
                               const SizedBox(height: 4),
                               Text(
