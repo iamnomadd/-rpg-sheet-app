@@ -55,8 +55,8 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
     final name = TextEditingController(text: node?['name']?.toString() ?? '');
     final description = TextEditingController(text: node?['description']?.toString() ?? '');
     String parentId = node?['parentId']?.toString() ?? '';
-    final forbidden = editing ? _descendantIds(character, node!['id']?.toString() ?? '') : <String>{};
-    if (editing) forbidden.add(node!['id']?.toString() ?? '');
+    final forbidden = editing ? _descendantIds(character, node['id']?.toString() ?? '') : <String>{};
+    if (editing) forbidden.add(node['id']?.toString() ?? '');
     final validParentIds = character.skillTree
         .map((candidate) => candidate['id']?.toString() ?? '')
         .where((id) => id.isNotEmpty && !forbidden.contains(id))
@@ -131,9 +131,9 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
     if (result == null) return;
 
     if (editing) {
-      node!['name'] = result['name'];
-      node!['description'] = result['description'];
-      node!['parentId'] = result['parentId'];
+      node['name'] = result['name'];
+      node['description'] = result['description'];
+      node['parentId'] = result['parentId'];
     } else {
       var level = 1;
       final chosenParentId = result['parentId'] ?? '';
