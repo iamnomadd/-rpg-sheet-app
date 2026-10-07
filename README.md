@@ -1,8 +1,45 @@
-# RPG Sheet — V1.3.20 (Web/PWA)
+# RPG Sheet (Web/PWA)
 
-Versão atual do projeto: **1.3.20+120**. A plataforma principal é Flutter Web/PWA, publicada pelo workflow `Build RPG Sheet Web`. O fluxo Android antigo permanece apenas como histórico/legado e não é o caminho de distribuição atual.
+App Flutter de fichas de RPG de mesa.
 
-Principais documentos desta versão: `docs/archive/release-notes/RELEASE_NOTES_1.3.13.md`, `docs/archive/release-notes/RELEASE_NOTES_1.3.17.md` e `supabase/README.md`.
+A versão atual não fica fixada neste texto. A fonte é `lib/core/app_version.dart` (`appVersion` e `appBuildNumber`), que deve bater com os outros arquivos listados em [Versionamento](#versionamento).
+
+## Alvo atual
+
+- A plataforma principal é **Flutter Web/PWA**.
+- O APK Android é **legado**. Os arquivos do build antigo ficam em `docs/archive/legacy-android/`, e não há pasta `android/` no repositório.
+
+## Deploy
+
+- O workflow **"Build and Deploy RPG Sheet to Cloudflare Test"** (`.github/workflows/main.yml`) roda a cada push na `main` e também pode ser disparado manualmente.
+- Ele executa `flutter pub get`, `flutter analyze --no-fatal-infos --no-fatal-warnings`, `flutter test` e `flutter build web --release`.
+- Em seguida, publica `build/web` no projeto `rpg-sheet-test` do Cloudflare Pages. Hoje esse é o único deploy.
+- Há uma migração futura para o **Netlify** planejada. Por isso o `netlify.toml` foi mantido de propósito na raiz, mas ele não é usado pelo deploy atual.
+
+## Versionamento
+
+Toda mudança que chega ao app sobe a versão, no formato `X.Y.Z+N`, nos 4 arquivos:
+
+- `pubspec.yaml` (`version:`)
+- `lib/core/app_version.dart` (`appVersion` e `appBuildNumber`)
+- `web/version.json` (`version`, `build` e `fullVersion`)
+- `web/rpg_service_worker.js` (`const VERSION='X.Y.Z+N';`)
+
+O service worker do PWA usa cache por versão. Sem subir a versão, os usuários continuam vendo a versão antiga.
+
+## Estrutura
+
+- `lib/`: código do app.
+- `test/`: testes.
+- `assets/`: imagens. `assets/character2d/` guarda os sprites do personagem 2D, e `assets/cyberpunk/` os recursos do tema Cyberpunk.
+- `web/`: arquivos do PWA, incluindo o manifesto, `version.json` e o service worker.
+- `supabase/`: configuração e migrações do Supabase (veja `supabase/README.md`).
+- `docs/`: documentação. `docs/archive/` é **histórico** (zips, release notes e build Android legado) e não deve ser usado como referência do estado atual.
+- `CLAUDE.md`: regras do projeto para o Claude Code.
+
+## Histórico
+
+As seções abaixo são o histórico de versões antigas e podem não refletir o estado atual. As release notes antigas ficam em `docs/archive/release-notes/`.
 
 ---
 
@@ -308,7 +345,7 @@ Esta build possui como configuração padrão o projeto Supabase do RPG Sheet us
 - Versão 0.22.2+43.
 
 ### Fix de build 1.0.1
-O workflow remove `test/widget_test.dart` somente quando ele é criado automaticamente pelo `flutter create`. Esse teste padrão referencia `MyApp`, que não existe neste projeto, e fazia o passo Analyze falhar antes da compilação.
+O workflow legado de APK (hoje em `docs/archive/legacy-android/build-apk-signed.yml`) removia `test/widget_test.dart` somente quando ele era criado automaticamente pelo `flutter create`. Esse teste padrão referencia `MyApp`, que não existe neste projeto, e fazia o passo Analyze falhar antes da compilação.
 
 
 ## Política de versionamento
@@ -322,4 +359,4 @@ Cada atualização distribuída recebe uma nova versão sequencial, inclusive co
 - O build final (`build/web`) é publicado automaticamente no projeto de testes Cloudflare Pages `rpg-sheet-test`.
 - URL de teste: `https://rpg-sheet-test.pages.dev`.
 - O deploy usa os repository secrets `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID`.
-- Netlify permanece como ambiente de produção e deve receber somente versões aprovadas.
+- Netlify: migração futura planejada. O `netlify.toml` é mantido de propósito na raiz, mas hoje o deploy é feito somente no Cloudflare Pages.
