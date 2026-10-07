@@ -2054,7 +2054,6 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
-          final isMagic = widget.isAbility && category == 'Magia';
           final isPassive = widget.isAbility && category == 'Passiva';
           final isActiveAbility = widget.isAbility && !isPassive;
           final isWeapon = !widget.isAbility && category == 'Arma';
