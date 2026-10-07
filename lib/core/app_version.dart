@@ -1,4 +1,4 @@
-const String appVersion = '1.3.41';
-const int appBuildNumber = 141;
+const String appVersion = '1.3.42';
+const int appBuildNumber = 142;
 const String appVersionWithBuild = '$appVersion+$appBuildNumber';
 const String appVersionDisplay = 'RPG Sheet • V$appVersion';
