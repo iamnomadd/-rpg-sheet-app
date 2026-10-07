@@ -383,7 +383,7 @@ class _SystemTemplate {
   final List<String> skills;
   final List<String> resources;
   final List<String> sections;
-  final List<int> dice;
+  final List<int> dice = const [4, 6, 8, 10, 12, 20, 100];
 
   const _SystemTemplate({
     required this.name,
@@ -393,7 +393,6 @@ class _SystemTemplate {
     required this.skills,
     required this.resources,
     required this.sections,
-    this.dice = const [4, 6, 8, 10, 12, 20, 100],
   });
 }
 
