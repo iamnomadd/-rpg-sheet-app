@@ -248,16 +248,7 @@ class RpgFileService {
     switch (type) {
       case 'system':
         final original = RpgSystem.fromJson(data);
-        final imported = RpgSystem(
-          id: _uuid.v4(),
-          name: _uniqueSystemName(state, original.name),
-          description: original.description,
-          attributes: List<String>.from(original.attributes),
-          skills: List<String>.from(original.skills),
-          resources: List<String>.from(original.resources),
-          sections: List<String>.from(original.sections),
-          dice: List<int>.from(original.dice),
-        );
+        final imported = original.copyWith(id: _uuid.v4(), name: _uniqueSystemName(state, original.name));
         await state.addSystem(imported);
         return 'system';
 
@@ -265,16 +256,7 @@ class RpgFileService {
         final originalSystem = RpgSystem.fromJson(
           Map<String, dynamic>.from(data['system'] ?? {}),
         );
-        final importedSystem = RpgSystem(
-          id: _uuid.v4(),
-          name: _uniqueSystemName(state, originalSystem.name),
-          description: originalSystem.description,
-          attributes: List<String>.from(originalSystem.attributes),
-          skills: List<String>.from(originalSystem.skills),
-          resources: List<String>.from(originalSystem.resources),
-          sections: List<String>.from(originalSystem.sections),
-          dice: List<int>.from(originalSystem.dice),
-        );
+        final importedSystem = originalSystem.copyWith(id: _uuid.v4(), name: _uniqueSystemName(state, originalSystem.name));
         final originalCharacter = Character.fromJson(
           Map<String, dynamic>.from(data['character'] ?? {}),
         );
@@ -316,16 +298,7 @@ class RpgFileService {
 
     final systemMap = <String, String>{};
     for (final source in rawSystems) {
-      final imported = RpgSystem(
-        id: _uuid.v4(),
-        name: _uniqueSystemName(state, source.name),
-        description: source.description,
-        attributes: List<String>.from(source.attributes),
-        skills: List<String>.from(source.skills),
-        resources: List<String>.from(source.resources),
-        sections: List<String>.from(source.sections),
-        dice: List<int>.from(source.dice),
-      );
+      final imported = source.copyWith(id: _uuid.v4(), name: _uniqueSystemName(state, source.name));
       systemMap[source.id] = imported.id;
       await state.addSystem(imported);
     }
@@ -459,16 +432,7 @@ class RpgFileService {
 
     final data = Map<String, dynamic>.from(json['data'] ?? {});
     final original = RpgSystem.fromJson(data);
-    final imported = RpgSystem(
-      id: _uuid.v4(),
-      name: _uniqueSystemName(state, original.name),
-      description: original.description,
-      attributes: List<String>.from(original.attributes),
-      skills: List<String>.from(original.skills),
-      resources: List<String>.from(original.resources),
-      sections: List<String>.from(original.sections),
-      dice: List<int>.from(original.dice),
-    );
+    final imported = original.copyWith(id: _uuid.v4(), name: _uniqueSystemName(state, original.name));
     await state.addSystem(imported);
     return imported;
   }

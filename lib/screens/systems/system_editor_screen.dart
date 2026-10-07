@@ -21,6 +21,7 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
   late List<String> resources;
   late List<String> sections;
   late List<int> dice;
+  late Map<String, String> skillAttributes;
 
   final Map<String, String> _attributeRenames = {};
   final Map<String, String> _skillRenames = {};
@@ -37,6 +38,7 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
     resources = [...widget.system.resources];
     sections = [...widget.system.sections];
     dice = [...widget.system.dice];
+    skillAttributes = {...widget.system.skillAttributes};
   }
 
   @override
@@ -141,7 +143,11 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
     renameMap.removeWhere((key, current) => current == oldValue && key != originalValue);
     renameMap[originalValue] = value;
 
-    setState(() => list[index] = value);
+    setState(() {
+      list[index] = value;
+      if (identical(list, skills)) skillAttributes = renameSkillInLinks(skillAttributes, oldValue, value);
+      if (identical(list, attributes)) skillAttributes = renameAttributeInLinks(skillAttributes, oldValue, value);
+    });
   }
 
   Future<void> _confirmDelete(List<String> list, int index, String type) async {
@@ -157,7 +163,60 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
         ],
       ),
     );
-    if (confirmed == true) setState(() => list.removeAt(index));
+    if (confirmed != true) return;
+    setState(() {
+      list.removeAt(index);
+      if (identical(list, skills)) skillAttributes = removeSkillFromLinks(skillAttributes, item);
+      if (identical(list, attributes)) skillAttributes = removeAttributeFromLinks(skillAttributes, item);
+    });
+  }
+
+  String? _skillAttributeSubtitle(String skill) {
+    if (attributes.isEmpty) return null;
+    final attribute = skillAttributes[skill];
+    return attribute != null && attributes.contains(attribute) ? 'Atributo: $attribute' : 'Sem atributo';
+  }
+
+  Future<void> _pickSkillAttribute(int index) async {
+    if (attributes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Adicione atributos ao sistema para vincular perícias.')),
+      );
+      return;
+    }
+    final skill = skills[index];
+    final current = skillAttributes[skill];
+    // '' representa "Sem atributo"; null significa que a janela foi fechada.
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text('Atributo base de $skill'),
+        children: [
+          for (final option in ['', ...attributes])
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(dialogContext, option),
+              child: Row(children: [
+                Icon(
+                  (option.isEmpty ? current == null || !attributes.contains(current) : current == option)
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Text(option.isEmpty ? 'Sem atributo' : option)),
+              ]),
+            ),
+        ],
+      ),
+    );
+    if (choice == null || !mounted) return;
+    setState(() {
+      if (choice.isEmpty) {
+        skillAttributes = removeSkillFromLinks(skillAttributes, skill);
+      } else {
+        skillAttributes = {...skillAttributes, skill: choice};
+      }
+    });
   }
 
   void _reorder(List<String> list, int oldIndex, int newIndex) {
@@ -206,6 +265,7 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
       skills = [...preset['skills']!];
       resources = [...preset['resources']!];
       sections = [...preset['sections']!];
+      skillAttributes = pruneSkillAttributes(skills: skills, attributes: attributes, links: skillAttributes);
       _attributeRenames.clear();
       _skillRenames.clear();
       _resourceRenames.clear();
@@ -253,6 +313,7 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
       resources: resources,
       sections: sections,
       dice: dice,
+      skillAttributes: pruneSkillAttributes(skills: skills, attributes: attributes, links: skillAttributes),
     );
 
     await context.read<AppState>().updateSystem(
@@ -368,6 +429,8 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
             onEdit: (i) => _editItem(skills, i, 'Editar perícia', 'Nome da perícia', _skillRenames),
             onDelete: (i) => _confirmDelete(skills, i, 'perícia'),
             onReorder: (a, b) => _reorder(skills, a, b),
+            subtitleFor: _skillAttributeSubtitle,
+            onTapItem: _pickSkillAttribute,
           ),
           _EditorSection(
             title: 'Recursos',
@@ -531,6 +594,8 @@ class _EditorSection extends StatelessWidget {
   final ValueChanged<int> onEdit;
   final ValueChanged<int> onDelete;
   final void Function(int oldIndex, int newIndex) onReorder;
+  final String? Function(String item)? subtitleFor;
+  final ValueChanged<int>? onTapItem;
 
   const _EditorSection({
     required this.title,
@@ -541,6 +606,8 @@ class _EditorSection extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.onReorder,
+    this.subtitleFor,
+    this.onTapItem,
   });
 
   @override
@@ -574,6 +641,7 @@ class _EditorSection extends StatelessWidget {
               onReorder: onReorder,
               itemBuilder: (context, index) {
                 final item = items[index];
+                final subtitle = subtitleFor?.call(item);
                 return ListTile(
                   key: ValueKey('$title-$item-$index'),
                   dense: true,
@@ -586,6 +654,8 @@ class _EditorSection extends StatelessWidget {
                     ),
                   ),
                   title: Text(item),
+                  subtitle: subtitle == null ? null : Text(subtitle),
+                  onTap: onTapItem == null ? null : () => onTapItem!(index),
                   trailing: Wrap(
                     spacing: 0,
                     children: [

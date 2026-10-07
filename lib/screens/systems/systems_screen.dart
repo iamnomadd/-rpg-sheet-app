@@ -58,6 +58,11 @@ class _SystemsScreenState extends State<SystemsScreen> {
       resources: List<String>.from(template.resources),
       sections: List<String>.from(template.sections),
       dice: List<int>.from(template.dice),
+      skillAttributes: pruneSkillAttributes(
+        skills: template.skills,
+        attributes: template.attributes,
+        links: template.skillAttributes,
+      ),
     );
 
     await state.addSystem(system);
@@ -384,6 +389,7 @@ class _SystemTemplate {
   final List<String> resources;
   final List<String> sections;
   final List<int> dice = const [4, 6, 8, 10, 12, 20, 100];
+  final Map<String, String> skillAttributes;
 
   const _SystemTemplate({
     required this.name,
@@ -393,6 +399,7 @@ class _SystemTemplate {
     required this.skills,
     required this.resources,
     required this.sections,
+    this.skillAttributes = const {},
   });
 }
 
@@ -405,6 +412,7 @@ const _templates = <_SystemTemplate>[
     skills: ['Acrobacia', 'Arcanismo', 'Atletismo', 'Atuação', 'Enganação', 'Furtividade', 'História', 'Intimidação', 'Intuição', 'Investigação', 'Lidar com Animais', 'Medicina', 'Natureza', 'Percepção', 'Persuasão', 'Prestidigitação', 'Religião', 'Sobrevivência'],
     resources: ['Vida', 'PV Temporários', 'Inspiração'],
     sections: ['Classe e Subclasse', 'Antecedente', 'CA e Iniciativa', 'Salvaguardas', 'Dados de Vida', 'Testes contra Morte', 'Proficiências e Idiomas', 'Magias', 'Traços', 'Anotações'],
+    skillAttributes: dnd5eSkillAttributes,
   ),
   _SystemTemplate(
     name: 'Tormenta20',
