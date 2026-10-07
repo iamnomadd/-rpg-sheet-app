@@ -347,7 +347,7 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
     return ListView(padding: const EdgeInsets.all(16), children: [
       Card(child: Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         Row(children:[Icon(c.combatActive?Icons.sports_martial_arts:Icons.pause_circle_outline),const SizedBox(width:10),Expanded(child:Text(c.combatActive?'Combate ativo':'Sem combate ativo',style:Theme.of(context).textTheme.titleLarge)),Text('Rodada ${c.sessionRound}')]),
-        if(current!=null)...[const SizedBox(height:12),Text('TURNO ATUAL',style:Theme.of(context).textTheme.labelMedium),const SizedBox(height:4),Text('${current['name']}',style:Theme.of(context).textTheme.headlineSmall),Text('Iniciativa ${current['value']} • ${done}/${ordered.length} concluídos')],
+        if(current!=null)...[const SizedBox(height:12),Text('TURNO ATUAL',style:Theme.of(context).textTheme.labelMedium),const SizedBox(height:4),Text('${current['name']}',style:Theme.of(context).textTheme.headlineSmall),Text('Iniciativa ${current['value']} • $done/${ordered.length} concluídos')],
       ]))),
       if(ordered.isNotEmpty) Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         Text('Ordem de iniciativa',style:Theme.of(context).textTheme.titleMedium),
