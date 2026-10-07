@@ -16,6 +16,7 @@ import '../../utils/spell_icon.dart';
 import 'character_sprites.dart';
 import 'resource_quick_adjust.dart';
 import '../../widgets/confirm_delete_dialog.dart';
+import 'skill_roll.dart';
 
 
 Future<int?> _askResourceAmount(
@@ -1192,13 +1193,45 @@ class _SkillsTab extends StatelessWidget {
   final Future<void> Function(Character, String) onToggle;
   const _SkillsTab({required this.character, required this.system, required this.onToggle});
 
+  Future<void> _rollFromSheet(BuildContext context, String skill) async {
+    final choice = await showSkillRollSheet(context, system: system, character: character, skillName: skill);
+    if (choice == null || !context.mounted) return;
+    rollSkill(context, character: character, skillName: skill, attribute: choice.attribute, mode: choice.mode);
+  }
+
+  void _tapSkill(BuildContext context, String skill) {
+    final attribute = resolveSkillRoll(system, character, skill);
+    if (attribute == null) {
+      _rollFromSheet(context, skill);
+      return;
+    }
+    rollSkill(context, character: character, skillName: skill, attribute: attribute);
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(padding: const EdgeInsets.all(16), children: [
       Text('Perícias do sistema', style: Theme.of(context).textTheme.titleLarge),
       const SizedBox(height: 8),
+      if (system.skills.isNotEmpty) ...[
+        Text(
+          'Toque para rolar · segure para escolher atributo e modo',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 8),
+      ],
       if (system.skills.isEmpty) const Text('Este sistema não possui perícias configuradas.')
-      else ...system.skills.map((skill) => Card(margin: const EdgeInsets.only(bottom: 9), child: CheckboxListTile(value: character.skills.contains(skill), onChanged: (_) => onToggle(character, skill), title: Text(skill), secondary: const Icon(Icons.psychology)))),
+      else ...system.skills.map((skill) => Card(margin: const EdgeInsets.only(bottom: 9), child: ListTile(
+        leading: const Icon(Icons.psychology),
+        title: Text(skill),
+        trailing: Checkbox(
+          value: character.skills.contains(skill),
+          onChanged: (_) => onToggle(character, skill),
+          semanticLabel: 'Treinada em $skill',
+        ),
+        onTap: () => _tapSkill(context, skill),
+        onLongPress: () => _rollFromSheet(context, skill),
+      ))),
       const SizedBox(height: 16),
       if (character.skills.isNotEmpty) Text('Perícias selecionadas: ${character.skills.join(', ')}', style: Theme.of(context).textTheme.bodySmall),
     ]);
