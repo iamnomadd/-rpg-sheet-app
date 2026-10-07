@@ -14,6 +14,7 @@ import '../../services/skill_tree_templates.dart';
 import '../../utils/resource_math.dart';
 import '../../utils/spell_icon.dart';
 import 'character_sprites.dart';
+import 'resource_quick_adjust.dart';
 
 
 Future<int?> _askResourceAmount(
@@ -564,6 +565,25 @@ class _CharacterTabsHeader extends SliverPersistentHeaderDelegate {
 }
 
 
+/// Toque na barra do recurso: lê os valores no momento do toque, abre o ajuste
+/// rápido e aplica o delta pela função de alteração do card.
+Future<void> _quickAdjustResource(
+  BuildContext context,
+  Character character,
+  String name,
+  Future<void> Function(int delta) apply,
+) async {
+  final current = character.resourceValues[name] ?? 0;
+  final max = character.resourceMaxValues[name] ?? 0;
+  if (max <= 0) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Defina o valor máximo de $name primeiro (ícone de ajuste).')));
+    return;
+  }
+  final delta = await showResourceQuickAdjust(context, name: name, current: current, max: max);
+  if (delta == null || !context.mounted) return;
+  await apply(delta);
+}
+
 class _GeneralTab extends StatelessWidget {
   final Character character;
   final RpgSystem system;
@@ -637,7 +657,7 @@ class _GeneralTab extends StatelessWidget {
                 icon: const Icon(Icons.add),
               ),
               IconButton(
-                tooltip: 'Ajustar valor',
+                tooltip: 'Editar valor atual e máximo',
                 visualDensity: VisualDensity.compact,
                 onPressed: () => onEditResource(character, resourceName),
                 icon: const Icon(Icons.tune, size: 20),
@@ -650,10 +670,14 @@ class _GeneralTab extends StatelessWidget {
           ],
           const SizedBox(height: 8),
           if (resourceName.isNotEmpty)
-            _ThemedResourceBar(
-              value: progress,
-              themeId: themeId,
-              secondary: secondary,
+            ResourceBarTapTarget(
+              label: resourceName,
+              onTap: () => _quickAdjustResource(context, character, resourceName, (delta) => onChangeResource(character, resourceName, delta)),
+              child: _ThemedResourceBar(
+                value: progress,
+                themeId: themeId,
+                secondary: secondary,
+              ),
             ),
         ]),
       ),
@@ -1052,15 +1076,20 @@ class _AttributesResourcesTab extends StatelessWidget {
                         icon: const Icon(Icons.add),
                       ),
                       IconButton(
+                        tooltip: 'Editar valor atual e máximo',
                         onPressed: () => onEditResource(character, name),
                         icon: const Icon(Icons.tune),
                       ),
                     ],
                   ),
-                  _ThemedResourceBar(
-                    value: progress,
-                    themeId: themeId,
-                    secondary: name.toLowerCase() != 'vida',
+                  ResourceBarTapTarget(
+                    label: name,
+                    onTap: () => _quickAdjustResource(context, character, name, (delta) => onChangeResource(character, name, delta)),
+                    child: _ThemedResourceBar(
+                      value: progress,
+                      themeId: themeId,
+                      secondary: name.toLowerCase() != 'vida',
+                    ),
                   ),
                 ],
               ),
@@ -1624,7 +1653,7 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
     if (name.toLowerCase() == 'energia') widget.character.energy = widget.character.resourceValues[name]!;
     await _save();
   }
-  Widget _resource(String name){final current=widget.character.resourceValues[name]??0,max=widget.character.resourceMaxValues[name]??0,value=max<=0?0.0:(current/max).clamp(0.0,1.0);final themeId=context.watch<AppState>().themeId,secondary=name.toLowerCase()!='vida';return Card(child:Padding(padding:const EdgeInsets.fromLTRB(14,10,14,12),child:Column(children:[Row(children:[Icon(secondary?Icons.bolt:themedIcon(themeId,'resources'),size:22),const SizedBox(width:8),Expanded(child:Text(name,style:const TextStyle(fontWeight:FontWeight.w700))),IconButton(tooltip:'Diminuir',visualDensity:VisualDensity.compact,onPressed:()=>_changeResource(name,-1),icon:const Icon(Icons.remove)),Text('$current / $max',style:Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w600)),IconButton(tooltip:'Aumentar',visualDensity:VisualDensity.compact,onPressed:()=>_changeResource(name,1),icon:const Icon(Icons.add)),IconButton(tooltip:'Ajustar valor',visualDensity:VisualDensity.compact,onPressed:()=>_editResourceValue(name),icon:const Icon(Icons.tune,size:20))]),const SizedBox(height:7),_ThemedResourceBar(value:value,themeId:themeId,secondary:secondary)])));}
+  Widget _resource(String name){final current=widget.character.resourceValues[name]??0,max=widget.character.resourceMaxValues[name]??0,value=max<=0?0.0:(current/max).clamp(0.0,1.0);final themeId=context.watch<AppState>().themeId,secondary=name.toLowerCase()!='vida';return Card(child:Padding(padding:const EdgeInsets.fromLTRB(14,10,14,12),child:Column(children:[Row(children:[Icon(secondary?Icons.bolt:themedIcon(themeId,'resources'),size:22),const SizedBox(width:8),Expanded(child:Text(name,style:const TextStyle(fontWeight:FontWeight.w700))),IconButton(tooltip:'Diminuir',visualDensity:VisualDensity.compact,onPressed:()=>_changeResource(name,-1),icon:const Icon(Icons.remove)),Text('$current / $max',style:Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w600)),IconButton(tooltip:'Aumentar',visualDensity:VisualDensity.compact,onPressed:()=>_changeResource(name,1),icon:const Icon(Icons.add)),IconButton(tooltip:'Editar valor atual e máximo',visualDensity:VisualDensity.compact,onPressed:()=>_editResourceValue(name),icon:const Icon(Icons.tune,size:20))]),const SizedBox(height:7),ResourceBarTapTarget(label:name,onTap:()=>_quickAdjustResource(context,widget.character,name,(delta) async {if(!mounted)return;await _changeResource(name,delta);}),child:_ThemedResourceBar(value:value,themeId:themeId,secondary:secondary))])));}
 
   Future<void> _selectConditions() async {
     final initial = widget.character.conditions.toSet();
