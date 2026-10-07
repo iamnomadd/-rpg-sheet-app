@@ -13,6 +13,7 @@ import '../../app/condition_presets.dart';
 import '../../services/skill_tree_templates.dart';
 import '../../utils/resource_math.dart';
 import '../../utils/spell_icon.dart';
+import 'character_sprites.dart';
 
 
 Future<int?> _askResourceAmount(
@@ -1252,13 +1253,7 @@ class _CombatCharacter2D extends StatelessWidget {
 
   double get _lifeRatio => _lifeMax > 0 ? (_life / _lifeMax).clamp(0.0, 1.0) : 1.0;
 
-  String get _pose {
-    if (_life <= 0) return 'incapacitated';
-    if (_lifeRatio <= .30) return 'critical';
-    if (_lifeRatio <= .40) return 'agony';
-    if (_negativeStatuses.isNotEmpty) return 'agony';
-    return 'normal';
-  }
+  String get _pose => characterPoseFor(life: _life, lifeMax: _lifeMax, hasNegativeStatus: _negativeStatuses.isNotEmpty);
 
   String get _healthLabel {
     if (_life <= 0) return 'Incapacitado';
@@ -1267,8 +1262,6 @@ class _CombatCharacter2D extends StatelessWidget {
     if (_negativeStatuses.isNotEmpty) return 'Afetado';
     return 'Estável';
   }
-
-  String get _asset => 'assets/character2d/${_pose == 'incapacitated' ? 'incapacitated' : _pose == 'agony' ? 'agony' : 'normal'}.png';
 
   Widget _statusEffects(BuildContext context, double phase) {
     final scheme = Theme.of(context).colorScheme;
@@ -1389,9 +1382,8 @@ class _CombatCharacter2D extends StatelessWidget {
     final state = context.watch<AppState>();
     final themeId = state.themeId;
     final reduceMotion = state.reduceAnimations || MediaQuery.maybeOf(context)?.disableAnimations == true;
-    final pirateTheme = themeId == 'parchment';
-    final cyberpunkTheme = themeId == 'cyberpunk';
     final vampiricTheme = themeId == 'vampire';
+    final spritePath = characterSpritePath(themeId: themeId, pose: _pose);
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -1447,7 +1439,7 @@ class _CombatCharacter2D extends StatelessWidget {
                         angle: lean,
                         child: Transform.scale(
                           scale: scale,
-                          child: pirateTheme || cyberpunkTheme || vampiricTheme
+                          child: characterUsesSpecialSprite(themeId)
                               ? SizedBox(
                                   height: 198,
                                   width: 198,
@@ -1456,29 +1448,7 @@ class _CombatCharacter2D extends StatelessWidget {
                                     child: Align(
                                       alignment: Alignment.bottomCenter,
                                       child: Image.asset(
-                                        vampiricTheme
-                                            ? (_pose == 'incapacitated'
-                                                ? 'assets/character2d/vampiric_incapacitated.png'
-                                                : _pose == 'critical'
-                                                    ? 'assets/character2d/vampiric_critical.png'
-                                                    : _pose == 'agony'
-                                                        ? 'assets/character2d/vampiric_agony.png'
-                                                        : 'assets/character2d/vampiric_normal.png')
-                                            : cyberpunkTheme
-                                            ? (_pose == 'incapacitated'
-                                                ? 'assets/character2d/cyberpunk_incapacitated.png'
-                                                : _pose == 'critical'
-                                                    ? 'assets/character2d/cyberpunk_critical.png'
-                                                    : _pose == 'agony'
-                                                        ? 'assets/character2d/cyberpunk_agony.png'
-                                                        : 'assets/character2d/cyberpunk_normal.png')
-                                            : (_pose == 'incapacitated'
-                                                ? 'assets/character2d/pirate_incapacitated.webp'
-                                                : _pose == 'critical'
-                                                    ? 'assets/character2d/pirate_critical_new.webp'
-                                                    : _pose == 'agony'
-                                                        ? 'assets/character2d/pirate_critical.webp'
-                                                        : 'assets/character2d/pirate_normal.webp'),
+                                        spritePath,
                                         width: 182,
                                         height: 182,
                                         fit: BoxFit.contain,
@@ -1495,11 +1465,11 @@ class _CombatCharacter2D extends StatelessWidget {
                                         height: 174,
                                         child: Align(
                                           alignment: Alignment.topCenter,
-                                          child: Image.asset(_asset, height: 198, fit: BoxFit.contain, filterQuality: FilterQuality.none),
+                                          child: Image.asset(spritePath, height: 198, fit: BoxFit.contain, filterQuality: FilterQuality.none),
                                         ),
                                       ),
                                     )
-                                  : Image.asset(_asset, height: 198, fit: BoxFit.contain, filterQuality: FilterQuality.none),
+                                  : Image.asset(spritePath, height: 198, fit: BoxFit.contain, filterQuality: FilterQuality.none),
                         ),
                       ),
                     ),
