@@ -553,7 +553,7 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: FilledButton.tonalIcon(
+                      child: OutlinedButton.icon(
                         icon: const Icon(Icons.favorite_outline),
                         label: const Text('Curar'),
                         onPressed: () async {

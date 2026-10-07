@@ -204,7 +204,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: FilledButton.tonalIcon(
+                child: OutlinedButton.icon(
                   icon: const Icon(Icons.favorite_outline),
                   label: const Text('Curar'),
                   onPressed: () async {
@@ -1459,17 +1459,7 @@ class _CombatCharacter2D extends StatelessWidget {
                                     ),
                                   ),
                                 )
-                              : incapacitated
-                                  ? ClipRect(
-                                      child: SizedBox(
-                                        height: 174,
-                                        child: Align(
-                                          alignment: Alignment.topCenter,
-                                          child: Image.asset(spritePath, height: 198, fit: BoxFit.contain, filterQuality: FilterQuality.none),
-                                        ),
-                                      ),
-                                    )
-                                  : Image.asset(spritePath, height: 198, fit: BoxFit.contain, filterQuality: FilterQuality.none),
+                              : Image.asset(spritePath, height: 198, fit: BoxFit.contain, filterQuality: FilterQuality.none),
                         ),
                       ),
                     ),
@@ -1603,7 +1593,7 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: FilledButton.tonalIcon(
+                child: OutlinedButton.icon(
                   icon: const Icon(Icons.favorite_outline),
                   label: const Text('Curar'),
                   onPressed: () async {

@@ -7,7 +7,7 @@ const _poses = ['incapacitated', 'critical', 'agony', 'normal'];
 
 const _defaultSprites = {
   'incapacitated': 'assets/character2d/incapacitated.png',
-  'critical': 'assets/character2d/normal.png',
+  'critical': 'assets/character2d/critical.png',
   'agony': 'assets/character2d/agony.png',
   'normal': 'assets/character2d/normal.png',
 };
@@ -98,8 +98,21 @@ void main() {
       });
     }
 
-    test('temas padrão usam normal.png no crítico', () {
-      expect(characterSpritePath(themeId: 'classic', pose: 'critical'), 'assets/character2d/normal.png');
+    test('temas padrão usam critical.png no crítico', () {
+      expect(characterSpritePath(themeId: 'classic', pose: 'critical'), 'assets/character2d/critical.png');
+    });
+
+    test('sprites padrão são PNG de 180×278', () {
+      for (final name in ['normal', 'agony', 'critical', 'incapacitated']) {
+        final file = File('assets/character2d/$name.png');
+        expect(file.existsSync(), isTrue, reason: name);
+        final bytes = file.readAsBytesSync();
+        expect(bytes.sublist(0, 4), [0x89, 0x50, 0x4E, 0x47], reason: '$name: assinatura PNG');
+        int readUint32(int offset) =>
+            (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
+        expect(readUint32(16), 180, reason: '$name: largura');
+        expect(readUint32(20), 278, reason: '$name: altura');
+      }
     });
 
     test('todos os sprites esperados existem em disco', () {
