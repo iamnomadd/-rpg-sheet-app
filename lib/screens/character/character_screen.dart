@@ -204,7 +204,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: FilledButton.tonalIcon(
+                child: OutlinedButton.icon(
                   icon: const Icon(Icons.favorite_outline),
                   label: const Text('Curar'),
                   onPressed: () async {
@@ -1603,7 +1603,7 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: FilledButton.tonalIcon(
+                child: OutlinedButton.icon(
                   icon: const Icon(Icons.favorite_outline),
                   label: const Text('Curar'),
                   onPressed: () async {
