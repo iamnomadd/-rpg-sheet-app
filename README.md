@@ -2,7 +2,7 @@
 
 Versão atual do projeto: **1.3.20+120**. A plataforma principal é Flutter Web/PWA, publicada pelo workflow `Build RPG Sheet Web`. O fluxo Android antigo permanece apenas como histórico/legado e não é o caminho de distribuição atual.
 
-Principais documentos desta versão: `RELEASE_NOTES_1.3.13.md`, `RELEASE_NOTES_1.3.17.md` e `supabase/README.md`.
+Principais documentos desta versão: `docs/archive/release-notes/RELEASE_NOTES_1.3.13.md`, `docs/archive/release-notes/RELEASE_NOTES_1.3.17.md` e `supabase/README.md`.
 
 ---
 
