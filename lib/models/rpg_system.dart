@@ -33,6 +33,28 @@ Map<String, String> pruneSkillAttributes({
   };
 }
 
+/// Vínculos com a perícia [oldSkill] renomeada para [newSkill].
+Map<String, String> renameSkillInLinks(Map<String, String> links, String oldSkill, String newSkill) => {
+      for (final entry in links.entries) (entry.key == oldSkill ? newSkill : entry.key): entry.value,
+    };
+
+/// Vínculos que apontavam para [oldAttribute] passam a apontar para [newAttribute].
+Map<String, String> renameAttributeInLinks(Map<String, String> links, String oldAttribute, String newAttribute) => {
+      for (final entry in links.entries) entry.key: (entry.value == oldAttribute ? newAttribute : entry.value),
+    };
+
+/// Vínculos sem a perícia [skill].
+Map<String, String> removeSkillFromLinks(Map<String, String> links, String skill) => {
+      for (final entry in links.entries)
+        if (entry.key != skill) entry.key: entry.value,
+    };
+
+/// Vínculos sem os que apontavam para [attribute].
+Map<String, String> removeAttributeFromLinks(Map<String, String> links, String attribute) => {
+      for (final entry in links.entries)
+        if (entry.value != attribute) entry.key: entry.value,
+    };
+
 class RpgSystem {
   final String id;
   String name;

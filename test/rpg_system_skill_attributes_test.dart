@@ -127,4 +127,27 @@ void main() {
     );
     expect(pruned, {'Atletismo': 'Força'});
   });
+
+  group('funções de vínculo do editor', () {
+    const links = {'Furtividade': 'Destreza', 'Acrobacia': 'Destreza', 'Atletismo': 'Força'};
+
+    test('renomear perícia move a chave', () {
+      final result = renameSkillInLinks(links, 'Furtividade', 'Esgueirar');
+      expect(result, {'Esgueirar': 'Destreza', 'Acrobacia': 'Destreza', 'Atletismo': 'Força'});
+      expect(links.containsKey('Furtividade'), isTrue);
+    });
+
+    test('renomear atributo troca o valor dos vínculos', () {
+      expect(renameAttributeInLinks(links, 'Destreza', 'Agilidade'),
+          {'Furtividade': 'Agilidade', 'Acrobacia': 'Agilidade', 'Atletismo': 'Força'});
+    });
+
+    test('remover perícia remove só o vínculo dela', () {
+      expect(removeSkillFromLinks(links, 'Atletismo'), {'Furtividade': 'Destreza', 'Acrobacia': 'Destreza'});
+    });
+
+    test('remover atributo remove os vínculos que apontavam para ele', () {
+      expect(removeAttributeFromLinks(links, 'Destreza'), {'Atletismo': 'Força'});
+    });
+  });
 }
