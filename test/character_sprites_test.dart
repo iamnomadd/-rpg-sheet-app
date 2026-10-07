@@ -109,6 +109,11 @@ void main() {
       }
     });
 
+    test('só Pirata, Cyberpunk e Vampírico usam sprite próprio', () {
+      final special = _expected.keys.where(characterUsesSpecialSprite).toSet();
+      expect(special, {'parchment', 'cyberpunk', 'vampire'});
+    });
+
     test('pubspec.yaml declara assets/character2d/', () {
       final pubspec = File('pubspec.yaml').readAsLinesSync().map((l) => l.trim());
       expect(pubspec, contains('- assets/character2d/'));

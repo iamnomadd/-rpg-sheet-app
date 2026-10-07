@@ -10,34 +10,41 @@ String characterPoseFor({required int life, required int lifeMax, required bool 
   return 'normal';
 }
 
+const _defaultCharacterSprites = <String, String>{
+  'incapacitated': 'assets/character2d/incapacitated.png',
+  'critical': 'assets/character2d/normal.png',
+  'agony': 'assets/character2d/agony.png',
+  'normal': 'assets/character2d/normal.png',
+};
+
+/// Sprites próprios por tema (4 poses cada). Temas fora deste mapa usam
+/// [_defaultCharacterSprites].
+const _themeCharacterSprites = <String, Map<String, String>>{
+  'vampire': {
+    'incapacitated': 'assets/character2d/vampiric_incapacitated.png',
+    'critical': 'assets/character2d/vampiric_critical.png',
+    'agony': 'assets/character2d/vampiric_agony.png',
+    'normal': 'assets/character2d/vampiric_normal.png',
+  },
+  'cyberpunk': {
+    'incapacitated': 'assets/character2d/cyberpunk_incapacitated.png',
+    'critical': 'assets/character2d/cyberpunk_critical.png',
+    'agony': 'assets/character2d/cyberpunk_agony.png',
+    'normal': 'assets/character2d/cyberpunk_normal.png',
+  },
+  'parchment': {
+    'incapacitated': 'assets/character2d/pirate_incapacitated.webp',
+    'critical': 'assets/character2d/pirate_critical_new.webp',
+    'agony': 'assets/character2d/pirate_critical.webp',
+    'normal': 'assets/character2d/pirate_normal.webp',
+  },
+};
+
+/// Se o tema tem sprites próprios (renderizados na área fixa de 198×198).
+bool characterUsesSpecialSprite(String themeId) => _themeCharacterSprites.containsKey(themeId);
+
 /// Caminho do sprite do personagem para o tema e a pose.
 String characterSpritePath({required String themeId, required String pose}) {
-  if (themeId == 'vampire') {
-    return pose == 'incapacitated'
-        ? 'assets/character2d/vampiric_incapacitated.png'
-        : pose == 'critical'
-            ? 'assets/character2d/vampiric_critical.png'
-            : pose == 'agony'
-                ? 'assets/character2d/vampiric_agony.png'
-                : 'assets/character2d/vampiric_normal.png';
-  }
-  if (themeId == 'cyberpunk') {
-    return pose == 'incapacitated'
-        ? 'assets/character2d/cyberpunk_incapacitated.png'
-        : pose == 'critical'
-            ? 'assets/character2d/cyberpunk_critical.png'
-            : pose == 'agony'
-                ? 'assets/character2d/cyberpunk_agony.png'
-                : 'assets/character2d/cyberpunk_normal.png';
-  }
-  if (themeId == 'parchment') {
-    return pose == 'incapacitated'
-        ? 'assets/character2d/pirate_incapacitated.webp'
-        : pose == 'critical'
-            ? 'assets/character2d/pirate_critical_new.webp'
-            : pose == 'agony'
-                ? 'assets/character2d/pirate_critical.webp'
-                : 'assets/character2d/pirate_normal.webp';
-  }
-  return 'assets/character2d/${pose == 'incapacitated' ? 'incapacitated' : pose == 'agony' ? 'agony' : 'normal'}.png';
+  final sprites = _themeCharacterSprites[themeId] ?? _defaultCharacterSprites;
+  return sprites[pose] ?? sprites['normal']!;
 }

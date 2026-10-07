@@ -1382,8 +1382,6 @@ class _CombatCharacter2D extends StatelessWidget {
     final state = context.watch<AppState>();
     final themeId = state.themeId;
     final reduceMotion = state.reduceAnimations || MediaQuery.maybeOf(context)?.disableAnimations == true;
-    final pirateTheme = themeId == 'parchment';
-    final cyberpunkTheme = themeId == 'cyberpunk';
     final vampiricTheme = themeId == 'vampire';
     final spritePath = characterSpritePath(themeId: themeId, pose: _pose);
 
@@ -1441,7 +1439,7 @@ class _CombatCharacter2D extends StatelessWidget {
                         angle: lean,
                         child: Transform.scale(
                           scale: scale,
-                          child: pirateTheme || cyberpunkTheme || vampiricTheme
+                          child: characterUsesSpecialSprite(themeId)
                               ? SizedBox(
                                   height: 198,
                                   width: 198,
