@@ -551,9 +551,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
                     child: Container(
                       decoration: BoxDecoration(
                         border: Border(bottom: BorderSide(
-                          color: state.themeId == 'vampire'
-                              ? const Color(0xFFFF5C5C)
-                              : Theme.of(context).colorScheme.outlineVariant.withOpacity(.32),
+                          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(.32),
                         )),
                       ),
                       child: SizedBox(
