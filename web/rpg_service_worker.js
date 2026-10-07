@@ -1,4 +1,4 @@
-const VERSION='1.3.42+142';
+const VERSION='1.3.43+143';
 const CACHE='rpg-sheet-'+VERSION;
 const CORE=['/','/index.html','/manifest.json','/icons/Icon-192.png','/icons/Icon-512.png','/icons/apple-touch-icon.png','/icons/apple-touch-icon-167.png'];
 
@@ -19,6 +19,7 @@ self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET')return;
   const url=new URL(event.request.url);
   if(url.origin!==self.location.origin)return;
+  if(url.pathname.endsWith('/version.json'))return;
 
   // HTML/navigation: network first, cached shell only when offline.
   if(event.request.mode==='navigate'){

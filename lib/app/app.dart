@@ -16,6 +16,7 @@ import '../screens/dice/dice_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/home/skill_trees_screen.dart';
 import 'theme.dart';
+import '../widgets/update_available_listener.dart';
 
 class RpgSheetApp extends StatefulWidget {
   const RpgSheetApp({super.key});
@@ -208,7 +209,7 @@ class MainTabsShell extends StatelessWidget {
       if (masterToolsEnabled) (role: 'campaigns', label: 'Mestre'),
       (role: 'settings', label: 'Config.'),
     ];
-    return Scaffold(
+    return UpdateAvailableListener(child: Scaffold(
       body: PageView(
         controller: controller,
         allowImplicitScrolling: true,
@@ -285,6 +286,6 @@ class MainTabsShell extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ));
   }
 }
