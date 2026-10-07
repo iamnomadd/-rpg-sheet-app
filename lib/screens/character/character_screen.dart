@@ -19,51 +19,15 @@ import '../../widgets/confirm_delete_dialog.dart';
 import 'skill_roll.dart';
 
 
-Future<int?> _askResourceAmount(
-  BuildContext context, {
-  required String title,
-  required String label,
-}) async {
-  final controller = TextEditingController();
-  String? errorText;
-  final result = await showDialog<int>(
-    context: context,
-    builder: (dialogContext) => StatefulBuilder(
-      builder: (context, setDialogState) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(labelText: label, errorText: errorText),
-          onSubmitted: (_) {
-            final amount = int.tryParse(controller.text.trim());
-            if (amount == null || amount <= 0) {
-              setDialogState(() => errorText = 'Informe um valor maior que zero.');
-              return;
-            }
-            Navigator.pop(dialogContext, amount);
-          },
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancelar')),
-          FilledButton(
-            onPressed: () {
-              final amount = int.tryParse(controller.text.trim());
-              if (amount == null || amount <= 0) {
-                setDialogState(() => errorText = 'Informe um valor maior que zero.');
-                return;
-              }
-              Navigator.pop(dialogContext, amount);
-            },
-            child: const Text('Aplicar'),
-          ),
-        ],
-      ),
-    ),
-  );
-  controller.dispose();
-  return result;
+/// Aplica os valores da folha do recurso na ficha, com o máximo em [0, 999999]
+/// e o atual em [0, máximo]. Vida e Energia também atualizam hp/maxHp e
+/// energy/maxEnergy.
+void _applyResourceValues(Character c, String name, ResourceValues values) {
+  final newMax = values.max.clamp(0, 999999);
+  c.resourceMaxValues[name] = newMax;
+  c.resourceValues[name] = values.current.clamp(0, newMax);
+  if (name.toLowerCase() == 'vida') { c.maxHp = newMax; c.hp = c.resourceValues[name]!; }
+  if (name.toLowerCase() == 'energia') { c.maxEnergy = newMax; c.energy = c.resourceValues[name]!; }
 }
 
 class CharacterScreen extends StatefulWidget {
@@ -169,76 +133,16 @@ class _CharacterScreenState extends State<CharacterScreen> {
 
   Future<void> _editResource(Character c, String name) async {
     final state = context.read<AppState>();
-    final current = c.resourceValues[name] ?? 0;
-    final maximum = c.resourceMaxValues[name] ?? 0;
-    final value = TextEditingController(text: current.toString());
-    final max = TextEditingController(text: maximum.toString());
-
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text('Configurar $name'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: value, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Valor atual')),
-          const SizedBox(height: 10),
-          TextField(controller: max, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Valor máximo')),
-          if (name.toLowerCase() == 'vida') ...[
-            const SizedBox(height: 18),
-            const Divider(),
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text('Ajuste rápido', style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
-            ),
-            const SizedBox(height: 10),
-            Row(children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.heart_broken_outlined),
-                  label: const Text('Receber dano'),
-                  onPressed: () async {
-                    final amount = await _askResourceAmount(context, title: 'Receber dano', label: 'Dano recebido');
-                    if (amount == null) return;
-                    final base = int.tryParse(value.text) ?? current;
-                    final limit = (int.tryParse(max.text) ?? maximum).clamp(0, 999999).toInt();
-                    value.text = applyResourceDelta(current: base, maximum: limit, delta: -amount).toString();
-                  },
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.favorite_outline),
-                  label: const Text('Curar'),
-                  onPressed: () async {
-                    final amount = await _askResourceAmount(context, title: 'Curar', label: 'Vida recuperada');
-                    if (amount == null) return;
-                    final base = int.tryParse(value.text) ?? current;
-                    final limit = (int.tryParse(max.text) ?? maximum).clamp(0, 999999).toInt();
-                    value.text = applyResourceDelta(current: base, maximum: limit, delta: amount).toString();
-                  },
-                ),
-              ),
-            ]),
-          ],
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Salvar')),
-        ],
-      ),
+    final result = await showResourceQuickAdjust(
+      context,
+      name: name,
+      current: c.resourceValues[name] ?? 0,
+      max: c.resourceMaxValues[name] ?? 0,
     );
-
-    if (result == true) {
-      final newMax = (int.tryParse(max.text) ?? maximum).clamp(0, 999999);
-      c.resourceMaxValues[name] = newMax;
-      c.resourceValues[name] = (int.tryParse(value.text) ?? current).clamp(0, newMax);
-      if (name.toLowerCase() == 'vida') { c.maxHp = newMax; c.hp = c.resourceValues[name]!; }
-      if (name.toLowerCase() == 'energia') { c.maxEnergy = newMax; c.energy = c.resourceValues[name]!; }
-      await state.updateCharacter(c);
-      if (mounted) setState(() {});
-    }
-    value.dispose(); max.dispose();
+    if (result == null) return;
+    _applyResourceValues(c, name, result);
+    await state.updateCharacter(c);
+    if (mounted) setState(() {});
   }
 
   Future<void> _changeResource(Character c, String name, int delta) async {
@@ -567,25 +471,6 @@ class _CharacterTabsHeader extends SliverPersistentHeaderDelegate {
 }
 
 
-/// Toque na barra do recurso: lê os valores no momento do toque, abre o ajuste
-/// rápido e aplica o delta pela função de alteração do card.
-Future<void> _quickAdjustResource(
-  BuildContext context,
-  Character character,
-  String name,
-  Future<void> Function(int delta) apply,
-) async {
-  final current = character.resourceValues[name] ?? 0;
-  final max = character.resourceMaxValues[name] ?? 0;
-  if (max <= 0) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Defina o valor máximo de $name primeiro (ícone de ajuste).')));
-    return;
-  }
-  final delta = await showResourceQuickAdjust(context, name: name, current: current, max: max);
-  if (delta == null || !context.mounted) return;
-  await apply(delta);
-}
-
 class _GeneralTab extends StatelessWidget {
   final Character character;
   final RpgSystem system;
@@ -658,12 +543,6 @@ class _GeneralTab extends StatelessWidget {
                 onPressed: () => onChangeResource(character, resourceName, 1),
                 icon: const Icon(Icons.add),
               ),
-              IconButton(
-                tooltip: 'Editar valor atual e máximo',
-                visualDensity: VisualDensity.compact,
-                onPressed: () => onEditResource(character, resourceName),
-                icon: const Icon(Icons.tune, size: 20),
-              ),
             ],
           ]),
           if (resourceName.isEmpty) ...[
@@ -674,7 +553,7 @@ class _GeneralTab extends StatelessWidget {
           if (resourceName.isNotEmpty)
             ResourceBarTapTarget(
               label: resourceName,
-              onTap: () => _quickAdjustResource(context, character, resourceName, (delta) => onChangeResource(character, resourceName, delta)),
+              onTap: () => onEditResource(character, resourceName),
               child: _ThemedResourceBar(
                 value: progress,
                 themeId: themeId,
@@ -1077,16 +956,11 @@ class _AttributesResourcesTab extends StatelessWidget {
                         onPressed: () => onChangeResource(character, name, 1),
                         icon: const Icon(Icons.add),
                       ),
-                      IconButton(
-                        tooltip: 'Editar valor atual e máximo',
-                        onPressed: () => onEditResource(character, name),
-                        icon: const Icon(Icons.tune),
-                      ),
                     ],
                   ),
                   ResourceBarTapTarget(
                     label: name,
-                    onTap: () => _quickAdjustResource(context, character, name, (delta) => onChangeResource(character, name, delta)),
+                    onTap: () => onEditResource(character, name),
                     child: _ThemedResourceBar(
                       value: progress,
                       themeId: themeId,
@@ -1622,72 +1496,17 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
   Future<void> _cast(String name) async {final d=widget.character.abilityDetails[name]??=<String,dynamic>{};final cost=(d['cost'] as num?)?.toInt()??0;final resource=d['resource']?.toString().isNotEmpty==true?d['resource'].toString():'Energia';final current=widget.character.resourceValues[resource]??0;if(current<cost){_actionError('$resource insuficiente para $name.');return;}widget.character.resourceValues[resource]=current-cost;if(resource.toLowerCase()=='energia')widget.character.energy=current-cost;if(resource.toLowerCase()=='vida')widget.character.hp=current-cost;await _save();}
   Future<void> _changeResource(String name,int delta) async{final current=widget.character.resourceValues[name]??0,max=widget.character.resourceMaxValues[name]??0;widget.character.resourceValues[name]=applyResourceDelta(current:current,maximum:max,delta:delta);if(name.toLowerCase()=='vida')widget.character.hp=widget.character.resourceValues[name]!;if(name.toLowerCase()=='energia')widget.character.energy=widget.character.resourceValues[name]!;await _save();}
   Future<void> _editResourceValue(String name) async {
-    final current = widget.character.resourceValues[name] ?? 0;
-    final maxValue = widget.character.resourceMaxValues[name] ?? 0;
-    final a = TextEditingController(text: '$current');
-    final b = TextEditingController(text: '$maxValue');
-    final result = await showDialog<List<int>>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Ajustar $name'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          Row(children: [
-            Expanded(child: TextField(controller: a, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Atual'))),
-            const SizedBox(width: 10),
-            Expanded(child: TextField(controller: b, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Máximo'))),
-          ]),
-          if (name.toLowerCase() == 'vida') ...[
-            const SizedBox(height: 16),
-            const Divider(),
-            const SizedBox(height: 6),
-            Row(children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.heart_broken_outlined),
-                  label: const Text('Receber dano'),
-                  onPressed: () async {
-                    final amount = await _askResourceAmount(context, title: 'Receber dano', label: 'Dano recebido');
-                    if (amount == null) return;
-                    final base = int.tryParse(a.text) ?? current;
-                    final limit = (int.tryParse(b.text) ?? maxValue).clamp(0, 999999).toInt();
-                    a.text = applyResourceDelta(current: base, maximum: limit, delta: -amount).toString();
-                  },
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.favorite_outline),
-                  label: const Text('Curar'),
-                  onPressed: () async {
-                    final amount = await _askResourceAmount(context, title: 'Curar', label: 'Vida recuperada');
-                    if (amount == null) return;
-                    final base = int.tryParse(a.text) ?? current;
-                    final limit = (int.tryParse(b.text) ?? maxValue).clamp(0, 999999).toInt();
-                    a.text = applyResourceDelta(current: base, maximum: limit, delta: amount).toString();
-                  },
-                ),
-              ),
-            ]),
-          ],
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, [int.tryParse(a.text) ?? current, int.tryParse(b.text) ?? maxValue]), child: const Text('Salvar')),
-        ],
-      ),
+    final result = await showResourceQuickAdjust(
+      context,
+      name: name,
+      current: widget.character.resourceValues[name] ?? 0,
+      max: widget.character.resourceMaxValues[name] ?? 0,
     );
-    a.dispose();
-    b.dispose();
-    if (result == null) return;
-    final nextMax = result[1] < 0 ? 0 : result[1];
-    widget.character.resourceMaxValues[name] = nextMax;
-    widget.character.resourceValues[name] = result[0].clamp(0, nextMax);
-    if (name.toLowerCase() == 'vida') widget.character.hp = widget.character.resourceValues[name]!;
-    if (name.toLowerCase() == 'energia') widget.character.energy = widget.character.resourceValues[name]!;
+    if (result == null || !mounted) return;
+    _applyResourceValues(widget.character, name, result);
     await _save();
   }
-  Widget _resource(String name){final current=widget.character.resourceValues[name]??0,max=widget.character.resourceMaxValues[name]??0,value=max<=0?0.0:(current/max).clamp(0.0,1.0);final themeId=context.watch<AppState>().themeId,secondary=name.toLowerCase()!='vida';return Card(child:Padding(padding:const EdgeInsets.fromLTRB(14,10,14,12),child:Column(children:[Row(children:[Icon(secondary?Icons.bolt:themedIcon(themeId,'resources'),size:22),const SizedBox(width:8),Expanded(child:Text(name,style:const TextStyle(fontWeight:FontWeight.w700))),IconButton(tooltip:'Diminuir',visualDensity:VisualDensity.compact,onPressed:()=>_changeResource(name,-1),icon:const Icon(Icons.remove)),Text('$current / $max',style:Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w600)),IconButton(tooltip:'Aumentar',visualDensity:VisualDensity.compact,onPressed:()=>_changeResource(name,1),icon:const Icon(Icons.add)),IconButton(tooltip:'Editar valor atual e máximo',visualDensity:VisualDensity.compact,onPressed:()=>_editResourceValue(name),icon:const Icon(Icons.tune,size:20))]),const SizedBox(height:7),ResourceBarTapTarget(label:name,onTap:()=>_quickAdjustResource(context,widget.character,name,(delta) async {if(!mounted)return;await _changeResource(name,delta);}),child:_ThemedResourceBar(value:value,themeId:themeId,secondary:secondary))])));}
+  Widget _resource(String name){final current=widget.character.resourceValues[name]??0,max=widget.character.resourceMaxValues[name]??0,value=max<=0?0.0:(current/max).clamp(0.0,1.0);final themeId=context.watch<AppState>().themeId,secondary=name.toLowerCase()!='vida';return Card(child:Padding(padding:const EdgeInsets.fromLTRB(14,10,14,12),child:Column(children:[Row(children:[Icon(secondary?Icons.bolt:themedIcon(themeId,'resources'),size:22),const SizedBox(width:8),Expanded(child:Text(name,style:const TextStyle(fontWeight:FontWeight.w700))),IconButton(tooltip:'Diminuir',visualDensity:VisualDensity.compact,onPressed:()=>_changeResource(name,-1),icon:const Icon(Icons.remove)),Text('$current / $max',style:Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w600)),IconButton(tooltip:'Aumentar',visualDensity:VisualDensity.compact,onPressed:()=>_changeResource(name,1),icon:const Icon(Icons.add))]),const SizedBox(height:7),ResourceBarTapTarget(label:name,onTap:()=>_editResourceValue(name),child:_ThemedResourceBar(value:value,themeId:themeId,secondary:secondary))])));}
 
   Future<void> _selectConditions() async {
     final initial = widget.character.conditions.toSet();
