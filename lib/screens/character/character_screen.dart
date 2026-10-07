@@ -1564,6 +1564,7 @@ class _CombatCharacter2D extends StatelessWidget {
     final reduceMotion = state.reduceAnimations || MediaQuery.maybeOf(context)?.disableAnimations == true;
     final pirateTheme = themeId == 'parchment';
     final cyberpunkTheme = themeId == 'cyberpunk';
+    final vampiricTheme = themeId == 'vampire';
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -1591,10 +1592,12 @@ class _CombatCharacter2D extends StatelessWidget {
             builder: (context, _) {
               final phase = idle.value;
               final wounded = !incapacitated && !critical && _lifeRatio <= .60;
-              final breath = reduceMotion || incapacitated ? 0.0 : critical ? (phase - .5) * 2.0 : agony ? (phase - .5) * 2.0 : wounded ? (phase - .5) * 2.7 : (phase - .5) * 3.6;
+              final criticalPixelSway = phase < .25 ? -1.0 : phase < .50 ? 0.0 : phase < .75 ? 1.0 : 0.0;
+              final criticalPixelBreath = phase < .25 || (phase >= .50 && phase < .75) ? 0.0 : -1.0;
+              final breath = reduceMotion || incapacitated ? 0.0 : critical ? (vampiricTheme ? criticalPixelBreath : (phase - .5) * 2.0) : agony ? (phase - .5) * 2.0 : wounded ? (phase - .5) * 2.7 : (phase - .5) * 3.6;
               final lean = reduceMotion || incapacitated || critical ? 0.0 : agony ? -.018 + (phase - .5) * .034 : wounded ? -.009 + (phase - .5) * .016 : (phase - .5) * .008;
               final scale = reduceMotion || incapacitated || critical ? 1.0 : 1.0 + (agony ? phase * .005 : wounded ? phase * .006 : phase * .009);
-              final sideSway = reduceMotion || incapacitated ? 0.0 : critical ? (phase - .5) * 2.0 : agony ? (phase - .5) * 2.0 : wounded ? (phase - .5) * 1.2 : (phase - .5) * .6;
+              final sideSway = reduceMotion || incapacitated ? 0.0 : critical ? (vampiricTheme ? criticalPixelSway : (phase - .5) * 2.0) : agony ? (phase - .5) * 2.0 : wounded ? (phase - .5) * 1.2 : (phase - .5) * .6;
               return SizedBox(
                 height: 220,
                 child: Stack(alignment: Alignment.center, children: [
@@ -1617,7 +1620,7 @@ class _CombatCharacter2D extends StatelessWidget {
                         angle: lean,
                         child: Transform.scale(
                           scale: scale,
-                          child: pirateTheme || cyberpunkTheme
+                          child: pirateTheme || cyberpunkTheme || vampiricTheme
                               ? SizedBox(
                                   height: 198,
                                   width: 198,
@@ -1626,7 +1629,15 @@ class _CombatCharacter2D extends StatelessWidget {
                                     child: Align(
                                       alignment: Alignment.bottomCenter,
                                       child: Image.asset(
-                                        cyberpunkTheme
+                                        vampiricTheme
+                                            ? (_pose == 'incapacitated'
+                                                ? 'assets/character2d/vampiric_incapacitated.png'
+                                                : _pose == 'critical'
+                                                    ? 'assets/character2d/vampiric_critical.png'
+                                                    : _pose == 'agony'
+                                                        ? 'assets/character2d/vampiric_agony.png'
+                                                        : 'assets/character2d/vampiric_normal.png')
+                                            : cyberpunkTheme
                                             ? (_pose == 'incapacitated'
                                                 ? 'assets/character2d/cyberpunk_incapacitated.png'
                                                 : _pose == 'critical'
