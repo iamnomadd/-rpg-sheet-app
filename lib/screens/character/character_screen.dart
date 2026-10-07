@@ -1820,10 +1820,12 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
     if (id == 'weapons') names = c.inventory.where((n) => c.inventoryDetails[n]?['category'] == 'Arma').toList();
     if (id == 'consumables') names = c.inventory.where((n) => c.inventoryDetails[n]?['category'] == 'Consumível').toList();
     if (id == 'spells') names = c.abilities.where((n) => c.abilityDetails[n]?['category'] == 'Magia').toList();
-    if (id == 'abilities') names = c.abilities.where((n) {
-      final x = c.abilityDetails[n]?['category'];
-      return x == 'Técnica' || x == 'Habilidade';
-    }).toList();
+    if (id == 'abilities') {
+      names = c.abilities.where((n) {
+        final x = c.abilityDetails[n]?['category'];
+        return x == 'Técnica' || x == 'Habilidade';
+      }).toList();
+    }
     if (names.isEmpty) return const SizedBox.shrink();
 
     final groupIcon = switch (id) {
