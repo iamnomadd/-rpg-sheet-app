@@ -54,6 +54,7 @@ class AppState extends ChangeNotifier {
           resources: ['Vida', 'PV Temporários', 'Inspiração'],
           sections: ['Classe e Subclasse', 'Antecedente', 'CA e Iniciativa', 'Salvaguardas', 'Dados de Vida', 'Testes contra Morte', 'Proficiências e Idiomas', 'Magias', 'Traços', 'Anotações'],
           dice: [4, 6, 8, 10, 12, 20, 100],
+          skillAttributes: Map<String, String>.from(dnd5eSkillAttributes),
         ),
         RpgSystem(
           id: 'tormenta20',
@@ -133,16 +134,7 @@ class AppState extends ChangeNotifier {
       } else if (preset.id == 'generic') {
         final current = systems[index];
         if (current.name == 'Sistema Genérico') {
-          systems[index] = RpgSystem(
-            id: current.id,
-            name: 'Sistema Padrão',
-            description: current.description,
-            attributes: current.attributes,
-            skills: current.skills,
-            resources: current.resources,
-            sections: current.sections,
-            dice: current.dice,
-          );
+          systems[index] = current.copyWith(name: 'Sistema Padrão');
         }
       }
     }
@@ -551,16 +543,7 @@ class AppState extends ChangeNotifier {
       counter++;
     }
 
-    final copy = RpgSystem(
-      id: _uuid.v4(),
-      name: copyName,
-      description: source.description,
-      attributes: List<String>.from(source.attributes),
-      skills: List<String>.from(source.skills),
-      resources: List<String>.from(source.resources),
-      sections: List<String>.from(source.sections),
-      dice: List<int>.from(source.dice),
-    );
+    final copy = source.copyWith(id: _uuid.v4(), name: copyName);
 
     systems.add(copy);
     await save();
