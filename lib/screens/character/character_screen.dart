@@ -1565,6 +1565,7 @@ class _CombatCharacter2D extends StatelessWidget {
     final pirateTheme = themeId == 'parchment';
     final cyberpunkTheme = themeId == 'cyberpunk';
     final vampiricTheme = themeId == 'vampire';
+    final healthLabel = cyberpunkTheme && _healthLabel == 'Crítico' ? 'Em colapso' : _healthLabel;
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -1577,8 +1578,8 @@ class _CombatCharacter2D extends StatelessWidget {
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 250),
               child: Text(
-                _healthLabel,
-                key: ValueKey('$_pose-$_healthLabel'),
+                healthLabel,
+                key: ValueKey('$_pose-$healthLabel'),
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: incapacitated || critical || agony ? scheme.error : scheme.onSurfaceVariant,
                   fontWeight: FontWeight.w700,
