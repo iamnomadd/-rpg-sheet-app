@@ -25,7 +25,8 @@ class RpgSheetApp extends StatefulWidget {
 }
 
 class _RpgSheetAppState extends State<RpgSheetApp> {
-  int index = 0;
+  final _tabIndex = ValueNotifier<int>(0);
+  final _themeCache = AppThemeCache();
   final _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSubscription;
   late final PageController _pageController;
@@ -33,7 +34,7 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(initialPage: index);
+    _pageController = PageController(initialPage: _tabIndex.value);
     _listenForAuthLinks();
   }
 
@@ -51,7 +52,7 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
       final result = await CloudService.handleAuthCallback(uri);
       if (!mounted || result == null) return;
       final target = context.read<AppState>().masterToolsEnabled ? 5 : 4;
-      setState(() => index = target);
+      _tabIndex.value = target;
       if (_pageController.hasClients) _pageController.jumpToPage(target);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(
         result.isAnonymous ? 'Confirmação recebida. Atualizando sua conta...' : 'E-mail confirmado. Sua nuvem está protegida.',
@@ -66,50 +67,34 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
   void dispose() {
     _linkSubscription?.cancel();
     _pageController.dispose();
+    _tabIndex.dispose();
     super.dispose();
   }
 
+  static List<Widget> _mainPages(bool masterToolsEnabled) => <Widget>[
+        const HomeScreen(),
+        const SystemsScreen(),
+        const SkillTreesScreen(),
+        const DiceScreen(),
+        if (masterToolsEnabled) const MasterScreen(),
+        const SettingsScreen(),
+      ];
+
   @override
   Widget build(BuildContext context) {
-    final appState = context.watch<AppState>();
-    final baseTheme = buildTheme(appState.themeId);
-    final compact = appState.compactMode;
+    // Observa só o que o MaterialApp usa. A aba atual fica no _tabIndex e não
+    // reconstrói o app.
+    final themeId = context.select<AppState, String>((s) => s.themeId);
+    final compact = context.select<AppState, bool>((s) => s.compactMode);
+    final largeText = context.select<AppState, bool>((s) => s.largeText);
     return MaterialApp(
       title: 'RPG Sheet',
       debugShowCheckedModeBanner: false,
-      theme: baseTheme.copyWith(
-        visualDensity: compact
-            ? const VisualDensity(horizontal: -4, vertical: -4)
-            : const VisualDensity(horizontal: -3, vertical: -3),
-        cardTheme: baseTheme.cardTheme.copyWith(margin: EdgeInsets.zero),
-        inputDecorationTheme: baseTheme.inputDecorationTheme.copyWith(
-          contentPadding: EdgeInsets.symmetric(horizontal: compact ? 8 : 10, vertical: compact ? 7 : 10),
-          isDense: true,
-          constraints: BoxConstraints(minHeight: compact ? 42 : 48),
-          labelStyle: baseTheme.inputDecorationTheme.labelStyle?.copyWith(fontSize: compact ? 11 : 11.5),
-          floatingLabelStyle: baseTheme.inputDecorationTheme.labelStyle?.copyWith(fontSize: compact ? 11 : 11.5),
-        ),
-        listTileTheme: ListTileThemeData(
-          dense: true,
-          minVerticalPadding: compact ? 0 : 2,
-          minLeadingWidth: compact ? 30 : 34,
-          contentPadding: EdgeInsets.symmetric(horizontal: compact ? 8 : 10),
-        ),
-        filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(
-          padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12, vertical: compact ? 6 : 8),
-          minimumSize: Size(44, compact ? 34 : 38),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        )),
-        outlinedButtonTheme: OutlinedButtonThemeData(style: OutlinedButton.styleFrom(
-          padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12, vertical: compact ? 6 : 8),
-          minimumSize: Size(44, compact ? 34 : 38),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        )),
-      ),
+      theme: _themeCache.resolve(themeId, compact),
       builder: (context, child) {
         final media = MediaQuery.of(context);
         final content = child ?? const SizedBox.shrink();
-        final themedContent = appState.themeId == 'parchment'
+        final themedContent = themeId == 'parchment'
             ? DecoratedBox(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -126,7 +111,7 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
                 child: content,
               )
             : content;
-        final userScale = appState.largeText ? 1.15 : (compact ? 0.90 : 1.0);
+        final userScale = largeText ? 1.15 : (compact ? 0.90 : 1.0);
         final systemScale = media.textScaler.scale(1.0);
         final combinedScale = (systemScale * userScale).clamp(0.85, 2.0).toDouble();
         return MediaQuery(
@@ -134,58 +119,132 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
           child: themedContent,
         );
       },
-      home: Builder(builder: (context) {
-        final pages = <Widget>[
-          const HomeScreen(),
-          const SystemsScreen(),
-          const SkillTreesScreen(),
-          const DiceScreen(),
-          if (appState.masterToolsEnabled) const MasterScreen(),
-          const SettingsScreen(),
-        ];
-        final safeIndex = index >= pages.length ? pages.length - 1 : index;
-        final reduceMotion = appState.reduceAnimations || MediaQuery.maybeOf(context)?.disableAnimations == true;
-        final destinations = <({String role, String label})>[
-          (role: 'characters', label: 'Fichas'),
-          (role: 'systems', label: 'Sistemas'),
-          (role: 'tree', label: 'Árvore'),
-          (role: 'dice', label: 'Dados'),
-          if (appState.masterToolsEnabled) (role: 'campaigns', label: 'Mestre'),
-          (role: 'settings', label: 'Config.'),
-        ];
-        return AccessGate(child: Scaffold(
-          body: PageView(
-            controller: _pageController,
-            allowImplicitScrolling: true,
-            onPageChanged: (value) { if (mounted) setState(() => index = value); },
-            children: pages.map((page) => RepaintBoundary(child: page)).toList(),
-          ),
-          bottomNavigationBar: Material(
-            color: Theme.of(context).navigationBarTheme.backgroundColor ?? Theme.of(context).colorScheme.surface,
-            child: SafeArea(
-              top: false,
-              child: Container(
-                height: 78,
-                decoration: BoxDecoration(
-                  border: Border(top: BorderSide(
-                    color: Theme.of(context).colorScheme.outlineVariant.withOpacity(.32),
-                  )),
-                ),
-                child: Row(
+      home: AccessGate(child: MainTabsShell(
+        controller: _pageController,
+        index: _tabIndex,
+        pagesBuilder: _mainPages,
+      )),
+    );
+  }
+}
+
+/// Tema do app (buildTheme + ajustes de densidade), guardado enquanto o tema e
+/// o modo compacto não mudam. Devolver sempre a mesma instância evita que o
+/// AnimatedTheme do MaterialApp anime e reconstrua o app a cada build.
+class AppThemeCache {
+  String? _themeId;
+  bool? _compact;
+  ThemeData? _theme;
+
+  ThemeData resolve(String themeId, bool compact) {
+    final cached = _theme;
+    if (cached != null && _themeId == themeId && _compact == compact) return cached;
+    _themeId = themeId;
+    _compact = compact;
+    return _theme = buildAppTheme(themeId, compact);
+  }
+}
+
+ThemeData buildAppTheme(String themeId, bool compact) {
+  final baseTheme = buildTheme(themeId);
+  return baseTheme.copyWith(
+    visualDensity: compact
+        ? const VisualDensity(horizontal: -4, vertical: -4)
+        : const VisualDensity(horizontal: -3, vertical: -3),
+    cardTheme: baseTheme.cardTheme.copyWith(margin: EdgeInsets.zero),
+    inputDecorationTheme: baseTheme.inputDecorationTheme.copyWith(
+      contentPadding: EdgeInsets.symmetric(horizontal: compact ? 8 : 10, vertical: compact ? 7 : 10),
+      isDense: true,
+      constraints: BoxConstraints(minHeight: compact ? 42 : 48),
+      labelStyle: baseTheme.inputDecorationTheme.labelStyle?.copyWith(fontSize: compact ? 11 : 11.5),
+      floatingLabelStyle: baseTheme.inputDecorationTheme.labelStyle?.copyWith(fontSize: compact ? 11 : 11.5),
+    ),
+    listTileTheme: ListTileThemeData(
+      dense: true,
+      minVerticalPadding: compact ? 0 : 2,
+      minLeadingWidth: compact ? 30 : 34,
+      contentPadding: EdgeInsets.symmetric(horizontal: compact ? 8 : 10),
+    ),
+    filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(
+      padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12, vertical: compact ? 6 : 8),
+      minimumSize: Size(44, compact ? 34 : 38),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    )),
+    outlinedButtonTheme: OutlinedButtonThemeData(style: OutlinedButton.styleFrom(
+      padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12, vertical: compact ? 6 : 8),
+      minimumSize: Size(44, compact ? 34 : 38),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    )),
+  );
+}
+
+/// Abas principais: PageView + barra inferior. Trocar de aba só atualiza o
+/// [index]; apenas a barra reconstrói (ValueListenableBuilder), e as páginas e
+/// o MaterialApp ficam como estão.
+class MainTabsShell extends StatelessWidget {
+  final PageController controller;
+  final ValueNotifier<int> index;
+  final List<Widget> Function(bool masterToolsEnabled) pagesBuilder;
+
+  const MainTabsShell({
+    super.key,
+    required this.controller,
+    required this.index,
+    required this.pagesBuilder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final themeId = context.select<AppState, String>((s) => s.themeId);
+    final masterToolsEnabled = context.select<AppState, bool>((s) => s.masterToolsEnabled);
+    final reduceAnimations = context.select<AppState, bool>((s) => s.reduceAnimations);
+    final pages = pagesBuilder(masterToolsEnabled);
+    final reduceMotion = reduceAnimations || MediaQuery.maybeDisableAnimationsOf(context) == true;
+    final destinations = <({String role, String label})>[
+      (role: 'characters', label: 'Fichas'),
+      (role: 'systems', label: 'Sistemas'),
+      (role: 'tree', label: 'Árvore'),
+      (role: 'dice', label: 'Dados'),
+      if (masterToolsEnabled) (role: 'campaigns', label: 'Mestre'),
+      (role: 'settings', label: 'Config.'),
+    ];
+    return Scaffold(
+      body: PageView(
+        controller: controller,
+        allowImplicitScrolling: true,
+        onPageChanged: (value) => index.value = value,
+        children: pages.map((page) => RepaintBoundary(child: page)).toList(),
+      ),
+      bottomNavigationBar: Material(
+        color: Theme.of(context).navigationBarTheme.backgroundColor ?? Theme.of(context).colorScheme.surface,
+        child: SafeArea(
+          top: false,
+          child: Container(
+            height: 78,
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant.withOpacity(.32),
+              )),
+            ),
+            child: ValueListenableBuilder<int>(
+              valueListenable: index,
+              builder: (context, current, _) {
+                final safeIndex = current >= pages.length ? pages.length - 1 : current;
+                final scheme = Theme.of(context).colorScheme;
+                return Row(
                   children: List.generate(destinations.length, (value) {
                     final item = destinations[value];
                     final selected = value == safeIndex;
-                    final scheme = Theme.of(context).colorScheme;
                     return Expanded(
                       child: InkWell(
                         onTap: () {
-                          setState(() => index = value);
+                          index.value = value;
                           if (reduceMotion) {
-                            _pageController.jumpToPage(value);
+                            controller.jumpToPage(value);
                           } else {
                             final distance = (value - safeIndex).abs();
                             final duration = Duration(milliseconds: (380 + (distance - 1).clamp(0, 3) * 45).toInt());
-                            _pageController.animateToPage(value, duration: duration, curve: Curves.easeInOutCubic);
+                            controller.animateToPage(value, duration: duration, curve: Curves.easeInOutCubic);
                           }
                         },
                         child: AnimatedContainer(
@@ -200,7 +259,7 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                themedMainIcon(appState.themeId, item.role),
+                                themedMainIcon(themeId, item.role),
                                 size: 24,
                                 color: selected ? scheme.primary : scheme.onSurfaceVariant,
                               ),
@@ -220,12 +279,12 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
                       ),
                     );
                   }),
-                ),
-              ),
+                );
+              },
             ),
           ),
-        ));
-      }),
+        ),
+      ),
     );
   }
 }
