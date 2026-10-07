@@ -1427,6 +1427,7 @@ class _CombatCharacter2D extends StatelessWidget {
 
   String get _pose {
     if (_life <= 0) return 'incapacitated';
+    if (_lifeRatio <= .30) return 'critical';
     if (_lifeRatio <= .40) return 'agony';
     if (_negativeStatuses.isNotEmpty) return 'agony';
     return 'normal';
@@ -1556,8 +1557,11 @@ class _CombatCharacter2D extends StatelessWidget {
     final positives = _positiveStatuses;
     final visibleStatuses = [...negatives, ...positives];
     final incapacitated = _pose == 'incapacitated';
+    final critical = _pose == 'critical';
     final agony = _pose == 'agony';
-    final themeId = context.watch<AppState>().themeId;
+    final state = context.watch<AppState>();
+    final themeId = state.themeId;
+    final reduceMotion = state.reduceAnimations || MediaQuery.maybeOf(context)?.disableAnimations == true;
     final pirateTheme = themeId == 'parchment';
     final cyberpunkTheme = themeId == 'cyberpunk';
 
@@ -1575,7 +1579,7 @@ class _CombatCharacter2D extends StatelessWidget {
                 _healthLabel,
                 key: ValueKey('$_pose-$_healthLabel'),
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: incapacitated || agony ? scheme.error : scheme.onSurfaceVariant,
+                  color: incapacitated || critical || agony ? scheme.error : scheme.onSurfaceVariant,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -1586,18 +1590,18 @@ class _CombatCharacter2D extends StatelessWidget {
             animation: idle,
             builder: (context, _) {
               final phase = idle.value;
-              final wounded = !incapacitated && _lifeRatio <= .60;
-              final breath = incapacitated ? 0.0 : agony ? (phase - .5) * 2.0 : wounded ? (phase - .5) * 2.7 : (phase - .5) * 3.6;
-              final lean = incapacitated ? 0.0 : agony ? -.018 + (phase - .5) * .034 : wounded ? -.009 + (phase - .5) * .016 : (phase - .5) * .008;
-              final scale = incapacitated ? 1.0 : 1.0 + (agony ? phase * .005 : wounded ? phase * .006 : phase * .009);
-              final sideSway = incapacitated ? 0.0 : agony ? (phase - .5) * 2.0 : wounded ? (phase - .5) * 1.2 : (phase - .5) * .6;
+              final wounded = !incapacitated && !critical && _lifeRatio <= .60;
+              final breath = reduceMotion || incapacitated ? 0.0 : critical ? (phase - .5) * 2.0 : agony ? (phase - .5) * 2.0 : wounded ? (phase - .5) * 2.7 : (phase - .5) * 3.6;
+              final lean = reduceMotion || incapacitated || critical ? 0.0 : agony ? -.018 + (phase - .5) * .034 : wounded ? -.009 + (phase - .5) * .016 : (phase - .5) * .008;
+              final scale = reduceMotion || incapacitated || critical ? 1.0 : 1.0 + (agony ? phase * .005 : wounded ? phase * .006 : phase * .009);
+              final sideSway = reduceMotion || incapacitated ? 0.0 : critical ? (phase - .5) * 2.0 : agony ? (phase - .5) * 2.0 : wounded ? (phase - .5) * 1.2 : (phase - .5) * .6;
               return SizedBox(
                 height: 220,
                 child: Stack(alignment: Alignment.center, children: [
                   Positioned.fill(child: DecoratedBox(decoration: BoxDecoration(
                     gradient: RadialGradient(
                       colors: [
-                        (agony ? scheme.error : scheme.primary).withOpacity(.08 + phase * .035),
+                        (critical || agony ? scheme.error : scheme.primary).withOpacity(.08 + phase * .035),
                         Colors.transparent,
                       ],
                       radius: .74,
@@ -1625,14 +1629,18 @@ class _CombatCharacter2D extends StatelessWidget {
                                         cyberpunkTheme
                                             ? (_pose == 'incapacitated'
                                                 ? 'assets/character2d/cyberpunk_incapacitated.png'
-                                                : _pose == 'agony'
-                                                    ? 'assets/character2d/cyberpunk_agony.png'
-                                                    : 'assets/character2d/cyberpunk_normal.png')
+                                                : _pose == 'critical'
+                                                    ? 'assets/character2d/cyberpunk_critical.png'
+                                                    : _pose == 'agony'
+                                                        ? 'assets/character2d/cyberpunk_agony.png'
+                                                        : 'assets/character2d/cyberpunk_normal.png')
                                             : (_pose == 'incapacitated'
                                                 ? 'assets/character2d/pirate_incapacitated.webp'
-                                                : _pose == 'agony'
-                                                    ? 'assets/character2d/pirate_critical.webp'
-                                                    : 'assets/character2d/pirate_normal.webp'),
+                                                : _pose == 'critical'
+                                                    ? 'assets/character2d/pirate_critical_new.webp'
+                                                    : _pose == 'agony'
+                                                        ? 'assets/character2d/pirate_critical.webp'
+                                                        : 'assets/character2d/pirate_normal.webp'),
                                         width: 182,
                                         height: 182,
                                         fit: BoxFit.contain,
