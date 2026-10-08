@@ -14,6 +14,13 @@ String lifeResourceKey(Character sheet) {
   return find('pv') ?? find('vida') ?? 'Vida';
 }
 
+/// True se a chave é um recurso de vida ('Vida' ou 'PV', sem diferenciar
+/// maiúsculas e ignorando espaços nas pontas).
+bool isLifeResourceKey(String key) {
+  final name = key.trim().toLowerCase();
+  return name == 'vida' || name == 'pv';
+}
+
 /// Vida atual e máxima: recurso de vida (PV ou Vida) ou hp/maxHp.
 ({int current, int max}) readVida(Character sheet) {
   final key = lifeResourceKey(sheet);
