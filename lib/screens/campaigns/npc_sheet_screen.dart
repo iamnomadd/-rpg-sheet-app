@@ -109,12 +109,11 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
     final vida = readVida(sheet);
     final hp = vida.current;
     final maxHp = vida.max;
-    final energyName = sheet.resourceValues.keys.firstWhere(
-      (name) => !isLifeResourceKey(name),
-      orElse: () => '',
+    final secondaryResources = npcSecondaryResourceNames(
+      systemResources: matchingSystems.isEmpty ? null : matchingSystems.first.resources,
+      values: sheet.resourceValues,
+      maxValues: sheet.resourceMaxValues,
     );
-    final energy = energyName.isEmpty ? 0 : (sheet.resourceValues[energyName] ?? 0);
-    final maxEnergy = energyName.isEmpty ? 0 : (sheet.resourceMaxValues[energyName] ?? 0);
     final weapons = sheet.inventory.where((n) => sheet.inventoryDetails[n]?['category'] == 'Arma' || (sheet.inventoryDetails[n]?['damage']?.toString().trim().isNotEmpty ?? false)).toList();
     final consumables = sheet.inventory.where((n) => sheet.inventoryDetails[n]?['category'] == 'Consumível').toList();
     final spells = sheet.abilities.where((n) => sheet.abilityDetails[n]?['category'] == 'Magia').toList();
@@ -179,7 +178,18 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
         case 'health':
           return resourceCard('Vida', hp, maxHp, icon: Icons.favorite_outline);
         case 'energy':
-          return resourceCard(energyName, energy, maxEnergy, icon: Icons.bolt_outlined);
+          if (secondaryResources.isEmpty) return resourceCard('', 0, 0, icon: Icons.bolt_outlined);
+          return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            for (var i = 0; i < secondaryResources.length; i++) ...[
+              if (i > 0) const SizedBox(height: 10),
+              resourceCard(
+                secondaryResources[i],
+                sheet.resourceValues[secondaryResources[i]] ?? 0,
+                sheet.resourceMaxValues[secondaryResources[i]] ?? 0,
+                icon: Icons.bolt_outlined,
+              ),
+            ],
+          ]);
         case 'conditions':
           return Card(
             child: InkWell(
