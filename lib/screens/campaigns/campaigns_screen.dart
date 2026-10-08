@@ -1599,6 +1599,8 @@ class SessionToolsScreen extends StatelessWidget {
   }
 
   Future<void> _removeInitiative(BuildContext context, Campaign campaign, Map<String, dynamic> entry) async {
+    if (!await confirmDelete(context, title: 'Remover do combate?', message: '"${entry['name'] ?? 'Participante'}" será removido da iniciativa.', confirmLabel: 'Remover')) return;
+    if (!context.mounted) return;
     final ordered=[...campaign.initiative]..sort((a,b)=>((b['value']??0) as int).compareTo((a['value']??0) as int));
     final oldIndex=ordered.isEmpty ? 0 : campaign.currentTurnIndex.clamp(0,ordered.length-1);
     final currentId=ordered.isEmpty ? null : ordered[oldIndex]['id'];

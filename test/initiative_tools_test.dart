@@ -207,5 +207,26 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text('Goblin'), findsWidgets);
     });
+
+    testWidgets('remover da iniciativa pede confirmação', (tester) async {
+      campaign.initiative.first['conditions'] = ['Envenenado'];
+      await pump(tester);
+      await tester.tap(find.byTooltip('Remover do combate').first);
+      await tester.pumpAndSettle();
+      expect(find.text('Remover do combate?'), findsOneWidget);
+      expect(find.text('"Goblin" será removido da iniciativa.'), findsOneWidget);
+
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+      expect(campaign.initiative.length, 3);
+
+      await tester.tap(find.byTooltip('Remover do combate').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remover'));
+      await tester.pumpAndSettle();
+      expect(campaign.initiative.map((e) => e['id']), isNot(contains('npc:g1')));
+      expect(find.widgetWithText(InputChip, 'Envenenado'), findsNothing);
+      expect(campaign.sessionLog.last, 'Goblin removido do combate.');
+    });
   });
 }
