@@ -348,11 +348,12 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
     final ix=ordered.isEmpty ? 0 : c.currentTurnIndex.clamp(0, ordered.length-1);
     final current=c.combatActive && ordered.isNotEmpty ? ordered[ix] : null;
     final done=ordered.where((e)=>e['done']==true).length;
+    final currentConditions=current==null ? <String>[] : mergeConditions(_playerSheetConditions(context.read<AppState>(),c,current),initiativeConditions(current));
     return ListView(padding: const EdgeInsets.all(16), children: [
       Card(child: Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         Row(children:[Icon(c.combatActive?Icons.sports_martial_arts:Icons.pause_circle_outline),const SizedBox(width:10),Expanded(child:Text(c.combatActive?'Combate ativo':'Sem combate ativo',style:Theme.of(context).textTheme.titleLarge)),Text('Rodada ${c.sessionRound}')]),
         if(current!=null)...[const SizedBox(height:12),Text('TURNO ATUAL',style:Theme.of(context).textTheme.labelMedium),const SizedBox(height:4),Text('${current['name']}',style:Theme.of(context).textTheme.headlineSmall),Text('Iniciativa ${current['value']} • $done/${ordered.length} concluídos'),
-          if(initiativeConditions(current).isNotEmpty)...[const SizedBox(height:8),Wrap(spacing:6,runSpacing:4,children:initiativeConditions(current).map((condition)=>Chip(label:Text(condition),visualDensity:VisualDensity.compact)).toList())]],
+          if(currentConditions.isNotEmpty)...[const SizedBox(height:8),Wrap(spacing:6,runSpacing:4,children:currentConditions.map((condition)=>Chip(label:Text(condition),visualDensity:VisualDensity.compact)).toList())]],
       ]))),
       if(ordered.isNotEmpty) Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         Text('Ordem de iniciativa',style:Theme.of(context).textTheme.titleMedium),
@@ -1068,7 +1069,8 @@ class SessionToolsScreen extends StatelessWidget {
                         ? 'Turno atual'
                         : (campaign.combatActive && index == activeIndex + 1 && !done ? 'Próximo' : null);
                     final vida = _vidaBar(context, state, campaign, entry);
-                    final conditions = initiativeConditions(entry);
+                    // Jogador: condições da própria ficha + as marcadas na iniciativa.
+                    final conditions = mergeConditions(_playerSheetConditions(state, campaign, entry), initiativeConditions(entry));
                     return ListTile(
                       dense: true,
                       selected: current,

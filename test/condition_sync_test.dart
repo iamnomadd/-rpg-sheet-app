@@ -157,5 +157,17 @@ void main() {
       expect(campaign.sessionLog, logAntes);
       expect(campaign.initiative[1].containsKey('conditions'), isFalse);
     });
+
+    testWidgets('chips do jogador unem a ficha e a iniciativa, sem duplicar', (tester) async {
+      campaign.initiative[0]['conditions'] = ['cego', 'Envenenado'];
+      campaign.initiative[1]['conditions'] = 'tipo errado';
+      await pump(tester);
+      // Ana (local): 'Cego' da ficha + 'Envenenado' da iniciativa; 'cego' não repete.
+      expect(find.widgetWithText(InputChip, 'Cego'), findsOneWidget);
+      expect(find.widgetWithText(InputChip, 'cego'), findsNothing);
+      expect(find.widgetWithText(InputChip, 'Envenenado'), findsOneWidget);
+      // Bia (remota): 'Caído' do snapshot, mesmo com conditions de tipo errado.
+      expect(find.widgetWithText(InputChip, 'Caído'), findsOneWidget);
+    });
   });
 }
