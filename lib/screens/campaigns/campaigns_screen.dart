@@ -224,7 +224,8 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
     final snap=Map<String,dynamic>.from(link['snapshot'] as Map? ?? {});
     final resources=Map<String,dynamic>.from(snap['resourceValues'] as Map? ?? {});
     final conditions=(snap['conditions'] as List? ?? []).map((e)=>e.toString()).toList();
-    final ctrls={for(final e in resources.entries) e.key: TextEditingController(text:'${e.value}')};
+    // A vida (Vida/PV) do jogador é só dele: o mestre não vê nem envia esse campo.
+    final ctrls={for(final e in resources.entries) if(!isLifeResourceKey(e.key)) e.key: TextEditingController(text:'${e.value}')};
     final cond=TextEditingController(text:conditions.join(', '));
     final ok=await showDialog<bool>(context:context,builder:(_)=>AlertDialog(
       title:Text('Atualizar ${snap['name'] ?? 'ficha'}'),
