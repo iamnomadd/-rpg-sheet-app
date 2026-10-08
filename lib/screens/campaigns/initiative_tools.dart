@@ -19,3 +19,11 @@ void applyVida(Character sheet, ResourceValues values) {
   sheet.maxHp = max;
 }
 
+
+/// Condições de um participante da iniciativa. Item sem a chave (combates
+/// antigos) ou com tipo errado vira lista vazia.
+List<String> initiativeConditions(Map<String, dynamic> entry) {
+  final raw = entry['conditions'];
+  if (raw is! List) return [];
+  return raw.map((e) => '$e').toList();
+}

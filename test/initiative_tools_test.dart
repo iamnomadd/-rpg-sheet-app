@@ -54,6 +54,28 @@ void main() {
     });
   });
 
+  group('initiativeConditions', () {
+    test('sem a chave devolve lista vazia', () {
+      expect(initiativeConditions({'id': 'p1'}), isEmpty);
+    });
+
+    test('lista vazia', () {
+      expect(initiativeConditions({'conditions': []}), isEmpty);
+    });
+
+    test('tipo errado não quebra', () {
+      expect(initiativeConditions({'conditions': 'Envenenado'}), isEmpty);
+      expect(initiativeConditions({'conditions': 3}), isEmpty);
+      expect(initiativeConditions({'conditions': ['Caído', 2]}), ['Caído', '2']);
+    });
+
+    test('devolve uma cópia', () {
+      final entry = <String, dynamic>{'conditions': ['Caído']};
+      initiativeConditions(entry).add('Cego');
+      expect(entry['conditions'], ['Caído']);
+    });
+  });
+
   group('SessionToolsScreen — vida na iniciativa', () {
     late AppState state;
     late Campaign campaign;
@@ -130,6 +152,60 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.widgetWithText(TextField, 'Valor atual'), findsNothing);
       expect(state.characters.first.resourceValues['Vida'], 14);
+    });
+
+    Future<void> addCondition(WidgetTester tester, String participant, String condition) async {
+      await tester.tap(find.byTooltip('Adicionar condição a $participant'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), condition);
+      await tester.tap(find.text('Adicionar'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('condição por participante: adiciona, mostra chip, loga e remove', (tester) async {
+      await pump(tester);
+      await addCondition(tester, 'Goblin', 'Envenenado');
+      await addCondition(tester, 'Ana', 'Envenenado');
+
+      expect(find.widgetWithText(InputChip, 'Envenenado'), findsNWidgets(2));
+      expect(campaign.initiative.firstWhere((e) => e['id'] == 'npc:g1')['conditions'], ['Envenenado']);
+      expect(campaign.initiative.firstWhere((e) => e['id'] == 'p1')['conditions'], ['Envenenado']);
+      expect(campaign.sessionLog, containsAll(['Goblin ficou com Envenenado.', 'Ana ficou com Envenenado.']));
+      // Não mexe na ficha do jogador nem nas condições gerais.
+      expect(state.characters.first.conditions, isEmpty);
+      expect(campaign.conditions, isEmpty);
+
+      await tester.tap(find.widgetWithText(InputChip, 'Envenenado').first);
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(InputChip, 'Envenenado'), findsOneWidget);
+      expect(campaign.initiative.firstWhere((e) => e['id'] == 'npc:g1')['conditions'], isEmpty);
+      expect(campaign.sessionLog.last, 'Goblin não está mais com Envenenado.');
+    });
+
+    testWidgets('card geral se chama Condições gerais e continua gravando na campanha', (tester) async {
+      await pump(tester);
+      await tester.scrollUntilVisible(find.text('Condições gerais'), 200);
+      expect(find.text('Condições gerais'), findsOneWidget);
+      final addGeneral = find.widgetWithIcon(IconButton, Icons.add);
+      await tester.ensureVisible(addGeneral);
+      await tester.pumpAndSettle();
+      await tester.tap(addGeneral);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Neblina');
+      await tester.tap(find.text('Adicionar'));
+      await tester.pumpAndSettle();
+      expect(campaign.conditions, ['Neblina']);
+      expect(campaign.initiative.every((e) => !e.containsKey('conditions')), isTrue);
+    });
+
+    testWidgets('combate salvo antes (sem conditions) abre normalmente em tela estreita', (tester) async {
+      tester.view.physicalSize = const Size(320, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      campaign.initiative.first['conditions'] = 'tipo errado';
+      await pump(tester);
+      expect(tester.takeException(), isNull);
+      expect(find.text('Goblin'), findsWidgets);
     });
   });
 }

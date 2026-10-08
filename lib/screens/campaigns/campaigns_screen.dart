@@ -350,7 +350,8 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
     return ListView(padding: const EdgeInsets.all(16), children: [
       Card(child: Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         Row(children:[Icon(c.combatActive?Icons.sports_martial_arts:Icons.pause_circle_outline),const SizedBox(width:10),Expanded(child:Text(c.combatActive?'Combate ativo':'Sem combate ativo',style:Theme.of(context).textTheme.titleLarge)),Text('Rodada ${c.sessionRound}')]),
-        if(current!=null)...[const SizedBox(height:12),Text('TURNO ATUAL',style:Theme.of(context).textTheme.labelMedium),const SizedBox(height:4),Text('${current['name']}',style:Theme.of(context).textTheme.headlineSmall),Text('Iniciativa ${current['value']} • $done/${ordered.length} concluídos')],
+        if(current!=null)...[const SizedBox(height:12),Text('TURNO ATUAL',style:Theme.of(context).textTheme.labelMedium),const SizedBox(height:4),Text('${current['name']}',style:Theme.of(context).textTheme.headlineSmall),Text('Iniciativa ${current['value']} • $done/${ordered.length} concluídos'),
+          if(initiativeConditions(current).isNotEmpty)...[const SizedBox(height:8),Wrap(spacing:6,runSpacing:4,children:initiativeConditions(current).map((condition)=>Chip(label:Text(condition),visualDensity:VisualDensity.compact)).toList())]],
       ]))),
       if(ordered.isNotEmpty) Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         Text('Ordem de iniciativa',style:Theme.of(context).textTheme.titleMedium),
@@ -1052,6 +1053,7 @@ class SessionToolsScreen extends StatelessWidget {
                         ? 'Turno atual'
                         : (campaign.combatActive && index == activeIndex + 1 && !done ? 'Próximo' : null);
                     final vida = _vidaBar(context, state, campaign, entry);
+                    final conditions = initiativeConditions(entry);
                     return ListTile(
                       dense: true,
                       selected: current,
@@ -1060,16 +1062,38 @@ class SessionToolsScreen extends StatelessWidget {
                         onChanged: campaign.combatActive ? (_) => _finishTurn(context, campaign, participants, index) : null,
                       ),
                       title: Text((entry['name'] ?? 'Participante').toString()),
-                      subtitle: status == null && vida == null
-                          ? null
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (status != null) Text(status),
-                                if (vida != null) vida,
-                              ],
-                            ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (status != null) Text(status),
+                          if (vida != null) vida,
+                          Wrap(
+                            spacing: 4,
+                            runSpacing: 2,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              ...conditions.map((condition) => InputChip(
+                                    label: Text(condition),
+                                    visualDensity: VisualDensity.compact,
+                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    tooltip: 'Remover $condition',
+                                    onPressed: () => _removeParticipantCondition(context, campaign, entry, condition),
+                                    onDeleted: () => _removeParticipantCondition(context, campaign, entry, condition),
+                                    deleteButtonTooltipMessage: 'Remover $condition',
+                                  )),
+                              IconButton(
+                                tooltip: 'Adicionar condição a ${entry['name'] ?? 'participante'}',
+                                onPressed: () => _addParticipantCondition(context, campaign, entry),
+                                icon: const Icon(Icons.healing_outlined, size: 18),
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                       trailing: Wrap(
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
@@ -1122,7 +1146,7 @@ class SessionToolsScreen extends StatelessWidget {
                   Row(children: [
                     const Icon(Icons.healing),
                     const SizedBox(width: 8),
-                    Expanded(child: Text('Condições', style: Theme.of(context).textTheme.titleMedium)),
+                    Expanded(child: Text('Condições gerais', style: Theme.of(context).textTheme.titleMedium)),
                     IconButton(onPressed: () => _addCondition(context, campaign), icon: const Icon(Icons.add)),
                   ]),
                   if (campaign.conditions.isEmpty)
@@ -1595,9 +1619,10 @@ class SessionToolsScreen extends StatelessWidget {
     await _syncCombat(campaign);
   }
 
-  Future<void> _addCondition(BuildContext context, Campaign campaign) async {
+  /// Seletor de condição (entrada livre), o mesmo das condições gerais.
+  Future<String?> _askConditionName(BuildContext context) {
     final controller = TextEditingController();
-    final value = await showDialog<String>(
+    return showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Adicionar condição'),
@@ -1608,10 +1633,48 @@ class SessionToolsScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _addCondition(BuildContext context, Campaign campaign) async {
+    final value = await _askConditionName(context);
     if (value != null && value.isNotEmpty && context.mounted) {
       campaign.conditions.add(value);
       await context.read<AppState>().updateCampaign(campaign);
     }
+  }
+
+  Future<void> _saveCombatChange(BuildContext context, AppState state, Campaign campaign) async {
+    try {
+      await state.updateCampaign(campaign);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível salvar.')));
+      }
+      return;
+    }
+    await _syncCombat(campaign);
+  }
+
+  /// Condições do participante ficam só no item da iniciativa (não mexem na
+  /// ficha do jogador nem no snapshot remoto).
+  Future<void> _addParticipantCondition(BuildContext context, Campaign campaign, Map<String, dynamic> entry) async {
+    final state = context.read<AppState>();
+    final value = await _askConditionName(context);
+    if (value == null || value.isEmpty || !context.mounted) return;
+    final conditions = initiativeConditions(entry);
+    if (conditions.contains(value)) return;
+    entry['conditions'] = [...conditions, value];
+    campaign.sessionLog.add('${entry['name'] ?? 'Participante'} ficou com $value.');
+    await _saveCombatChange(context, state, campaign);
+  }
+
+  Future<void> _removeParticipantCondition(BuildContext context, Campaign campaign, Map<String, dynamic> entry, String condition) async {
+    final state = context.read<AppState>();
+    final conditions = initiativeConditions(entry);
+    if (!conditions.remove(condition)) return;
+    entry['conditions'] = conditions;
+    campaign.sessionLog.add('${entry['name'] ?? 'Participante'} não está mais com $condition.');
+    await _saveCombatChange(context, state, campaign);
   }
 
   Future<void> _removeCondition(BuildContext context, Campaign campaign, int index) async {
