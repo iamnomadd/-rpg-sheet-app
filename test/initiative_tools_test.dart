@@ -26,6 +26,58 @@ void main() {
     });
   });
 
+  group('lifeResourceKey', () {
+    Character sheet(Map<String, int> resources) =>
+        Character(id: 'n', name: 'NPC', resourceValues: resources, resourceMaxValues: Map.of(resources));
+
+    test('só Vida', () => expect(lifeResourceKey(sheet({'Vida': 5})), 'Vida'));
+    test('só PV', () => expect(lifeResourceKey(sheet({'PV': 5, 'PM': 2})), 'PV'));
+    test('pv minúsculo', () => expect(lifeResourceKey(sheet({' pv ': 5})), ' pv '));
+    test('PV e Vida juntos → PV', () => expect(lifeResourceKey(sheet({'Vida': 5, 'PV': 7})), 'PV'));
+    test('nenhum → Vida', () => expect(lifeResourceKey(sheet({'Energia': 1})), 'Vida'));
+  });
+
+  group('vida em sistema com PV', () {
+    test('ficha só com PV: lê o PV, grava PV/hp/maxHp e não cria Vida', () {
+      final sheet = Character(
+        id: 'n',
+        name: 'Orc',
+        hp: 99,
+        maxHp: 99,
+        resourceValues: {'PV': 10, 'PM': 3},
+        resourceMaxValues: {'PV': 10, 'PM': 5},
+      );
+      expect(readVida(sheet), (current: 10, max: 10));
+      applyVida(sheet, const ResourceValues(current: 4, max: 10));
+      expect(sheet.resourceValues['PV'], 4);
+      expect(sheet.resourceMaxValues['PV'], 10);
+      expect(sheet.hp, 4);
+      expect(sheet.maxHp, 10);
+      expect(sheet.resourceValues.containsKey('Vida'), isFalse);
+      expect(sheet.resourceMaxValues.containsKey('Vida'), isFalse);
+      expect(sheet.resourceValues['PM'], 3);
+      expect(sheet.resourceMaxValues['PM'], 5);
+    });
+
+    test('ficha com PV e Vida (como vem do fromJson): Vida espelha o PV', () {
+      final sheet = Character.fromJson(Character(
+        id: 'n',
+        name: 'Orc',
+        hp: 10,
+        maxHp: 10,
+        resourceValues: {'PV': 10, 'PM': 3},
+        resourceMaxValues: {'PV': 10, 'PM': 5},
+      ).toJson());
+      expect(sheet.resourceValues.containsKey('Vida'), isTrue);
+      applyVida(sheet, const ResourceValues(current: 4, max: 10));
+      expect(sheet.resourceValues['PV'], 4);
+      expect(sheet.resourceValues['Vida'], 4);
+      expect(sheet.resourceMaxValues['Vida'], 10);
+      expect(sheet.hp, 4);
+      expect(sheet.resourceValues['PM'], 3);
+    });
+  });
+
   group('applyVida', () {
     test('grava nos recursos e em hp/maxHp', () {
       final sheet = Character(id: 'n', name: 'Goblin', hp: 10, maxHp: 10);
@@ -227,6 +279,38 @@ void main() {
       expect(campaign.initiative.map((e) => e['id']), isNot(contains('npc:g1')));
       expect(find.widgetWithText(InputChip, 'Envenenado'), findsNothing);
       expect(campaign.sessionLog.last, 'Goblin removido do combate.');
+    });
+
+    testWidgets('NPC de sistema com PV: barra lê o PV e o dano atualiza PV e Vida', (tester) async {
+      final orc = Character.fromJson(Character(
+        id: 'o1',
+        name: 'Orc',
+        hp: 99,
+        maxHp: 99,
+        resourceValues: {'PV': 7, 'PM': 3},
+        resourceMaxValues: {'PV': 10, 'PM': 5},
+      ).toJson());
+      campaign.npcSheets.add({'id': 'o1', 'name': 'Orc', 'kind': 'NPC', 'sheet': orc.toJson()});
+      campaign.initiative.add({'id': 'npc:o1', 'name': 'Orc', 'type': 'npc', 'value': 5, 'done': false});
+      await pump(tester);
+
+      final bar = find.ancestor(of: find.text('7 / 10'), matching: find.byType(ResourceBarTapTarget));
+      expect(bar, findsOneWidget);
+      await tester.tap(bar);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.widgetWithText(TextField, 'Quantidade'), '3');
+      await tester.tap(find.text('Receber dano'));
+      await tester.pumpAndSettle();
+
+      final saved = Character.fromJson(Map<String, dynamic>.from(campaign.npcSheets.last['sheet'] as Map));
+      expect(saved.resourceValues['PV'], 4);
+      expect(saved.resourceValues['Vida'], 4);
+      expect(saved.resourceMaxValues['Vida'], 10);
+      expect(saved.hp, 4);
+      expect(saved.resourceValues['PM'], 3);
+      expect(saved.resourceMaxValues['PM'], 5);
+      expect(campaign.sessionLog.last, 'Orc: vida 7/10 → 4/10');
+      expect(find.text('4 / 10'), findsOneWidget);
     });
   });
 }
