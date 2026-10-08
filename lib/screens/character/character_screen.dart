@@ -17,6 +17,7 @@ import 'character_sprites.dart';
 import 'resource_quick_adjust.dart';
 import '../../widgets/confirm_delete_dialog.dart';
 import 'skill_roll.dart';
+import '../campaigns/initiative_tools.dart';
 
 
 /// Aplica os valores da folha do recurso na ficha, com o máximo em [0, 999999]
@@ -498,16 +499,6 @@ class _GeneralTab extends StatelessWidget {
     return system.resources.isNotEmpty ? system.resources.first : '';
   }
 
-  String _energyResourceName() {
-    for (final name in system.resources) {
-      if (name.toLowerCase() == 'energia') return name;
-    }
-    for (final name in system.resources) {
-      if (name != _lifeResourceName()) return name;
-    }
-    return '';
-  }
-
   Widget _resourceSummaryCard(
     BuildContext context, {
     required String keyId,
@@ -713,13 +704,31 @@ class _GeneralTab extends StatelessWidget {
           secondary: false,
         );
       case 'energy':
-        final resource = _energyResourceName();
-        return _resourceSummaryCard(
-          context,
-          keyId: 'energy',
-          title: resource.isEmpty ? 'Energia' : resource,
-          resourceName: resource,
-          secondary: true,
+        // Todos os recursos do sistema além da vida, na ordem do sistema.
+        final resources = secondaryResourceNames(system, _lifeResourceName());
+        if (resources.isEmpty) {
+          return _resourceSummaryCard(
+            context,
+            keyId: 'energy',
+            title: 'Energia',
+            resourceName: '',
+            secondary: true,
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < resources.length; i++) ...[
+              if (i > 0) const SizedBox(height: 10),
+              _resourceSummaryCard(
+                context,
+                keyId: i == 0 ? 'energy' : 'resource-${resources[i]}',
+                title: resources[i],
+                resourceName: resources[i],
+                secondary: true,
+              ),
+            ],
+          ],
         );
       case 'skillTree':
         final unlocked = character.skillTree.where((node) => node['unlocked'] == true).toList();

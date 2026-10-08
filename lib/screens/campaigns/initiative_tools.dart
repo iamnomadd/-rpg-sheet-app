@@ -1,4 +1,5 @@
 import '../../models/character.dart';
+import '../../models/rpg_system.dart';
 import '../character/resource_quick_adjust.dart';
 
 /// Chave do recurso de vida da ficha. Sistemas embutidos usam 'PV'; como o
@@ -116,5 +117,41 @@ Map<String, int> patchResourcesWithoutLife(Object? raw) {
   raw.forEach((key, value) {
     if (value is num && !isLifeResourceKey('$key')) result['$key'] = value.toInt();
   });
+  return result;
+}
+
+/// Recursos secundários do jogador em Em Cena: todos os recursos do sistema,
+/// na ordem do sistema, menos o recurso de vida.
+List<String> secondaryResourceNames(RpgSystem system, String lifeName) =>
+    system.resources.where((name) => name != lifeName).toList();
+
+
+/// Recursos secundários da ficha do NPC (sem vida, sem duplicar por
+/// trim + minúsculas). Com o sistema encontrado: os do sistema na ordem dele,
+/// depois chaves extras da ficha fora do sistema com atual ou máximo
+/// diferente de 0 (evita a 'Energia' 0/0 que o fromJson cria). Sem o sistema
+/// (systemResources null): todas as chaves da ficha que não são de vida.
+List<String> npcSecondaryResourceNames({
+  required List<String>? systemResources,
+  required Map<String, int> values,
+  required Map<String, int> maxValues,
+}) {
+  String norm(String name) => name.trim().toLowerCase();
+  final result = <String>[];
+  void add(String name) {
+    if (name.trim().isEmpty || isLifeResourceKey(name)) return;
+    if (result.any((r) => norm(r) == norm(name))) return;
+    result.add(name);
+  }
+
+  if (systemResources == null) {
+    values.keys.forEach(add);
+    return result;
+  }
+  systemResources.forEach(add);
+  for (final key in values.keys) {
+    if (systemResources.any((r) => norm(r) == norm(key))) continue;
+    if ((values[key] ?? 0) != 0 || (maxValues[key] ?? 0) != 0) add(key);
+  }
   return result;
 }
