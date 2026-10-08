@@ -215,9 +215,7 @@ void main() {
       } else {
         await tester.ensureVisible(find.text('Outra...'));
         await tester.pumpAndSettle();
-        await tester.ensureVisible(find.text('Outra...'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Outra...'));
+        await tester.tap(find.text('Outra...'));
         await tester.pumpAndSettle();
         await tester.enterText(find.byType(TextField), condition);
         await tester.tap(find.text('Adicionar'));
@@ -232,7 +230,8 @@ void main() {
 
       expect(find.widgetWithText(InputChip, 'Envenenado'), findsNWidgets(2));
       expect(campaign.initiative.firstWhere((e) => e['id'] == 'npc:g1')['conditions'], ['Envenenado']);
-      expect(campaign.initiative.firstWhere((e) => e['id'] == 'p1')['conditions'], ['Envenenado']);
+      // Jogador local: a ficha é a fonte da verdade; nada fica no item da iniciativa.
+      expect(campaign.initiative.firstWhere((e) => e['id'] == 'p1').containsKey('conditions'), isFalse);
       expect(campaign.sessionLog, containsAll(['Goblin ficou com Envenenado.', 'Ana ficou com Envenenado.']));
       // Regra nova: condição marcada pelo mestre num jogador vai para a ficha
       // dele (local aqui). Condições gerais não mudam.

@@ -83,6 +83,23 @@ List<String> patchedConditions(Iterable<String> current, {String? add, String? r
   return result;
 }
 
+/// Condições exibidas para um jogador remoto: as da ficha (snapshot) menos
+/// as remoções pendentes, mais as adições pendentes, sem duplicar.
+List<String> playerDisplayConditions(List<String> sheet, List<String> pendingAdd, List<String> pendingRemove) {
+  final kept = sheet.where((c) => !pendingRemove.any((r) => sameCondition(r, c)));
+  return mergeConditions(kept, pendingAdd);
+}
+
+/// Tira das pendências o que a ficha já confirmou: adição que já está na
+/// ficha e remoção que já não está mais.
+({List<String> add, List<String> remove}) pruneConfirmed(List<String> sheet, List<String> pendingAdd, List<String> pendingRemove) {
+  bool inSheet(String condition) => sheet.any((c) => sameCondition(c, condition));
+  return (
+    add: pendingAdd.where((c) => !inSheet(c)).toList(),
+    remove: pendingRemove.where(inSheet).toList(),
+  );
+}
+
 /// Patch do mestre que só traz condições ('resourceValues' ausente ou vazio):
 /// o jogador aplica automaticamente.
 bool isConditionsOnlyPatch(Map<String, dynamic> patch) {

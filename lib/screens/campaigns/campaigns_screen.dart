@@ -246,6 +246,23 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
     }
   }
 
+  /// Tira das pendências de condição dos jogadores remotos o que o snapshot
+  /// novo já confirmou.
+  void _pruneConfirmedConditions(Campaign c) {
+    for (final entry in c.initiative) {
+      if (entry['type'] != 'player') continue;
+      final link = _remoteLink(c, '${entry['id'] ?? ''}');
+      if (link == null) continue;
+      final pruned = pruneConfirmed(
+        conditionsFromRaw((link['snapshot'] as Map)['conditions']),
+        initiativeConditions(entry),
+        conditionsFromRaw(entry['conditionsRemoved']),
+      );
+      if (entry.containsKey('conditions') || pruned.add.isNotEmpty) entry['conditions'] = pruned.add;
+      if (entry.containsKey('conditionsRemoved') || pruned.remove.isNotEmpty) entry['conditionsRemoved'] = pruned.remove;
+    }
+  }
+
   Future<bool> _refreshRemotePlayers(BuildContext context, Campaign c, {bool quiet=false}) async {
     try {
       final session = await CloudService.ensureSession();
@@ -256,6 +273,7 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
         c.linkedCharacters.removeWhere((e) => e['shareCode'] == link['share_code']);
         c.linkedCharacters.add({'requestId': link['id'], 'shareCode': link['share_code'], 'status': 'approved', 'snapshot': shared['snapshot'], 'ownerId': shared['owner_id']});
       }
+      _pruneConfirmedConditions(c);
       await context.read<AppState>().updateCampaign(c);
       return true;
     } catch (e) {
@@ -349,7 +367,7 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
     final ix=ordered.isEmpty ? 0 : c.currentTurnIndex.clamp(0, ordered.length-1);
     final current=c.combatActive && ordered.isNotEmpty ? ordered[ix] : null;
     final done=ordered.where((e)=>e['done']==true).length;
-    final currentConditions=current==null ? <String>[] : mergeConditions(_playerSheetConditions(context.read<AppState>(),c,current),initiativeConditions(current));
+    final currentConditions=current==null ? <String>[] : _participantConditions(context.read<AppState>(),c,current);
     return ListView(padding: const EdgeInsets.all(16), children: [
       Card(child: Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         Row(children:[Icon(c.combatActive?Icons.sports_martial_arts:Icons.pause_circle_outline),const SizedBox(width:10),Expanded(child:Text(c.combatActive?'Combate ativo':'Sem combate ativo',style:Theme.of(context).textTheme.titleLarge)),Text('Rodada ${c.sessionRound}')]),
@@ -977,18 +995,32 @@ class MasterToolsScreen extends StatelessWidget {
   }
 }
 
-/// Condições da própria ficha do jogador (local ou snapshot do vínculo
-/// remoto). NPC/avulso: lista vazia.
-List<String> _playerSheetConditions(AppState state, Campaign campaign, Map<String, dynamic> entry) {
-  if (entry['type'] != 'player') return [];
+/// Vínculo remoto (com shareCode) do jogador com esse id, se houver.
+Map<String, dynamic>? _remoteLink(Campaign campaign, String id) {
+  for (final link in campaign.linkedCharacters) {
+    final snapshot = link['snapshot'];
+    if (snapshot is Map && '${snapshot['id']}' == id && '${link['shareCode'] ?? ''}'.isNotEmpty) return link;
+  }
+  return null;
+}
+
+/// Condições exibidas para o participante. A ficha do jogador é a fonte da
+/// verdade: local mostra só character.conditions; remoto mostra o snapshot
+/// com as pendências do mestre (entry['conditions'] = adições,
+/// entry['conditionsRemoved'] = remoções). NPC/avulso ou jogador sem ficha:
+/// entry['conditions'] como lista definitiva.
+List<String> _participantConditions(AppState state, Campaign campaign, Map<String, dynamic> entry) {
+  if (entry['type'] != 'player') return initiativeConditions(entry);
   final id = '${entry['id'] ?? ''}';
   final local = state.characters.where((c) => c.id == id);
   if (local.isNotEmpty) return conditionsFromRaw(local.first.conditions);
-  for (final link in campaign.linkedCharacters) {
-    final snapshot = link['snapshot'];
-    if (snapshot is Map && '${snapshot['id']}' == id) return conditionsFromRaw(snapshot['conditions']);
-  }
-  return [];
+  final link = _remoteLink(campaign, id);
+  if (link == null) return initiativeConditions(entry);
+  return playerDisplayConditions(
+    conditionsFromRaw((link['snapshot'] as Map)['conditions']),
+    initiativeConditions(entry),
+    conditionsFromRaw(entry['conditionsRemoved']),
+  );
 }
 
 class SessionToolsScreen extends StatelessWidget {
@@ -1070,8 +1102,8 @@ class SessionToolsScreen extends StatelessWidget {
                         ? 'Turno atual'
                         : (campaign.combatActive && index == activeIndex + 1 && !done ? 'Próximo' : null);
                     final vida = _vidaBar(context, state, campaign, entry);
-                    // Jogador: condições da própria ficha + as marcadas na iniciativa.
-                    final conditions = mergeConditions(_playerSheetConditions(state, campaign, entry), initiativeConditions(entry));
+                    // Jogador: a ficha é a fonte da verdade (+ pendências do mestre).
+                    final conditions = _participantConditions(state, campaign, entry);
                     return ListTile(
                       dense: true,
                       selected: current,
@@ -1675,8 +1707,6 @@ class SessionToolsScreen extends StatelessWidget {
     await _syncCombat(campaign);
   }
 
-  /// Condições do participante ficam só no item da iniciativa (não mexem na
-  /// ficha do jogador nem no snapshot remoto).
   /// Seletor de condição do participante: condições pré-definidas (o nome
   /// salvo é o do preset) e "Outra..." com a entrada livre.
   Future<String?> _pickParticipantCondition(BuildContext context, List<String> current) async {
@@ -1702,15 +1732,6 @@ class SessionToolsScreen extends StatelessWidget {
     final typed = await _askConditionName(context);
     if (typed == null || typed.isEmpty) return typed;
     return conditionPresetFor(typed)?.name ?? typed;
-  }
-
-  /// Vínculo remoto (com shareCode) do jogador com esse id, se houver.
-  Map<String, dynamic>? _remoteLink(Campaign campaign, String id) {
-    for (final link in campaign.linkedCharacters) {
-      final snapshot = link['snapshot'];
-      if (snapshot is Map && '${snapshot['id']}' == id && '${link['shareCode'] ?? ''}'.isNotEmpty) return link;
-    }
-    return null;
   }
 
   /// Leva a mudança de condição para a ficha do jogador: local grava em
@@ -1740,7 +1761,8 @@ class SessionToolsScreen extends StatelessWidget {
           : conditionsFromRaw(snapshot['conditions']);
       final next = patchedConditions(base, add: add, remove: remove);
       await CloudService.updateSharedCharacterPatch(session, code, {'conditions': next});
-      link['snapshot'] = Map<String, dynamic>.from(snapshot)..['conditions'] = next;
+      // O snapshot só muda pela sincronização real; até lá a exibição usa as
+      // pendências guardadas no item da iniciativa.
       return true;
     } catch (_) {
       if (context.mounted) {
@@ -1754,15 +1776,22 @@ class SessionToolsScreen extends StatelessWidget {
 
   Future<void> _addParticipantCondition(BuildContext context, Campaign campaign, Map<String, dynamic> entry) async {
     final state = context.read<AppState>();
-    final isPlayer = entry['type'] == 'player';
-    final current = isPlayer
-        ? mergeConditions(_playerSheetConditions(state, campaign, entry), initiativeConditions(entry))
-        : initiativeConditions(entry);
+    final current = _participantConditions(state, campaign, entry);
     final value = await _pickParticipantCondition(context, current);
     if (value == null || value.isEmpty || !context.mounted) return;
     if (current.any((c) => sameCondition(c, value))) return;
+    final id = '${entry['id'] ?? ''}';
+    final isPlayer = entry['type'] == 'player';
+    final isLocal = isPlayer && state.characters.any((c) => c.id == id);
+    final isRemote = isPlayer && !isLocal && _remoteLink(campaign, id) != null;
     if (isPlayer && !await _syncPlayerCondition(context, state, campaign, entry, add: value)) return;
-    entry['conditions'] = patchedConditions(initiativeConditions(entry), add: value);
+    if (isRemote) {
+      // Pendente até o snapshot do jogador confirmar.
+      entry['conditions'] = patchedConditions(initiativeConditions(entry), add: value);
+      entry['conditionsRemoved'] = patchedConditions(conditionsFromRaw(entry['conditionsRemoved']), remove: value);
+    } else if (!isLocal) {
+      entry['conditions'] = patchedConditions(initiativeConditions(entry), add: value);
+    }
     campaign.sessionLog.add('${entry['name'] ?? 'Participante'} ficou com $value.');
     if (!context.mounted) return;
     await _saveCombatChange(context, state, campaign);
@@ -1771,9 +1800,17 @@ class SessionToolsScreen extends StatelessWidget {
   Future<void> _removeParticipantCondition(BuildContext context, Campaign campaign, Map<String, dynamic> entry, String condition) async {
     final state = context.read<AppState>();
     final conditions = initiativeConditions(entry);
-    if (entry['type'] == 'player') {
+    final id = '${entry['id'] ?? ''}';
+    final isPlayer = entry['type'] == 'player';
+    final isLocal = isPlayer && state.characters.any((c) => c.id == id);
+    final isRemote = isPlayer && !isLocal && _remoteLink(campaign, id) != null;
+    if (isLocal || isRemote) {
       if (!await _syncPlayerCondition(context, state, campaign, entry, remove: condition)) return;
-      entry['conditions'] = patchedConditions(conditions, remove: condition);
+      if (isRemote) {
+        // Pendente até o snapshot do jogador confirmar.
+        entry['conditionsRemoved'] = patchedConditions(conditionsFromRaw(entry['conditionsRemoved']), add: condition);
+        entry['conditions'] = patchedConditions(conditions, remove: condition);
+      }
     } else {
       if (!conditions.remove(condition)) return;
       entry['conditions'] = conditions;
