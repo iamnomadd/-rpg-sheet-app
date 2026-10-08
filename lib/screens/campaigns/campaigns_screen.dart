@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../app/condition_presets.dart';
 import '../../models/campaign.dart';
 import '../../models/character.dart';
 import '../../services/app_state.dart';
@@ -974,6 +975,20 @@ class MasterToolsScreen extends StatelessWidget {
   }
 }
 
+/// Condições da própria ficha do jogador (local ou snapshot do vínculo
+/// remoto). NPC/avulso: lista vazia.
+List<String> _playerSheetConditions(AppState state, Campaign campaign, Map<String, dynamic> entry) {
+  if (entry['type'] != 'player') return [];
+  final id = '${entry['id'] ?? ''}';
+  final local = state.characters.where((c) => c.id == id);
+  if (local.isNotEmpty) return conditionsFromRaw(local.first.conditions);
+  for (final link in campaign.linkedCharacters) {
+    final snapshot = link['snapshot'];
+    if (snapshot is Map && '${snapshot['id']}' == id) return conditionsFromRaw(snapshot['conditions']);
+  }
+  return [];
+}
+
 class SessionToolsScreen extends StatelessWidget {
   final String campaignId;
   const SessionToolsScreen({super.key, required this.campaignId});
@@ -1659,23 +1674,109 @@ class SessionToolsScreen extends StatelessWidget {
 
   /// Condições do participante ficam só no item da iniciativa (não mexem na
   /// ficha do jogador nem no snapshot remoto).
+  /// Seletor de condição do participante: condições pré-definidas (o nome
+  /// salvo é o do preset) e "Outra..." com a entrada livre.
+  Future<String?> _pickParticipantCondition(BuildContext context, List<String> current) async {
+    const other = '\u0000outra';
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: const Text('Adicionar condição'),
+        children: [
+          ...conditionPresets.where((p) => !current.any((c) => sameCondition(c, p.name))).map((p) => SimpleDialogOption(
+                onPressed: () => Navigator.pop(dialogContext, p.name),
+                child: Row(children: [Icon(p.icon), const SizedBox(width: 10), Text(p.name)]),
+              )),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(dialogContext, other),
+            child: const Row(children: [Icon(Icons.add), SizedBox(width: 10), Text('Outra...')]),
+          ),
+        ],
+      ),
+    );
+    if (picked != other) return picked;
+    if (!context.mounted) return null;
+    final typed = await _askConditionName(context);
+    if (typed == null || typed.isEmpty) return typed;
+    return conditionPresetFor(typed)?.name ?? typed;
+  }
+
+  /// Vínculo remoto (com shareCode) do jogador com esse id, se houver.
+  Map<String, dynamic>? _remoteLink(Campaign campaign, String id) {
+    for (final link in campaign.linkedCharacters) {
+      final snapshot = link['snapshot'];
+      if (snapshot is Map && '${snapshot['id']}' == id && '${link['shareCode'] ?? ''}'.isNotEmpty) return link;
+    }
+    return null;
+  }
+
+  /// Leva a mudança de condição para a ficha do jogador: local grava em
+  /// character.conditions; remota envia patch só com 'conditions' (nunca
+  /// vida/recursos). Devolve false se não foi possível sincronizar.
+  Future<bool> _syncPlayerCondition(BuildContext context, AppState state, Campaign campaign, Map<String, dynamic> entry, {String? add, String? remove}) async {
+    final id = '${entry['id'] ?? ''}';
+    final local = state.characters.where((c) => c.id == id);
+    try {
+      if (local.isNotEmpty) {
+        final character = local.first;
+        character.conditions = patchedConditions(character.conditions, add: add, remove: remove);
+        await state.updateCharacter(character);
+        return true;
+      }
+      final link = _remoteLink(campaign, id);
+      if (link == null) return true;
+      final session = await CloudService.ensureSession();
+      final code = '${link['shareCode']}';
+      // Base atual: patch pendente do mestre (se já tiver condições) ou o
+      // snapshot mais recente da ficha; o patch substitui o anterior.
+      final shared = await CloudService.sharedCharacterByCode(session, code);
+      final pending = shared?['master_patch'];
+      final snapshot = shared?['snapshot'] is Map ? shared!['snapshot'] as Map : link['snapshot'] as Map;
+      final base = pending is Map && pending['conditions'] is List
+          ? conditionsFromRaw(pending['conditions'])
+          : conditionsFromRaw(snapshot['conditions']);
+      final next = patchedConditions(base, add: add, remove: remove);
+      await CloudService.updateSharedCharacterPatch(session, code, {'conditions': next});
+      link['snapshot'] = Map<String, dynamic>.from(snapshot)..['conditions'] = next;
+      return true;
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Não foi possível enviar a condição para a ficha do jogador. Verifique a conexão e tente de novo.'),
+        ));
+      }
+      return false;
+    }
+  }
+
   Future<void> _addParticipantCondition(BuildContext context, Campaign campaign, Map<String, dynamic> entry) async {
     final state = context.read<AppState>();
-    final value = await _askConditionName(context);
+    final isPlayer = entry['type'] == 'player';
+    final current = isPlayer
+        ? mergeConditions(_playerSheetConditions(state, campaign, entry), initiativeConditions(entry))
+        : initiativeConditions(entry);
+    final value = await _pickParticipantCondition(context, current);
     if (value == null || value.isEmpty || !context.mounted) return;
-    final conditions = initiativeConditions(entry);
-    if (conditions.contains(value)) return;
-    entry['conditions'] = [...conditions, value];
+    if (current.any((c) => sameCondition(c, value))) return;
+    if (isPlayer && !await _syncPlayerCondition(context, state, campaign, entry, add: value)) return;
+    entry['conditions'] = patchedConditions(initiativeConditions(entry), add: value);
     campaign.sessionLog.add('${entry['name'] ?? 'Participante'} ficou com $value.');
+    if (!context.mounted) return;
     await _saveCombatChange(context, state, campaign);
   }
 
   Future<void> _removeParticipantCondition(BuildContext context, Campaign campaign, Map<String, dynamic> entry, String condition) async {
     final state = context.read<AppState>();
     final conditions = initiativeConditions(entry);
-    if (!conditions.remove(condition)) return;
-    entry['conditions'] = conditions;
+    if (entry['type'] == 'player') {
+      if (!await _syncPlayerCondition(context, state, campaign, entry, remove: condition)) return;
+      entry['conditions'] = patchedConditions(conditions, remove: condition);
+    } else {
+      if (!conditions.remove(condition)) return;
+      entry['conditions'] = conditions;
+    }
     campaign.sessionLog.add('${entry['name'] ?? 'Participante'} não está mais com $condition.');
+    if (!context.mounted) return;
     await _saveCombatChange(context, state, campaign);
   }
 
