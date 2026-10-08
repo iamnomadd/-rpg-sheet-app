@@ -7,6 +7,7 @@ import 'package:supabase/supabase.dart';
 import '../../models/character.dart';
 import '../../services/app_state.dart';
 import '../../services/cloud_service.dart';
+import '../campaigns/initiative_tools.dart';
 
 class PlayerTurnBanner extends StatefulWidget {
   final Character character;
@@ -28,6 +29,9 @@ class _PlayerTurnBannerState extends State<PlayerTurnBanner> with SingleTickerPr
   bool _realtimeConnected = false;
   String _realtimeAccessToken = '';
   Set<String> _campaignIds = <String>{};
+  // Patch de condições já aplicado automaticamente (evita aplicar de novo
+  // entre ciclos de _refresh enquanto a limpeza na nuvem não chega).
+  String? _appliedConditionsPatch;
   @override
   void initState(){
     super.initState();
@@ -135,7 +139,14 @@ class _PlayerTurnBannerState extends State<PlayerTurnBanner> with SingleTickerPr
       if (widget.character.shareCode.isNotEmpty) {
         final shared = await CloudService.sharedCharacterByCode(session, widget.character.shareCode);
         final patch = shared?['master_patch'];
-        if (patch is Map && patch.isNotEmpty && mounted) setState(() => pendingPatch = Map<String,dynamic>.from(patch));
+        if (patch is Map && patch.isNotEmpty && mounted) {
+          final data = Map<String,dynamic>.from(patch);
+          if (isConditionsOnlyPatch(data)) {
+            await _autoApplyConditions(data, '${shared?['master_patch_updated_at']}|$data');
+          } else {
+            setState(() => pendingPatch = data);
+          }
+        }
       }
       // Approved campaign IDs are intentionally discovered from the player's own link records via REST.
       final links=await CloudService.approvedPlayerCampaigns(session);
@@ -161,10 +172,24 @@ class _PlayerTurnBannerState extends State<PlayerTurnBanner> with SingleTickerPr
       if(mounted)_scheduleRefresh(_nextRefreshDelay);
     }
   }
+  /// Condições enviadas pelo mestre entram sozinhas na ficha.
+  Future<void> _autoApplyConditions(Map<String,dynamic> patch, String key) async {
+    if (_appliedConditionsPatch == key) return;
+    _appliedConditionsPatch = key;
+    final appState = context.read<AppState>();
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    widget.character.conditions = conditionsFromRaw(patch['conditions']);
+    await appState.updateCharacter(widget.character);
+    if (mounted) setState(() => pendingPatch = null);
+    messenger?.showSnackBar(const SnackBar(content: Text('O mestre atualizou suas condições.'), duration: Duration(seconds: 2)));
+    final session = await CloudService.ensureSession();
+    await CloudService.clearSharedCharacterPatch(session, widget.character.shareCode);
+  }
+
   Future<void> _applyPatch() async {
     final patch=pendingPatch; if(patch==null) return;
-    final resources=patch['resourceValues'];
-    if(resources is Map) resources.forEach((k,v){ if(v is num) widget.character.resourceValues[k.toString()]=v.toInt(); });
+    // A vida (Vida/PV) do jogador é só dele: ignora mesmo se vier no patch.
+    widget.character.resourceValues.addAll(patchResourcesWithoutLife(patch['resourceValues']));
     final conditions=patch['conditions'];
     if(conditions is List) widget.character.conditions=conditions.map((e)=>e.toString()).toList();
     await context.read<AppState>().updateCharacter(widget.character);

@@ -209,8 +209,17 @@ void main() {
     Future<void> addCondition(WidgetTester tester, String participant, String condition) async {
       await tester.tap(find.byTooltip('Adicionar condição a $participant'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), condition);
-      await tester.tap(find.text('Adicionar'));
+      final preset = find.descendant(of: find.byType(SimpleDialog), matching: find.text(condition));
+      if (preset.evaluate().isNotEmpty) {
+        await tester.tap(preset);
+      } else {
+        await tester.ensureVisible(find.text('Outra...'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Outra...'));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextField), condition);
+        await tester.tap(find.text('Adicionar'));
+      }
       await tester.pumpAndSettle();
     }
 
@@ -221,10 +230,12 @@ void main() {
 
       expect(find.widgetWithText(InputChip, 'Envenenado'), findsNWidgets(2));
       expect(campaign.initiative.firstWhere((e) => e['id'] == 'npc:g1')['conditions'], ['Envenenado']);
-      expect(campaign.initiative.firstWhere((e) => e['id'] == 'p1')['conditions'], ['Envenenado']);
+      // Jogador local: a ficha é a fonte da verdade; nada fica no item da iniciativa.
+      expect(campaign.initiative.firstWhere((e) => e['id'] == 'p1').containsKey('conditions'), isFalse);
       expect(campaign.sessionLog, containsAll(['Goblin ficou com Envenenado.', 'Ana ficou com Envenenado.']));
-      // Não mexe na ficha do jogador nem nas condições gerais.
-      expect(state.characters.first.conditions, isEmpty);
+      // Regra nova: condição marcada pelo mestre num jogador vai para a ficha
+      // dele (local aqui). Condições gerais não mudam.
+      expect(state.characters.first.conditions, ['Envenenado']);
       expect(campaign.conditions, isEmpty);
 
       await tester.tap(find.widgetWithText(InputChip, 'Envenenado').first);

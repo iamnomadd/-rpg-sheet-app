@@ -53,3 +53,68 @@ List<String> initiativeConditions(Map<String, dynamic> entry) {
   if (raw is! List) return [];
   return raw.map((e) => '$e').toList();
 }
+
+/// Condições a partir de um valor qualquer (ex.: snapshot['conditions']).
+/// Tipo errado vira lista vazia.
+List<String> conditionsFromRaw(Object? raw) {
+  if (raw is! List) return [];
+  return raw.map((e) => '$e').where((e) => e.trim().isNotEmpty).toList();
+}
+
+bool sameCondition(String a, String b) => a.trim().toLowerCase() == b.trim().toLowerCase();
+
+/// Une listas de condições sem duplicar (sem diferenciar maiúsculas),
+/// mantendo a primeira grafia encontrada.
+List<String> mergeConditions(Iterable<String> first, Iterable<String> second) {
+  final result = <String>[];
+  for (final condition in [...first, ...second]) {
+    if (condition.trim().isEmpty) continue;
+    if (!result.any((c) => sameCondition(c, condition))) result.add(condition);
+  }
+  return result;
+}
+
+/// Lista final de condições depois de adicionar e/ou remover uma condição,
+/// sem duplicar e sem diferenciar maiúsculas.
+List<String> patchedConditions(Iterable<String> current, {String? add, String? remove}) {
+  var result = mergeConditions(current, const []);
+  if (remove != null) result = result.where((c) => !sameCondition(c, remove)).toList();
+  if (add != null && add.trim().isNotEmpty && !result.any((c) => sameCondition(c, add))) result.add(add);
+  return result;
+}
+
+/// Condições exibidas para um jogador remoto: as da ficha (snapshot) menos
+/// as remoções pendentes, mais as adições pendentes, sem duplicar.
+List<String> playerDisplayConditions(List<String> sheet, List<String> pendingAdd, List<String> pendingRemove) {
+  final kept = sheet.where((c) => !pendingRemove.any((r) => sameCondition(r, c)));
+  return mergeConditions(kept, pendingAdd);
+}
+
+/// Tira das pendências o que a ficha já confirmou: adição que já está na
+/// ficha e remoção que já não está mais.
+({List<String> add, List<String> remove}) pruneConfirmed(List<String> sheet, List<String> pendingAdd, List<String> pendingRemove) {
+  bool inSheet(String condition) => sheet.any((c) => sameCondition(c, condition));
+  return (
+    add: pendingAdd.where((c) => !inSheet(c)).toList(),
+    remove: pendingRemove.where(inSheet).toList(),
+  );
+}
+
+/// Patch do mestre que só traz condições ('resourceValues' ausente ou vazio):
+/// o jogador aplica automaticamente.
+bool isConditionsOnlyPatch(Map<String, dynamic> patch) {
+  if (patch['conditions'] is! List) return false;
+  final resources = patch['resourceValues'];
+  return resources == null || (resources is Map && resources.isEmpty);
+}
+
+/// Recursos de um patch do mestre, sem as chaves de vida ('Vida'/'PV'):
+/// a vida do jogador é só dele.
+Map<String, int> patchResourcesWithoutLife(Object? raw) {
+  final result = <String, int>{};
+  if (raw is! Map) return result;
+  raw.forEach((key, value) {
+    if (value is num && !isLifeResourceKey('$key')) result['$key'] = value.toInt();
+  });
+  return result;
+}
