@@ -1,4 +1,5 @@
 import '../../models/character.dart';
+import '../../models/rpg_system.dart';
 import '../character/resource_quick_adjust.dart';
 
 /// Chave do recurso de vida da ficha. Sistemas embutidos usam 'PV'; como o
@@ -118,3 +119,9 @@ Map<String, int> patchResourcesWithoutLife(Object? raw) {
   });
   return result;
 }
+
+/// Recursos secundários do jogador em Em Cena: todos os recursos do sistema,
+/// na ordem do sistema, menos o recurso de vida.
+List<String> secondaryResourceNames(RpgSystem system, String lifeName) =>
+    system.resources.where((name) => name != lifeName).toList();
+
