@@ -7,6 +7,8 @@ import '../../models/character.dart';
 import '../../services/app_state.dart';
 import '../../utils/resource_math.dart';
 import '../../utils/spell_icon.dart';
+import '../character/resource_quick_adjust.dart';
+import 'initiative_tools.dart';
 
 class NpcSheetScreen extends StatefulWidget {
   final String campaignId;
@@ -104,10 +106,11 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
     final state = context.watch<AppState>();
     final matchingSystems = state.systems.where((s) => s.id == sheet.systemId);
     final systemName = matchingSystems.isEmpty ? sheet.systemId : matchingSystems.first.name;
-    final hp = sheet.resourceValues['Vida'] ?? sheet.hp;
-    final maxHp = sheet.resourceMaxValues['Vida'] ?? sheet.maxHp;
+    final vida = readVida(sheet);
+    final hp = vida.current;
+    final maxHp = vida.max;
     final energyName = sheet.resourceValues.keys.firstWhere(
-      (name) => name.toLowerCase() != 'vida',
+      (name) => !isLifeResourceKey(name),
       orElse: () => '',
     );
     final energy = energyName.isEmpty ? 0 : (sheet.resourceValues[energyName] ?? 0);
@@ -490,8 +493,10 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
   }
 
   Future<void> _editResource(Campaign campaign, Map<String,dynamic> npc, Character sheet, String key) async {
-    final current = sheet.resourceValues[key] ?? (key.toLowerCase() == 'vida' ? sheet.hp : 0);
-    final maximum = sheet.resourceMaxValues[key] ?? (key.toLowerCase() == 'vida' ? sheet.maxHp : current);
+    final isLife = isLifeResourceKey(key);
+    final vida = isLife ? readVida(sheet) : null;
+    final current = vida?.current ?? sheet.resourceValues[key] ?? 0;
+    final maximum = vida?.max ?? sheet.resourceMaxValues[key] ?? current;
     final value = TextEditingController(text: '$current');
     final max = TextEditingController(text: '$maximum');
 
@@ -597,11 +602,13 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
     if (confirmed == true) {
       final newMax = (int.tryParse(max.text) ?? maximum).clamp(0, 999999).toInt();
       final newValue = (int.tryParse(value.text) ?? current).clamp(0, newMax).toInt();
-      sheet.resourceValues[key] = newValue;
-      sheet.resourceMaxValues[key] = newMax;
-      if (key.toLowerCase() == 'vida') {
-        sheet.hp = newValue;
-        sheet.maxHp = newMax;
+      if (isLife) {
+        // Vida e PV ficam iguais: grava na chave de vida resolvida, espelha
+        // 'Vida' se existir e mantém hp/maxHp.
+        applyVida(sheet, ResourceValues(current: newValue, max: newMax));
+      } else {
+        sheet.resourceValues[key] = newValue;
+        sheet.resourceMaxValues[key] = newMax;
       }
       await _save(campaign, npc, sheet);
     }
