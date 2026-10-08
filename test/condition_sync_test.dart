@@ -54,6 +54,28 @@ void main() {
     });
   });
 
+  group('patch do mestre no jogador', () {
+    test('só condições (sem resourceValues ou com mapa vazio) aplica sozinho', () {
+      expect(isConditionsOnlyPatch({'conditions': ['Envenenado']}), isTrue);
+      expect(isConditionsOnlyPatch({'conditions': [], 'resourceValues': {}}), isTrue);
+    });
+
+    test('com resourceValues ou sem lista de condições continua manual', () {
+      expect(isConditionsOnlyPatch({'conditions': ['Cego'], 'resourceValues': {'PM': 2}}), isFalse);
+      expect(isConditionsOnlyPatch({'resourceValues': {'PM': 2}}), isFalse);
+      expect(isConditionsOnlyPatch({'conditions': 'Cego'}), isFalse);
+    });
+
+    test('aplicar manual ignora Vida e PV', () {
+      expect(
+        patchResourcesWithoutLife({'Vida': 1, 'PV': 2, ' pv ': 3, 'PM': 4, 'Energia': 5.0, 'Sanidade': 'x'}),
+        {'PM': 4, 'Energia': 5},
+      );
+      expect(patchResourcesWithoutLife(null), isEmpty);
+      expect(patchResourcesWithoutLife(['Vida']), isEmpty);
+    });
+  });
+
   group('SessionToolsScreen — condições do jogador', () {
     late AppState state;
     late Campaign campaign;

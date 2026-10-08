@@ -82,3 +82,22 @@ List<String> patchedConditions(Iterable<String> current, {String? add, String? r
   if (add != null && add.trim().isNotEmpty && !result.any((c) => sameCondition(c, add))) result.add(add);
   return result;
 }
+
+/// Patch do mestre que só traz condições ('resourceValues' ausente ou vazio):
+/// o jogador aplica automaticamente.
+bool isConditionsOnlyPatch(Map<String, dynamic> patch) {
+  if (patch['conditions'] is! List) return false;
+  final resources = patch['resourceValues'];
+  return resources == null || (resources is Map && resources.isEmpty);
+}
+
+/// Recursos de um patch do mestre, sem as chaves de vida ('Vida'/'PV'):
+/// a vida do jogador é só dele.
+Map<String, int> patchResourcesWithoutLife(Object? raw) {
+  final result = <String, int>{};
+  if (raw is! Map) return result;
+  raw.forEach((key, value) {
+    if (value is num && !isLifeResourceKey('$key')) result['$key'] = value.toInt();
+  });
+  return result;
+}
