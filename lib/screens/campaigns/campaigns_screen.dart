@@ -9,6 +9,8 @@ import '../../services/app_state.dart';
 import '../../services/cloud_service.dart';
 import '../../services/rpg_file_service.dart';
 import 'npc_sheet_screen.dart';
+import 'initiative_tools.dart';
+import '../character/resource_quick_adjust.dart';
 import '../../widgets/confirm_delete_dialog.dart';
 
 
@@ -348,7 +350,8 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
     return ListView(padding: const EdgeInsets.all(16), children: [
       Card(child: Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         Row(children:[Icon(c.combatActive?Icons.sports_martial_arts:Icons.pause_circle_outline),const SizedBox(width:10),Expanded(child:Text(c.combatActive?'Combate ativo':'Sem combate ativo',style:Theme.of(context).textTheme.titleLarge)),Text('Rodada ${c.sessionRound}')]),
-        if(current!=null)...[const SizedBox(height:12),Text('TURNO ATUAL',style:Theme.of(context).textTheme.labelMedium),const SizedBox(height:4),Text('${current['name']}',style:Theme.of(context).textTheme.headlineSmall),Text('Iniciativa ${current['value']} • $done/${ordered.length} concluídos')],
+        if(current!=null)...[const SizedBox(height:12),Text('TURNO ATUAL',style:Theme.of(context).textTheme.labelMedium),const SizedBox(height:4),Text('${current['name']}',style:Theme.of(context).textTheme.headlineSmall),Text('Iniciativa ${current['value']} • $done/${ordered.length} concluídos'),
+          if(initiativeConditions(current).isNotEmpty)...[const SizedBox(height:8),Wrap(spacing:6,runSpacing:4,children:initiativeConditions(current).map((condition)=>Chip(label:Text(condition),visualDensity:VisualDensity.compact)).toList())]],
       ]))),
       if(ordered.isNotEmpty) Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         Text('Ordem de iniciativa',style:Theme.of(context).textTheme.titleMedium),
@@ -1046,6 +1049,11 @@ class SessionToolsScreen extends StatelessWidget {
                     final entry = indexed.value;
                     final done = entry['done'] == true;
                     final current = campaign.combatActive && index == activeIndex && !done;
+                    final status = current
+                        ? 'Turno atual'
+                        : (campaign.combatActive && index == activeIndex + 1 && !done ? 'Próximo' : null);
+                    final vida = _vidaBar(context, state, campaign, entry);
+                    final conditions = initiativeConditions(entry);
                     return ListTile(
                       dense: true,
                       selected: current,
@@ -1054,9 +1062,38 @@ class SessionToolsScreen extends StatelessWidget {
                         onChanged: campaign.combatActive ? (_) => _finishTurn(context, campaign, participants, index) : null,
                       ),
                       title: Text((entry['name'] ?? 'Participante').toString()),
-                      subtitle: current
-                          ? const Text('Turno atual')
-                          : (campaign.combatActive && index == activeIndex + 1 && !done ? const Text('Próximo') : null),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (status != null) Text(status),
+                          if (vida != null) vida,
+                          Wrap(
+                            spacing: 4,
+                            runSpacing: 2,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              ...conditions.map((condition) => InputChip(
+                                    label: Text(condition),
+                                    visualDensity: VisualDensity.compact,
+                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    tooltip: 'Remover $condition',
+                                    onPressed: () => _removeParticipantCondition(context, campaign, entry, condition),
+                                    onDeleted: () => _removeParticipantCondition(context, campaign, entry, condition),
+                                    deleteButtonTooltipMessage: 'Remover $condition',
+                                  )),
+                              IconButton(
+                                tooltip: 'Adicionar condição a ${entry['name'] ?? 'participante'}',
+                                onPressed: () => _addParticipantCondition(context, campaign, entry),
+                                icon: const Icon(Icons.healing_outlined, size: 18),
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                       trailing: Wrap(
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
@@ -1109,7 +1146,7 @@ class SessionToolsScreen extends StatelessWidget {
                   Row(children: [
                     const Icon(Icons.healing),
                     const SizedBox(width: 8),
-                    Expanded(child: Text('Condições', style: Theme.of(context).textTheme.titleMedium)),
+                    Expanded(child: Text('Condições gerais', style: Theme.of(context).textTheme.titleMedium)),
                     IconButton(onPressed: () => _addCondition(context, campaign), icon: const Icon(Icons.add)),
                   ]),
                   if (campaign.conditions.isEmpty)
@@ -1199,6 +1236,100 @@ class SessionToolsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Ficha de um NPC da campanha pelo id (sem o prefixo 'npc:').
+  ({Map<String, dynamic> npc, Character sheet})? _npcSheet(Campaign campaign, String npcId) {
+    for (final npc in campaign.npcSheets) {
+      final raw = npc['sheet'];
+      if ('${npc['id']}' != npcId || raw is! Map) continue;
+      try {
+        return (npc: npc, sheet: Character.fromJson(Map<String, dynamic>.from(raw)));
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /// Ficha do jogador, local ou do snapshot do vínculo remoto, só para leitura.
+  Character? _playerSheet(AppState state, Campaign campaign, String id) {
+    final local = state.characters.where((ch) => ch.id == id);
+    if (local.isNotEmpty) return local.first;
+    for (final link in campaign.linkedCharacters) {
+      final raw = link['snapshot'];
+      if (raw is Map && '${raw['id']}' == id) {
+        try {
+          return Character.fromJson(Map<String, dynamic>.from(raw));
+        } catch (_) {
+          return null;
+        }
+      }
+    }
+    return null;
+  }
+
+  Widget _vidaLine(BuildContext context, ({int current, int max}) vida) {
+    final ratio = vida.max > 0 ? (vida.current / vida.max).clamp(0.0, 1.0) : 0.0;
+    return Row(children: [
+      const Icon(Icons.favorite_outline, size: 14),
+      const SizedBox(width: 6),
+      Expanded(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(value: ratio, minHeight: 6),
+        ),
+      ),
+      const SizedBox(width: 8),
+      Text('${vida.current} / ${vida.max}', style: Theme.of(context).textTheme.bodySmall),
+    ]);
+  }
+
+  /// Vida do participante: NPC local pode ser ajustado pelo mestre; jogador
+  /// aparece só para leitura (a vida do jogador é dele); avulso não tem barra.
+  Widget? _vidaBar(BuildContext context, AppState state, Campaign campaign, Map<String, dynamic> entry) {
+    final id = '${entry['id'] ?? ''}';
+    if (entry['type'] == 'npc' && id.startsWith('npc:')) {
+      final found = _npcSheet(campaign, id.substring(4));
+      if (found == null) return null;
+      return ResourceBarTapTarget(
+        label: 'vida de ${entry['name'] ?? found.sheet.name}',
+        onTap: () => _editNpcVida(context, campaign, entry),
+        child: _vidaLine(context, readVida(found.sheet)),
+      );
+    }
+    if (entry['type'] == 'player') {
+      final sheet = _playerSheet(state, campaign, id);
+      if (sheet == null) return null;
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: _vidaLine(context, readVida(sheet)),
+      );
+    }
+    return null;
+  }
+
+  Future<void> _editNpcVida(BuildContext context, Campaign campaign, Map<String, dynamic> entry) async {
+    final id = '${entry['id'] ?? ''}';
+    if (!id.startsWith('npc:')) return;
+    final found = _npcSheet(campaign, id.substring(4));
+    if (found == null) return;
+    final state = context.read<AppState>();
+    final before = readVida(found.sheet);
+    final result = await showResourceQuickAdjust(context, name: 'Vida', current: before.current, max: before.max);
+    if (result == null || !context.mounted) return;
+    applyVida(found.sheet, result);
+    final after = readVida(found.sheet);
+    if (after == before) return;
+    found.npc['sheet'] = found.sheet.toJson();
+    campaign.sessionLog.add('${entry['name'] ?? found.sheet.name}: vida ${before.current}/${before.max} → ${after.current}/${after.max}');
+    try {
+      await state.updateCampaign(campaign);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível salvar a vida.')));
+      }
+    }
   }
 
   Future<void> _syncCombat(Campaign campaign) async {
@@ -1468,6 +1599,8 @@ class SessionToolsScreen extends StatelessWidget {
   }
 
   Future<void> _removeInitiative(BuildContext context, Campaign campaign, Map<String, dynamic> entry) async {
+    if (!await confirmDelete(context, title: 'Remover do combate?', message: '"${entry['name'] ?? 'Participante'}" será removido da iniciativa.', confirmLabel: 'Remover')) return;
+    if (!context.mounted) return;
     final ordered=[...campaign.initiative]..sort((a,b)=>((b['value']??0) as int).compareTo((a['value']??0) as int));
     final oldIndex=ordered.isEmpty ? 0 : campaign.currentTurnIndex.clamp(0,ordered.length-1);
     final currentId=ordered.isEmpty ? null : ordered[oldIndex]['id'];
@@ -1488,9 +1621,10 @@ class SessionToolsScreen extends StatelessWidget {
     await _syncCombat(campaign);
   }
 
-  Future<void> _addCondition(BuildContext context, Campaign campaign) async {
+  /// Seletor de condição (entrada livre), o mesmo das condições gerais.
+  Future<String?> _askConditionName(BuildContext context) {
     final controller = TextEditingController();
-    final value = await showDialog<String>(
+    return showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Adicionar condição'),
@@ -1501,10 +1635,48 @@ class SessionToolsScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _addCondition(BuildContext context, Campaign campaign) async {
+    final value = await _askConditionName(context);
     if (value != null && value.isNotEmpty && context.mounted) {
       campaign.conditions.add(value);
       await context.read<AppState>().updateCampaign(campaign);
     }
+  }
+
+  Future<void> _saveCombatChange(BuildContext context, AppState state, Campaign campaign) async {
+    try {
+      await state.updateCampaign(campaign);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível salvar.')));
+      }
+      return;
+    }
+    await _syncCombat(campaign);
+  }
+
+  /// Condições do participante ficam só no item da iniciativa (não mexem na
+  /// ficha do jogador nem no snapshot remoto).
+  Future<void> _addParticipantCondition(BuildContext context, Campaign campaign, Map<String, dynamic> entry) async {
+    final state = context.read<AppState>();
+    final value = await _askConditionName(context);
+    if (value == null || value.isEmpty || !context.mounted) return;
+    final conditions = initiativeConditions(entry);
+    if (conditions.contains(value)) return;
+    entry['conditions'] = [...conditions, value];
+    campaign.sessionLog.add('${entry['name'] ?? 'Participante'} ficou com $value.');
+    await _saveCombatChange(context, state, campaign);
+  }
+
+  Future<void> _removeParticipantCondition(BuildContext context, Campaign campaign, Map<String, dynamic> entry, String condition) async {
+    final state = context.read<AppState>();
+    final conditions = initiativeConditions(entry);
+    if (!conditions.remove(condition)) return;
+    entry['conditions'] = conditions;
+    campaign.sessionLog.add('${entry['name'] ?? 'Participante'} não está mais com $condition.');
+    await _saveCombatChange(context, state, campaign);
   }
 
   Future<void> _removeCondition(BuildContext context, Campaign campaign, int index) async {
