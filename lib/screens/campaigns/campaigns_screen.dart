@@ -9,6 +9,8 @@ import '../../services/app_state.dart';
 import '../../services/cloud_service.dart';
 import '../../services/rpg_file_service.dart';
 import 'npc_sheet_screen.dart';
+import 'initiative_tools.dart';
+import '../character/resource_quick_adjust.dart';
 import '../../widgets/confirm_delete_dialog.dart';
 
 
@@ -1046,6 +1048,10 @@ class SessionToolsScreen extends StatelessWidget {
                     final entry = indexed.value;
                     final done = entry['done'] == true;
                     final current = campaign.combatActive && index == activeIndex && !done;
+                    final status = current
+                        ? 'Turno atual'
+                        : (campaign.combatActive && index == activeIndex + 1 && !done ? 'Próximo' : null);
+                    final vida = _vidaBar(context, state, campaign, entry);
                     return ListTile(
                       dense: true,
                       selected: current,
@@ -1054,9 +1060,16 @@ class SessionToolsScreen extends StatelessWidget {
                         onChanged: campaign.combatActive ? (_) => _finishTurn(context, campaign, participants, index) : null,
                       ),
                       title: Text((entry['name'] ?? 'Participante').toString()),
-                      subtitle: current
-                          ? const Text('Turno atual')
-                          : (campaign.combatActive && index == activeIndex + 1 && !done ? const Text('Próximo') : null),
+                      subtitle: status == null && vida == null
+                          ? null
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (status != null) Text(status),
+                                if (vida != null) vida,
+                              ],
+                            ),
                       trailing: Wrap(
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
@@ -1199,6 +1212,100 @@ class SessionToolsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Ficha de um NPC da campanha pelo id (sem o prefixo 'npc:').
+  ({Map<String, dynamic> npc, Character sheet})? _npcSheet(Campaign campaign, String npcId) {
+    for (final npc in campaign.npcSheets) {
+      final raw = npc['sheet'];
+      if ('${npc['id']}' != npcId || raw is! Map) continue;
+      try {
+        return (npc: npc, sheet: Character.fromJson(Map<String, dynamic>.from(raw)));
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /// Ficha do jogador, local ou do snapshot do vínculo remoto, só para leitura.
+  Character? _playerSheet(AppState state, Campaign campaign, String id) {
+    final local = state.characters.where((ch) => ch.id == id);
+    if (local.isNotEmpty) return local.first;
+    for (final link in campaign.linkedCharacters) {
+      final raw = link['snapshot'];
+      if (raw is Map && '${raw['id']}' == id) {
+        try {
+          return Character.fromJson(Map<String, dynamic>.from(raw));
+        } catch (_) {
+          return null;
+        }
+      }
+    }
+    return null;
+  }
+
+  Widget _vidaLine(BuildContext context, ({int current, int max}) vida) {
+    final ratio = vida.max > 0 ? (vida.current / vida.max).clamp(0.0, 1.0) : 0.0;
+    return Row(children: [
+      const Icon(Icons.favorite_outline, size: 14),
+      const SizedBox(width: 6),
+      Expanded(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(value: ratio, minHeight: 6),
+        ),
+      ),
+      const SizedBox(width: 8),
+      Text('${vida.current} / ${vida.max}', style: Theme.of(context).textTheme.bodySmall),
+    ]);
+  }
+
+  /// Vida do participante: NPC local pode ser ajustado pelo mestre; jogador
+  /// aparece só para leitura (a vida do jogador é dele); avulso não tem barra.
+  Widget? _vidaBar(BuildContext context, AppState state, Campaign campaign, Map<String, dynamic> entry) {
+    final id = '${entry['id'] ?? ''}';
+    if (entry['type'] == 'npc' && id.startsWith('npc:')) {
+      final found = _npcSheet(campaign, id.substring(4));
+      if (found == null) return null;
+      return ResourceBarTapTarget(
+        label: 'vida de ${entry['name'] ?? found.sheet.name}',
+        onTap: () => _editNpcVida(context, campaign, entry),
+        child: _vidaLine(context, readVida(found.sheet)),
+      );
+    }
+    if (entry['type'] == 'player') {
+      final sheet = _playerSheet(state, campaign, id);
+      if (sheet == null) return null;
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: _vidaLine(context, readVida(sheet)),
+      );
+    }
+    return null;
+  }
+
+  Future<void> _editNpcVida(BuildContext context, Campaign campaign, Map<String, dynamic> entry) async {
+    final id = '${entry['id'] ?? ''}';
+    if (!id.startsWith('npc:')) return;
+    final found = _npcSheet(campaign, id.substring(4));
+    if (found == null) return;
+    final state = context.read<AppState>();
+    final before = readVida(found.sheet);
+    final result = await showResourceQuickAdjust(context, name: 'Vida', current: before.current, max: before.max);
+    if (result == null || !context.mounted) return;
+    applyVida(found.sheet, result);
+    final after = readVida(found.sheet);
+    if (after == before) return;
+    found.npc['sheet'] = found.sheet.toJson();
+    campaign.sessionLog.add('${entry['name'] ?? found.sheet.name}: vida ${before.current}/${before.max} → ${after.current}/${after.max}');
+    try {
+      await state.updateCampaign(campaign);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível salvar a vida.')));
+      }
+    }
   }
 
   Future<void> _syncCombat(Campaign campaign) async {
