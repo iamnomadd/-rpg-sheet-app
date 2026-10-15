@@ -12,6 +12,8 @@ redundante sem alterar o modelo de autorização.
 `rpg_campaign_session_state` deve permanecer na publication
 `supabase_realtime`, pois o aviso **Seu Turno** depende dessa tabela.
 
+A migration `20261015120000_link_request_delete_participants_v150.sql` (política de DELETE de vínculos, usada por "Desvincular") existe no repositório e ainda precisa ser aplicada manualmente no projeto.
+
 ## Fonte de verdade
 
 - `setup.sql`: bootstrap das tabelas principais.
