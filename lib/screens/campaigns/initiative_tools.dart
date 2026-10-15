@@ -1,3 +1,4 @@
+import '../../models/campaign.dart';
 import '../../models/character.dart';
 import '../../models/rpg_system.dart';
 import '../character/resource_quick_adjust.dart';
@@ -155,3 +156,59 @@ List<String> npcSecondaryResourceNames({
   }
   return result;
 }
+
+/// Remove um participante da iniciativa ajustando currentTurnIndex (mesma
+/// lógica de "Remover do combate"); sem participantes, encerra o combate.
+void removeInitiativeParticipant(Campaign campaign, Object? id) {
+  final ordered=[...campaign.initiative]..sort((a,b)=>((b['value']??0) as int).compareTo((a['value']??0) as int));
+  final oldIndex=ordered.isEmpty ? 0 : campaign.currentTurnIndex.clamp(0,ordered.length-1);
+  final currentId=ordered.isEmpty ? null : ordered[oldIndex]['id'];
+  final removingCurrent=currentId==id;
+  campaign.initiative.removeWhere((e)=>e['id']==id);
+  if(campaign.initiative.isEmpty){
+    campaign.combatActive=false;
+    campaign.currentTurnIndex=0;
+  } else if(removingCurrent){
+    campaign.currentTurnIndex=oldIndex.clamp(0,campaign.initiative.length-1);
+  } else if(currentId!=null){
+    final refreshed=[...campaign.initiative]..sort((a,b)=>((b['value']??0) as int).compareTo((a['value']??0) as int));
+    final ix=refreshed.indexWhere((e)=>e['id']==currentId);
+    campaign.currentTurnIndex=ix<0 ? 0 : ix;
+  }
+}
+
+/// Tira um vínculo remoto da campanha e os participantes 'player' dele da
+/// iniciativa. Devolve true se a iniciativa mudou.
+bool removeRemoteLink(Campaign campaign, Map<String, dynamic> link) {
+  final code = '${link['shareCode'] ?? ''}';
+  campaign.linkedCharacters.removeWhere((e) => identical(e, link) || (code.isNotEmpty && '${e['shareCode'] ?? ''}' == code));
+  final snapshot = link['snapshot'];
+  final id = snapshot is Map ? '${snapshot['id'] ?? ''}' : '';
+  if (id.isEmpty) return false;
+  final ids = campaign.initiative.where((e) => e['type'] == 'player' && '${e['id']}' == id).map((e) => e['id']).toList();
+  for (final participant in ids) {
+    removeInitiativeParticipant(campaign, participant);
+  }
+  return ids.isNotEmpty;
+}
+
+/// Vínculos aprovados guardados no Mestre que devem sair da lista: não estão
+/// mais entre os aprovados da nuvem ou a ficha compartilhada foi apagada.
+/// approvedCodes null = a busca falhou, e nada é removido. Pendentes ficam.
+List<Map<String, dynamic>> staleRemoteLinks({
+  required List<Map<String, dynamic>> local,
+  required Set<String>? approvedCodes,
+  required Set<String> missingSharedCodes,
+}) {
+  if (approvedCodes == null) return [];
+  return local.where((e) {
+    if (e['status'] != 'approved') return false;
+    final code = '${e['shareCode'] ?? ''}';
+    return !approvedCodes.contains(code) || missingSharedCodes.contains(code);
+  }).toList();
+}
+
+/// Depois do DELETE do vínculo: pode tirar da lista local se apagou agora ou
+/// se a linha já não existia. stillExists null = a consulta não foi feita ou
+/// falhou, e aí só vale o que o DELETE apagou.
+bool canRemoveLinkLocally({required bool deleted, bool? stillExists}) => deleted || stillExists == false;
