@@ -242,7 +242,10 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
       final deleted=requestId.isNotEmpty
           ? await CloudService.deleteLinkRequest(session,requestId)
           : await CloudService.deleteOwnLinkRequestByCode(session,c.id,code);
-      if(!deleted) throw Exception('o servidor ainda não permite desfazer vínculos. A atualização do banco (migration v150) precisa ser aplicada.');
+      // Nada apagado: se a linha já não existe (ex.: o jogador apagou a
+      // ficha), é sucesso; se ainda existe, a falha é real.
+      final stillExists=deleted ? null : await CloudService.linkRequestExists(session,requestId:requestId,campaignId:c.id,shareCode:code);
+      if(!canRemoveLinkLocally(deleted:deleted,stillExists:stillExists)) throw Exception('o servidor ainda não permite desfazer vínculos. A atualização do banco (migration v150) precisa ser aplicada.');
     } catch(e) {
       if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Não foi possível desvincular: $e')));
       return;

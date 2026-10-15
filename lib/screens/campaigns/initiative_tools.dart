@@ -207,3 +207,8 @@ List<Map<String, dynamic>> staleRemoteLinks({
     return !approvedCodes.contains(code) || missingSharedCodes.contains(code);
   }).toList();
 }
+
+/// Depois do DELETE do vínculo: pode tirar da lista local se apagou agora ou
+/// se a linha já não existia. stillExists null = a consulta não foi feita ou
+/// falhou, e aí só vale o que o DELETE apagou.
+bool canRemoveLinkLocally({required bool deleted, bool? stillExists}) => deleted || stillExists == false;

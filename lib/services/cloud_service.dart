@@ -501,6 +501,16 @@ class CloudService {
     return decoded is List && decoded.isNotEmpty;
   }
 
+  /// O vínculo do Mestre ainda existe? Por id quando houver; senão pelo
+  /// código (requester_id = usuário + campaign_id + share_code).
+  static Future<bool> linkRequestExists(CloudSession session, {String requestId = '', required String campaignId, required String shareCode}) async {
+    final filter=requestId.isNotEmpty
+        ? 'id=eq.${Uri.encodeComponent(requestId)}'
+        : 'requester_id=eq.${Uri.encodeComponent(session.userId)}&campaign_id=eq.${Uri.encodeComponent(campaignId)}&share_code=eq.${Uri.encodeComponent(shareCode)}';
+    final decoded=await _rawRequest('GET',Uri.parse('$supabaseUrl/rest/v1/rpg_character_link_requests?$filter&select=id&limit=1'),headers:{'Authorization':'Bearer ${session.accessToken}'});
+    return decoded is List && decoded.isNotEmpty;
+  }
+
   /// Vínculos do próprio jogador para um código (ficha apagada).
   static Future<bool> deleteLinkRequestsByShareCode(CloudSession session, String shareCode) async {
     final decoded=await _rawRequest('DELETE', Uri.parse('$supabaseUrl/rest/v1/rpg_character_link_requests?character_owner_id=eq.${Uri.encodeComponent(session.userId)}&share_code=eq.${Uri.encodeComponent(shareCode)}'), headers: {
