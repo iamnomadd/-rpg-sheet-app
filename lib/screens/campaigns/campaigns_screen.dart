@@ -299,6 +299,8 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
   }
 
   Future<bool> _refreshRemotePlayers(BuildContext context, Campaign c, {bool quiet=false}) async {
+    // Capturado antes dos awaits: salva mesmo se a tela fechar durante a busca.
+    final appState = context.read<AppState>();
     try {
       final session = await CloudService.ensureSession();
       final links = await CloudService.approvedLinksForCampaign(session, c.id);
@@ -322,8 +324,7 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
         initiativeChanged = removeRemoteLink(c, stale) || initiativeChanged;
       }
       _pruneConfirmedConditions(c);
-      if (!context.mounted) return true;
-      await context.read<AppState>().updateCampaign(c);
+      await appState.updateCampaign(c);
       if (initiativeChanged) await _syncCombatState(c);
       return true;
     } catch (e) {
