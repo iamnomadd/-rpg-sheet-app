@@ -188,7 +188,10 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
         Text(x['status']=='approved'?'Ficha sincronizada':'Aguardando aprovação'),
         if(resources.isNotEmpty)Padding(padding:const EdgeInsets.only(top:4),child:Text(resources.entries.map((e)=>'${e.key} ${e.value}/${max[e.key] ?? e.value}').take(3).join('  •  '),maxLines:2,overflow:TextOverflow.ellipsis)),
       ]),
-      trailing:Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(x['status']=='approved'?Icons.cloud_done_outlined:Icons.cloud_queue_outlined),if(conditions.isNotEmpty)Text('${conditions.length} status',style:Theme.of(context).textTheme.labelSmall)]),
+      trailing:Row(mainAxisSize:MainAxisSize.min,children:[
+        Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(x['status']=='approved'?Icons.cloud_done_outlined:Icons.cloud_queue_outlined),if(conditions.isNotEmpty)Text('${conditions.length} status',style:Theme.of(context).textTheme.labelSmall)]),
+        PopupMenuButton<String>(itemBuilder:(_)=>const [PopupMenuItem(value:'unlink',child:Text('Desvincular'))],onSelected:(v){if(v=='unlink')_unlinkRemote(context,c,x);}),
+      ]),
       onTap:x['status']=='approved'?()=>_editRemoteCharacter(context,c,x):null,
     ))); })],
     Row(children: [Expanded(child: Text('Jogadores locais', style: Theme.of(context).textTheme.titleMedium)), IconButton(tooltip: 'Selecionar fichas locais', onPressed: () => _pickLocalPlayers(context, state, c), icon: const Icon(Icons.person_add_alt_1))]),
@@ -218,6 +221,35 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível vincular: $e')));
     }
+  }
+
+  /// Desfaz o vínculo com uma ficha remota: primeiro na nuvem; só se der
+  /// certo, tira da campanha e da iniciativa.
+  Future<void> _unlinkRemote(BuildContext context, Campaign c, Map<String,dynamic> link) async {
+    final snap=link['snapshot'] is Map ? link['snapshot'] as Map : const {};
+    final name='${snap['name'] ?? 'Ficha'}';
+    if(!await confirmDelete(context,title:'Desvincular ficha?',message:'"$name" sairá da campanha e da iniciativa. Para vincular de novo, o jogador precisará aprovar um novo pedido.',confirmLabel:'Desvincular'))return;
+    if(!context.mounted)return;
+    final state=context.read<AppState>();
+    final code='${link['shareCode'] ?? ''}';
+    try {
+      final session=await CloudService.ensureSession();
+      if(link['status']=='approved'){
+        // Melhor esforço: o jogador não aplica depois um patch antigo do Mestre.
+        try { await CloudService.updateSharedCharacterPatch(session,code,<String,dynamic>{}); } catch (_) {}
+      }
+      final requestId='${link['requestId'] ?? ''}';
+      final deleted=requestId.isNotEmpty
+          ? await CloudService.deleteLinkRequest(session,requestId)
+          : await CloudService.deleteOwnLinkRequestByCode(session,c.id,code);
+      if(!deleted) throw Exception('o servidor ainda não permite desfazer vínculos. A atualização do banco (migration v150) precisa ser aplicada.');
+    } catch(e) {
+      if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Não foi possível desvincular: $e')));
+      return;
+    }
+    final initiativeChanged=removeRemoteLink(c,link);
+    await state.updateCampaign(c);
+    if(initiativeChanged) await _syncCombatState(c);
   }
 
   Future<void> _editRemoteCharacter(BuildContext context, Campaign c, Map<String,dynamic> link) async {
@@ -267,14 +299,29 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
     try {
       final session = await CloudService.ensureSession();
       final links = await CloudService.approvedLinksForCampaign(session, c.id);
+      final approvedCodes = <String>{};
+      final missingShared = <String>{};
       for (final link in links) {
+        approvedCodes.add('${link['share_code']}');
         final shared = await CloudService.sharedCharacterByCode(session, '${link['share_code']}');
-        if (shared == null) continue;
+        if (shared == null) {
+          // Ficha apagada pelo jogador: o vínculo sai da lista e, se o
+          // servidor permitir, da nuvem também (melhor esforço).
+          missingShared.add('${link['share_code']}');
+          try { await CloudService.deleteLinkRequest(session, '${link['id']}'); } catch (_) {}
+          continue;
+        }
         c.linkedCharacters.removeWhere((e) => e['shareCode'] == link['share_code']);
         c.linkedCharacters.add({'requestId': link['id'], 'shareCode': link['share_code'], 'status': 'approved', 'snapshot': shared['snapshot'], 'ownerId': shared['owner_id']});
       }
+      var initiativeChanged = false;
+      for (final stale in staleRemoteLinks(local: c.linkedCharacters, approvedCodes: approvedCodes, missingSharedCodes: missingShared)) {
+        initiativeChanged = removeRemoteLink(c, stale) || initiativeChanged;
+      }
       _pruneConfirmedConditions(c);
+      if (!context.mounted) return true;
       await context.read<AppState>().updateCampaign(c);
+      if (initiativeChanged) await _syncCombatState(c);
       return true;
     } catch (e) {
       if (!quiet && context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível atualizar vínculos: $e')));
@@ -1023,6 +1070,19 @@ List<String> _participantConditions(AppState state, Campaign campaign, Map<Strin
   );
 }
 
+/// Publica o estado de combate da campanha (rodada, turno e iniciativa).
+Future<void> _syncCombatState(Campaign campaign) async {
+  try {
+    final session = await CloudService.ensureSession();
+    await CloudService.publishSessionState(session, campaign.id, {
+      'round': campaign.sessionRound,
+      'active': campaign.combatActive,
+      'current_index': campaign.currentTurnIndex,
+      'initiative': campaign.initiative,
+    });
+  } catch (_) {}
+}
+
 class SessionToolsScreen extends StatelessWidget {
   final String campaignId;
   const SessionToolsScreen({super.key, required this.campaignId});
@@ -1382,17 +1442,7 @@ class SessionToolsScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _syncCombat(Campaign campaign) async {
-    try {
-      final session = await CloudService.ensureSession();
-      await CloudService.publishSessionState(session, campaign.id, {
-        'round': campaign.sessionRound,
-        'active': campaign.combatActive,
-        'current_index': campaign.currentTurnIndex,
-        'initiative': campaign.initiative,
-      });
-    } catch (_) {}
-  }
+  Future<void> _syncCombat(Campaign campaign) => _syncCombatState(campaign);
 
   Future<void> _changeRound(BuildContext context, Campaign campaign, int delta) async {
     campaign.sessionRound = (campaign.sessionRound + delta).clamp(1, 9999);
@@ -1651,21 +1701,7 @@ class SessionToolsScreen extends StatelessWidget {
   Future<void> _removeInitiative(BuildContext context, Campaign campaign, Map<String, dynamic> entry) async {
     if (!await confirmDelete(context, title: 'Remover do combate?', message: '"${entry['name'] ?? 'Participante'}" será removido da iniciativa.', confirmLabel: 'Remover')) return;
     if (!context.mounted) return;
-    final ordered=[...campaign.initiative]..sort((a,b)=>((b['value']??0) as int).compareTo((a['value']??0) as int));
-    final oldIndex=ordered.isEmpty ? 0 : campaign.currentTurnIndex.clamp(0,ordered.length-1);
-    final currentId=ordered.isEmpty ? null : ordered[oldIndex]['id'];
-    final removingCurrent=currentId==entry['id'];
-    campaign.initiative.removeWhere((e)=>e['id']==entry['id']);
-    if(campaign.initiative.isEmpty){
-      campaign.combatActive=false;
-      campaign.currentTurnIndex=0;
-    } else if(removingCurrent){
-      campaign.currentTurnIndex=oldIndex.clamp(0,campaign.initiative.length-1);
-    } else if(currentId!=null){
-      final refreshed=[...campaign.initiative]..sort((a,b)=>((b['value']??0) as int).compareTo((a['value']??0) as int));
-      final ix=refreshed.indexWhere((e)=>e['id']==currentId);
-      campaign.currentTurnIndex=ix<0 ? 0 : ix;
-    }
+    removeInitiativeParticipant(campaign, entry['id']);
     campaign.sessionLog.add('${entry['name'] ?? 'Participante'} removido do combate.');
     await context.read<AppState>().updateCampaign(campaign);
     await _syncCombat(campaign);

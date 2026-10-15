@@ -483,6 +483,38 @@ class CloudService {
     }, body: {'status': status, 'updated_at': DateTime.now().toUtc().toIso8601String()});
   }
 
+  /// DELETE devolve 2xx mesmo quando o RLS não deixa apagar nada; com
+  /// return=representation a resposta lista as linhas realmente apagadas.
+  static Future<bool> deleteLinkRequest(CloudSession session, String requestId) async {
+    final decoded=await _rawRequest('DELETE', Uri.parse('$supabaseUrl/rest/v1/rpg_character_link_requests?id=eq.${Uri.encodeComponent(requestId)}'), headers: {
+      'Authorization': 'Bearer ${session.accessToken}', 'Prefer': 'return=representation',
+    });
+    return decoded is List && decoded.isNotEmpty;
+  }
+
+  /// Vínculo do Mestre localizado pelo código (pedido pendente guarda só
+  /// shareCode/ownerId, sem o id da linha).
+  static Future<bool> deleteOwnLinkRequestByCode(CloudSession session, String campaignId, String shareCode) async {
+    final decoded=await _rawRequest('DELETE', Uri.parse('$supabaseUrl/rest/v1/rpg_character_link_requests?requester_id=eq.${Uri.encodeComponent(session.userId)}&campaign_id=eq.${Uri.encodeComponent(campaignId)}&share_code=eq.${Uri.encodeComponent(shareCode)}'), headers: {
+      'Authorization': 'Bearer ${session.accessToken}', 'Prefer': 'return=representation',
+    });
+    return decoded is List && decoded.isNotEmpty;
+  }
+
+  /// Vínculos do próprio jogador para um código (ficha apagada).
+  static Future<bool> deleteLinkRequestsByShareCode(CloudSession session, String shareCode) async {
+    final decoded=await _rawRequest('DELETE', Uri.parse('$supabaseUrl/rest/v1/rpg_character_link_requests?character_owner_id=eq.${Uri.encodeComponent(session.userId)}&share_code=eq.${Uri.encodeComponent(shareCode)}'), headers: {
+      'Authorization': 'Bearer ${session.accessToken}', 'Prefer': 'return=representation',
+    });
+    return decoded is List && decoded.isNotEmpty;
+  }
+
+  static Future<void> deleteSharedCharacter(CloudSession session, String characterId) async {
+    await _request('DELETE', Uri.parse('$supabaseUrl/rest/v1/rpg_shared_characters?owner_id=eq.${Uri.encodeComponent(session.userId)}&character_id=eq.${Uri.encodeComponent(characterId)}'), headers: {
+      'Authorization': 'Bearer ${session.accessToken}', 'Prefer': 'return=minimal',
+    });
+  }
+
   static Future<List<Map<String,dynamic>>> approvedLinksForCampaign(CloudSession session,String campaignId) async {
     final uri=Uri.parse('$supabaseUrl/rest/v1/rpg_character_link_requests?requester_id=eq.${Uri.encodeComponent(session.userId)}&campaign_id=eq.${Uri.encodeComponent(campaignId)}&status=eq.approved&select=id,share_code,character_owner_id,campaign_id,status');
     final decoded=await _rawRequest('GET',uri,headers:{'Authorization':'Bearer ${session.accessToken}'});

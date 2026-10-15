@@ -335,10 +335,30 @@ class AppState extends ChangeNotifier {
     return character;
   }
 
+  /// Limpeza na nuvem ao apagar uma ficha compartilhada (vínculos com o
+  /// Mestre e a ficha publicada). Substituível só em testes.
+  @visibleForTesting
+  Future<void> Function(String characterId, String shareCode) deleteSharedCleanup = _deleteSharedInCloud;
+
+  static Future<void> _deleteSharedInCloud(String characterId, String shareCode) async {
+    if (!CloudService.configured) return;
+    final session = await CloudService.loadSession();
+    if (session == null) return;
+    try { await CloudService.deleteLinkRequestsByShareCode(session, shareCode); } catch (_) {}
+    await CloudService.deleteSharedCharacter(session, characterId);
+  }
+
   Future<void> deleteCharacter(String id) async {
+    final shareCode = characters.where((c) => c.id == id).map((c) => c.shareCode).firstWhere((code) => code.isNotEmpty, orElse: () => '');
     characters.removeWhere((c) => c.id == id);
     await save();
     notifyListeners();
+    if (shareCode.isEmpty) return;
+    // Melhor esforço e sem atrasar a remoção local; offline ou sem sessão, a
+    // reconciliação do Mestre cobre o vínculo.
+    unawaited(() async {
+      try { await deleteSharedCleanup(id, shareCode); } catch (_) {}
+    }());
   }
 
   Future<void> addImportedCharacter(Character character) async {
@@ -456,7 +476,8 @@ class AppState extends ChangeNotifier {
     if (index >= 0) characters[index] = character;
     await save();
     notifyListeners();
-    if (character.shareCode.isNotEmpty && CloudService.configured) {
+    // Ficha que não existe mais localmente (apagada) não é republicada.
+    if (index >= 0 && character.shareCode.isNotEmpty && CloudService.configured) {
       try {
         final session = await CloudService.loadSession();
         if (session != null) await CloudService.publishCharacter(session, character.toJson(), character.shareCode);
