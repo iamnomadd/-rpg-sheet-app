@@ -54,6 +54,7 @@ jobs:
         with:
           name: rpg-sheet-web
           path: build/web
+          retention-days: 1
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
