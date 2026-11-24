@@ -901,12 +901,12 @@ class _AttributesResourcesTab extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: system.attributes.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate: abyssAttributeGridDelegate(context, themeId, const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               childAspectRatio: 2.75,
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
-            ),
+            )),
             itemBuilder: (_, index) {
               final name = system.attributes[index];
               final value = character.attributes[name] ?? 0;
@@ -915,7 +915,7 @@ class _AttributesResourcesTab extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   onTap: () => onEditAttribute(character, name),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: abyssCardInset(themeId, const EdgeInsets.symmetric(horizontal: 10, vertical: 6)),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -1775,7 +1775,7 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
         return Card(
           margin: EdgeInsets.only(bottom: compact ? 5 : 8),
           child: Padding(
-            padding: EdgeInsets.fromLTRB(compact ? 9 : 11, compact ? 7 : 9, compact ? 7 : 9, compact ? 7 : 9),
+            padding: abyssCardInset(context.watch<AppState>().themeId, EdgeInsets.fromLTRB(compact ? 9 : 11, compact ? 7 : 9, compact ? 7 : 9, compact ? 7 : 9)),
             child: Row(children: [
               Icon(
                 id == 'spells'
@@ -1837,11 +1837,19 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
     }
     if (widget.showConditions) {
       if (content.isNotEmpty) content.add(SizedBox(height: compact ? 10 : 14));
+      // Abissal: com texto grande, o botão desce de linha em vez de passar da moldura.
+      if (context.watch<AppState>().themeId == 'abyss') {
+        content.add(Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, children: [
+          Text('Condições ativas', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+          TextButton.icon(onPressed: _selectConditions, icon: const Icon(Icons.flag_outlined, size: 18), label: const Text('Alterar')),
+        ]));
+      } else {
       content.add(Row(children: [
         Text('Condições ativas', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
         const Spacer(),
         TextButton.icon(onPressed: _selectConditions, icon: const Icon(Icons.flag_outlined, size: 18), label: const Text('Alterar')),
       ]));
+      }
       content.add(c.conditions.isEmpty
           ? Text('Nenhuma condição ativa.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant))
           : Wrap(spacing: 7, runSpacing: 7, children: c.conditions.map(_conditionChip).toList()));
@@ -2173,7 +2181,7 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
         ),
         const SizedBox(height: 10),
         SizedBox(
-          height: 38,
+          height: abyssChipBarHeight(context, context.watch<AppState>().themeId, 38),
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: (widget.isAbility ? abilityFilters : inventoryFilters).length,

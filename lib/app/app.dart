@@ -152,6 +152,7 @@ class AppThemeCache {
 }
 
 ThemeData buildAppTheme(String themeId, bool compact) {
+  if (themeId == 'abyss') return buildAbyssAppTheme(buildTheme(themeId), compact);
   final baseTheme = buildTheme(themeId);
   return baseTheme.copyWith(
     visualDensity: compact

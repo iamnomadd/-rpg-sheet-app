@@ -20,6 +20,9 @@ abstract final class AbyssColors {
   static const gold = Color(0xFFC9A24A);
   static const goldLight = Color(0xFFE9CF86);
   static const goldDim = Color(0xFF5E4D2A);
+
+  /// Dourado a 70%: borda de campo e divisores (>= 3:1 contra o fundo).
+  static const goldLine = Color(0xB3C9A24A);
   static const cream = Color(0xFFF1E6C8);
   static const creamMuted = Color(0xFFB5AE9A);
   static const outline = Color(0xFF000000);
@@ -42,6 +45,12 @@ Path _chamferedPath(Rect rect, double chamfer) {
     ..lineTo(rect.left, rect.top + c)
     ..close();
 }
+
+/// Distância entre o contorno preto e o filete dourado.
+const double abyssFrameGap = .4;
+
+/// Área ocupada pela moldura a partir da borda (contorno + filete + entalhes).
+const double abyssFrameReach = 6;
 
 /// Moldura dupla com cantos chanfrados: contorno externo ([side], preto) +
 /// filete interno dourado e, opcionalmente, pequenos entalhes dourados nos
@@ -122,8 +131,14 @@ class AbyssFrameBorder extends OutlinedBorder {
   void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
     if (rect.isEmpty) return;
     if (shadowOffset > 0) {
+      // Sombra chapada: caminho deslocado em par-ímpar com o original (sem
+      // operação booleana). A faixa fina que sobra dentro da forma fica sob o
+      // contorno preto desenhado em seguida.
       final outer = _chamferedPath(rect, chamfer);
-      final shadow = Path.combine(PathOperation.difference, outer.shift(Offset(0, shadowOffset)), outer);
+      final shadow = Path()
+        ..fillType = PathFillType.evenOdd
+        ..addPath(outer.shift(Offset(0, shadowOffset)), Offset.zero)
+        ..addPath(outer, Offset.zero);
       canvas.drawPath(shadow, Paint()..color = const Color(0x99000000));
     }
     if (side.style != BorderStyle.none && side.width > 0) {
@@ -137,7 +152,8 @@ class AbyssFrameBorder extends OutlinedBorder {
       );
     }
     if (innerWidth <= 0 || innerColor.a == 0) return;
-    final inset = side.width + 1.5 + innerWidth / 2;
+    // Filete dourado a ~3 px da borda (área ocupada pela moldura: até ~6 px).
+    final inset = side.width + abyssFrameGap + innerWidth / 2;
     if (rect.width <= inset * 2 + 4 || rect.height <= inset * 2 + 4) return;
     final innerRect = rect.deflate(inset);
     final innerChamfer = math.max(2.0, chamfer - inset * .414);
@@ -158,8 +174,8 @@ class AbyssFrameBorder extends OutlinedBorder {
       ..style = PaintingStyle.stroke
       ..strokeWidth = innerWidth + .4
       ..strokeCap = StrokeCap.square;
-    const arm = 6.0;
-    const gap = 3.0;
+    const arm = 3.5;
+    const gap = 2.5;
     // (canto, direção x, direção y)
     final corners = <(Offset, double, double)>[
       (r.topLeft, 1, 1),
@@ -192,12 +208,73 @@ class AbyssFrameBorder extends OutlinedBorder {
   int get hashCode => Object.hash(side, chamfer, innerColor, innerWidth, ornaments, shadowOffset);
 }
 
+/// Folha inferior: só os cantos de CIMA chanfrados; contorno e filete
+/// dourado apenas no topo (laterais e base ficam coladas na borda da tela).
+class AbyssSheetBorder extends ShapeBorder {
+  final double chamfer;
+
+  const AbyssSheetBorder({this.chamfer = 11});
+
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.zero;
+
+  Path _path(Rect rect) {
+    final c = math.max(0.0, math.min(chamfer, math.min(rect.width, rect.height) / 2));
+    return Path()
+      ..moveTo(rect.left, rect.top + c)
+      ..lineTo(rect.left + c, rect.top)
+      ..lineTo(rect.right - c, rect.top)
+      ..lineTo(rect.right, rect.top + c)
+      ..lineTo(rect.right, rect.bottom)
+      ..lineTo(rect.left, rect.bottom)
+      ..close();
+  }
+
+  Path _topEdge(Rect rect, double inset) {
+    final c = math.max(0.0, math.min(chamfer, math.min(rect.width, rect.height) / 2));
+    final k = inset * .414;
+    return Path()
+      ..moveTo(rect.left, rect.top + c + k)
+      ..lineTo(rect.left + c + k, rect.top + inset)
+      ..lineTo(rect.right - c - k, rect.top + inset)
+      ..lineTo(rect.right, rect.top + c + k);
+  }
+
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) => _path(rect);
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) => _path(rect);
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
+    if (rect.isEmpty) return;
+    canvas.drawPath(_topEdge(rect, 1), Paint()
+      ..color = AbyssColors.outline
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2);
+    canvas.drawPath(_topEdge(rect, 3), Paint()
+      ..color = const Color(0xB3C9A24A)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2);
+  }
+
+  @override
+  ShapeBorder scale(double t) => AbyssSheetBorder(chamfer: chamfer * t);
+
+  @override
+  bool operator ==(Object other) => other is AbyssSheetBorder && other.chamfer == chamfer;
+
+  @override
+  int get hashCode => chamfer.hashCode;
+}
+
 /// Borda chanfrada para campos de texto, com o vão do rótulo flutuante.
 class AbyssInputBorder extends InputBorder {
   final double chamfer;
   final double gapPadding;
 
-  const AbyssInputBorder({super.borderSide = const BorderSide(color: AbyssColors.goldDim), this.chamfer = 7, this.gapPadding = 4});
+  const AbyssInputBorder({super.borderSide = const BorderSide(color: AbyssColors.goldLine), this.chamfer = 7, this.gapPadding = 4});
 
   @override
   bool get isOutline => true;
@@ -281,7 +358,7 @@ ShapeBorder abyssIndicatorShape() => const AbyssFrameBorder(
 
 const _buttonFrame = AbyssFrameBorder(chamfer: 7, ornaments: false, shadowOffset: 2);
 
-ButtonStyle _framedButton({Color background = AbyssColors.raised}) => ButtonStyle(
+ButtonStyle _framedButton({Color background = AbyssColors.raised, TextStyle? label}) => ButtonStyle(
       padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
       backgroundColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.disabled) ? AbyssColors.card : background),
       foregroundColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.disabled) ? AbyssColors.creamMuted.withValues(alpha: .55) : AbyssColors.goldLight),
@@ -289,7 +366,10 @@ ButtonStyle _framedButton({Color background = AbyssColors.raised}) => ButtonStyl
       side: const WidgetStatePropertyAll(BorderSide(color: AbyssColors.outline, width: 2)),
       shape: const WidgetStatePropertyAll(_buttonFrame),
       elevation: const WidgetStatePropertyAll(0),
-      textStyle: const WidgetStatePropertyAll(TextStyle(fontWeight: FontWeight.w700, letterSpacing: .3)),
+      // Parte do labelLarge do tema (tamanho, altura e fonte) e só reforça o peso.
+      // Mesmo tamanho e altura do labelLarge do Material 3 (14 / 1,43), só com
+      // peso maior; a fonte e a cor vêm do textTheme do tema.
+      textStyle: WidgetStatePropertyAll((label ?? const TextStyle()).copyWith(fontSize: 14, height: 1.43, fontWeight: FontWeight.w700, letterSpacing: .3)),
     );
 
 /// ThemeData completo do tema Abissal (não reutiliza os ternários dos outros
@@ -365,6 +445,9 @@ ThemeData buildAbyssTheme() {
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: cardFrame,
+      // Imagens e InkWell não passam dos cantos chanfrados (a moldura é
+      // pintada por cima e continua visível).
+      clipBehavior: Clip.antiAlias,
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -392,7 +475,8 @@ ThemeData buildAbyssTheme() {
     bottomSheetTheme: BottomSheetThemeData(
       backgroundColor: AbyssColors.raised,
       surfaceTintColor: Colors.transparent,
-      shape: cardFrame,
+      shape: const AbyssSheetBorder(),
+      clipBehavior: Clip.antiAlias,
       showDragHandle: true,
       dragHandleColor: AbyssColors.gold.withValues(alpha: .7),
     ),
@@ -407,7 +491,9 @@ ThemeData buildAbyssTheme() {
       side: const BorderSide(color: AbyssColors.outline, width: 1.5),
       shape: smallFrame,
       labelStyle: const TextStyle(color: AbyssColors.cream, fontWeight: FontWeight.w600),
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      // Respiro interno (>= 12 nas laterais e >= 8 em cima e embaixo do texto).
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 11),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 6),
     ),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: AbyssColors.raised,
@@ -420,10 +506,17 @@ ThemeData buildAbyssTheme() {
       backgroundColor: AbyssColors.raised,
       contentTextStyle: TextStyle(color: AbyssColors.cream),
     ),
-    dividerTheme: DividerThemeData(space: 20, thickness: 1, color: AbyssColors.goldDim.withValues(alpha: .45)),
+    dividerTheme: const DividerThemeData(space: 20, thickness: 1, color: AbyssColors.goldLine),
   );
   final text = base.textTheme.apply(bodyColor: AbyssColors.cream, displayColor: AbyssColors.goldLight);
+  final label = base.textTheme.labelLarge;
   return base.copyWith(
+    appBarTheme: base.appBarTheme.copyWith(
+      titleTextStyle: base.textTheme.titleLarge?.copyWith(color: AbyssColors.cream, fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: .3),
+    ),
+    filledButtonTheme: FilledButtonThemeData(style: _framedButton(label: label)),
+    elevatedButtonTheme: ElevatedButtonThemeData(style: _framedButton(label: label)),
+    outlinedButtonTheme: OutlinedButtonThemeData(style: _framedButton(background: AbyssColors.card, label: label)),
     textTheme: text.copyWith(
       titleLarge: text.titleLarge?.copyWith(color: AbyssColors.goldLight, fontWeight: FontWeight.w700, letterSpacing: .3),
       titleMedium: text.titleMedium?.copyWith(color: AbyssColors.goldLight, fontWeight: FontWeight.w700, letterSpacing: .3),
@@ -599,6 +692,7 @@ class _AbyssNavBarPainter extends BoxPainter {
   void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
     final size = configuration.size;
     if (size == null) return;
+    canvas.drawRect(offset & size, Paint()..color = AbyssColors.bar);
     final top = offset.dy + .5;
     canvas.drawLine(Offset(offset.dx, top), Offset(offset.dx + size.width, top), Paint()
       ..color = AbyssColors.gold.withValues(alpha: .8)
@@ -674,4 +768,64 @@ class AbyssTabCell extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Ajustes de densidade do app (equivalente ao `buildAppTheme` dos outros
+/// temas) só para o Abissal: mais respiro nos ListTile para o texto não
+/// encostar na moldura, e botões mantendo a moldura chanfrada (só padding e
+/// tamanho mínimo do modo compacto, os mesmos de hoje).
+ThemeData buildAbyssAppTheme(ThemeData base, bool compact) {
+  final padding = WidgetStatePropertyAll<EdgeInsetsGeometry>(EdgeInsets.symmetric(horizontal: compact ? 10 : 12, vertical: compact ? 6 : 8));
+  final minimumSize = WidgetStatePropertyAll<Size>(Size(44, compact ? 34 : 38));
+  return base.copyWith(
+    visualDensity: compact ? const VisualDensity(horizontal: -4, vertical: -4) : const VisualDensity(horizontal: -3, vertical: -3),
+    cardTheme: base.cardTheme.copyWith(margin: EdgeInsets.zero),
+    inputDecorationTheme: base.inputDecorationTheme.copyWith(
+      contentPadding: EdgeInsets.symmetric(horizontal: compact ? 12 : 14, vertical: compact ? 8 : 10),
+      isDense: true,
+      constraints: BoxConstraints(minHeight: compact ? 42 : 48),
+      labelStyle: base.inputDecorationTheme.labelStyle?.copyWith(fontSize: compact ? 11 : 11.5),
+      floatingLabelStyle: base.inputDecorationTheme.labelStyle?.copyWith(fontSize: compact ? 11 : 11.5),
+    ),
+    listTileTheme: ListTileThemeData(
+      dense: true,
+      // 10 px nos dois modos: os cards do Abissal têm ornamentos nos cantos.
+      minVerticalPadding: 10,
+      minTileHeight: compact ? 44 : 48,
+      minLeadingWidth: compact ? 30 : 34,
+      contentPadding: EdgeInsets.symmetric(horizontal: compact ? 14 : 16),
+    ),
+    filledButtonTheme: FilledButtonThemeData(style: base.filledButtonTheme.style!.copyWith(padding: padding, minimumSize: minimumSize)),
+    outlinedButtonTheme: OutlinedButtonThemeData(style: base.outlinedButtonTheme.style!.copyWith(padding: padding, minimumSize: minimumSize)),
+  );
+}
+
+/// Respiro interno dos cards do Abissal: 12 px nas laterais e 10 px em cima e
+/// embaixo (a moldura e os entalhes ocupam até ~6 px da borda). Nos outros
+/// temas devolve [current] sem mudança.
+EdgeInsetsGeometry abyssCardInset(String themeId, EdgeInsetsGeometry current) =>
+    themeId == 'abyss' ? const EdgeInsets.fromLTRB(12, 10, 12, 10) : current;
+
+/// Grade dos atributos: no Abissal a altura da célula acompanha o texto
+/// (escala de fonte) em vez da proporção fixa, para nada ser cortado.
+SliverGridDelegate abyssAttributeGridDelegate(BuildContext context, String themeId, SliverGridDelegate current) {
+  if (themeId != 'abyss') return current;
+  final theme = Theme.of(context).textTheme;
+  final scaler = MediaQuery.textScalerOf(context);
+  double lineHeight(TextStyle? style) => scaler.scale(style?.fontSize ?? 14) * (style?.height ?? 1.3);
+  return SliverGridDelegateWithFixedCrossAxisCount(
+    crossAxisCount: 2,
+    crossAxisSpacing: 8,
+    mainAxisSpacing: 8,
+    mainAxisExtent: math.max(67.0, 20 + lineHeight(theme.bodyLarge) + lineHeight(theme.headlineSmall) + 4),
+  );
+}
+
+/// Altura de faixas horizontais de chips: no Abissal acompanha a escala do
+/// texto e o respiro do chip (nunca menor que [current]); nos outros temas
+/// devolve [current].
+double abyssChipBarHeight(BuildContext context, String themeId, double current) {
+  if (themeId != 'abyss') return current;
+  final label = MediaQuery.textScalerOf(context).scale(14) * 1.43;
+  return math.max(current, label + 2 * 11 + 4);
 }
