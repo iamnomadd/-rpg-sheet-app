@@ -58,11 +58,15 @@ void main() {
   final classicStructure = _structure(classic);
 
   test('há 10 temas e o Clássico Escuro é o primeiro', () {
-    expect(appThemes, hasLength(10));
+    // 10 temas + o experimental 'abyss' (isolado em lib/app/abyss_theme.dart).
+    expect(appThemes, hasLength(11));
+    expect(appThemes.where((t) => t.id != 'abyss'), hasLength(10));
     expect(appThemes.first.id, 'classic');
   });
 
   for (final preset in appThemes) {
+    // 'abyss' é a exceção deliberada: tema experimental com estrutura própria.
+    if (preset.id != 'abyss') {
     test('tema ${preset.id} tem a mesma estrutura do Clássico', () {
       final structure = _structure(buildTheme(preset.id));
       for (final entry in classicStructure.entries) {
@@ -70,6 +74,7 @@ void main() {
       }
       expect(preset.radius, themePreset('classic').radius, reason: '${preset.id}: raio base');
     });
+    }
 
     test('tema ${preset.id} marca o ícone selecionado só pela cor', () {
       final nav = buildTheme(preset.id).navigationBarTheme;
