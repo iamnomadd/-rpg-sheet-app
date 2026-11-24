@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/rpg_system.dart';
 import '../../services/app_state.dart';
+import '../../widgets/card_spacing.dart';
 
 class SystemEditorScreen extends StatefulWidget {
   final RpgSystem system;
@@ -549,7 +550,7 @@ class _DiceEditorSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: cardSpacingMargin,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 14, 10, 10),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -613,7 +614,7 @@ class _EditorSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: cardSpacingMargin,
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
         initiallyExpanded: true,

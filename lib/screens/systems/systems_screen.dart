@@ -6,6 +6,7 @@ import '../../models/rpg_system.dart';
 import '../../services/app_state.dart';
 import '../../services/rpg_file_service.dart';
 import 'system_editor_screen.dart';
+import '../../widgets/card_spacing.dart';
 
 class SystemsScreen extends StatefulWidget {
   const SystemsScreen({super.key});
@@ -99,7 +100,7 @@ class _SystemsScreenState extends State<SystemsScreen> {
               const SizedBox(height: 16),
               ..._templates.map(
                 (template) => Card(
-                  margin: const EdgeInsets.only(bottom: 10),
+                  margin: cardSpacingMargin,
                   child: ListTile(
                     leading: CircleAvatar(child: Icon(template.icon)),
                     title: Text(template.name),
@@ -268,7 +269,7 @@ class _SystemsScreenState extends State<SystemsScreen> {
             const SizedBox(height: 8),
             ...state.systems.map(
               (system) => Card(
-                margin: const EdgeInsets.only(bottom: 10),
+                margin: cardSpacingMargin,
                 child: ListTile(
                   leading: CircleAvatar(
                     child: Icon(

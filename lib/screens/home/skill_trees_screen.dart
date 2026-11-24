@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../app/theme.dart';
 import '../../services/app_state.dart';
 import '../character/skill_tree_screen.dart';
+import '../../widgets/card_spacing.dart';
 
 class SkillTreesScreen extends StatelessWidget {
   const SkillTreesScreen({super.key});
@@ -31,7 +32,7 @@ class SkillTreesScreen extends StatelessWidget {
                   final c = state.characters[i];
                   final unlocked = c.skillTree.where((n) => n['unlocked'] == true).length;
                   return Card(
-                    margin: const EdgeInsets.only(bottom: 9),
+                    margin: cardSpacingMargin,
                     child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                       leading: CircleAvatar(child: Icon(themedMainIcon(state.themeId, 'tree'))),

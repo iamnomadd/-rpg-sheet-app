@@ -277,68 +277,12 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
     );
   }
 
-  _TreeLayout _layout(Character character, double viewportWidth) {
-    const nodeWidth = 154.0;
-    const nodeHeight = 92.0;
-    const gapX = 26.0;
-    const gapY = 82.0;
-    const padding = 28.0;
-
-    final byId = <String, Map<String, dynamic>>{
-      for (final node in character.skillTree)
-        if ((node['id']?.toString() ?? '').isNotEmpty) node['id'].toString(): node,
-    };
-    final depthCache = <String, int>{};
-
-    int depthOf(Map<String, dynamic> node, Set<String> visiting) {
-      final id = node['id']?.toString() ?? '';
-      if (depthCache.containsKey(id)) return depthCache[id]!;
-      if (!visiting.add(id)) return 0;
-      final parentId = (node['parentId'] ?? '').toString();
-      final parent = byId[parentId];
-      final depth = parent == null ? 0 : depthOf(parent, visiting) + 1;
-      visiting.remove(id);
-      depthCache[id] = depth;
-      return depth;
-    }
-
-    final levels = <int, List<Map<String, dynamic>>>{};
-    for (final node in character.skillTree) {
-      final depth = depthOf(node, <String>{});
-      levels.putIfAbsent(depth, () => []).add(node);
-    }
-    final maxCount = levels.values.fold<int>(1, (value, level) => value > level.length ? value : level.length);
-    final canvasWidth = math.max(viewportWidth, padding * 2 + maxCount * nodeWidth + math.max(0, maxCount - 1) * gapX).toDouble();
-    final maxDepth = levels.keys.isEmpty ? 0 : levels.keys.reduce((a, b) => a > b ? a : b);
-    final canvasHeight = padding * 2 + (maxDepth + 1) * nodeHeight + maxDepth * gapY;
-    final positions = <String, Offset>{};
-
-    for (final entry in levels.entries) {
-      final nodes = entry.value;
-      final rowWidth = (nodes.length * nodeWidth + math.max(0, nodes.length - 1) * gapX).toDouble();
-      final startX = (canvasWidth - rowWidth) / 2;
-      final y = padding + entry.key * (nodeHeight + gapY);
-      for (var index = 0; index < nodes.length; index++) {
-        final id = nodes[index]['id']?.toString() ?? '';
-        positions[id] = Offset(startX + index * (nodeWidth + gapX), y);
-      }
-    }
-
-    return _TreeLayout(
-      width: canvasWidth,
-      height: math.max(canvasHeight, 250.0).toDouble(),
-      nodeWidth: nodeWidth,
-      nodeHeight: nodeHeight,
-      positions: positions,
-    );
-  }
-
   Widget _treeCanvas(Character character) {
     final state = context.watch<AppState>();
     final scheme = Theme.of(context).colorScheme;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final layout = _layout(character, constraints.maxWidth);
+        final layout = computeSkillTreeLayout(character.skillTree, constraints.maxWidth);
         final stateById = <String, _NodeState>{};
         for (final node in character.skillTree) {
           final id = node['id']?.toString() ?? '';
@@ -348,12 +292,10 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                   ? _NodeState.available
                   : _NodeState.locked;
         }
-        return ClipRect(
-          child: InteractiveViewer(
-            minScale: .65,
-            maxScale: 1.8,
-            boundaryMargin: const EdgeInsets.all(120),
-            constrained: false,
+        // Rolagem só na vertical: o deslize horizontal fica livre para o
+        // PageView das abas da ficha.
+        return SingleChildScrollView(
+          key: const ValueKey('skill-tree-scroll'),
             child: SizedBox(
               width: layout.width,
               height: layout.height,
@@ -385,6 +327,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                         node: node,
                         state: stateById[node['id']?.toString() ?? ''] ?? _NodeState.locked,
                         icon: themedIcon(state.themeId, 'skillTree'),
+                        compact: layout.compact,
                         onTap: () => _showNode(character, node),
                         onToggle: () => _toggle(character, node),
                       ),
@@ -392,7 +335,6 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                 ],
               ),
             ),
-          ),
         );
       },
     );
@@ -415,7 +357,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Árvore de Habilidades', style: Theme.of(context).textTheme.titleLarge),
-                    Text('$unlocked de ${character.skillTree.length} desbloqueada(s) • arraste e amplie para navegar', style: Theme.of(context).textTheme.bodySmall),
+                    Text('$unlocked de ${character.skillTree.length} desbloqueada(s) • role para ver toda a árvore', style: Theme.of(context).textTheme.bodySmall),
                   ],
                 ),
               ),
@@ -515,20 +457,109 @@ class _TreeLegendDot extends StatelessWidget {
 
 enum _NodeState { unlocked, available, locked }
 
-class _TreeLayout {
+/// Posições calculadas da árvore (nada disso é gravado na ficha).
+class SkillTreeLayout {
   final double width;
   final double height;
   final double nodeWidth;
   final double nodeHeight;
+  final int columns;
   final Map<String, Offset> positions;
 
-  const _TreeLayout({
+  const SkillTreeLayout({
     required this.width,
     required this.height,
     required this.nodeWidth,
     required this.nodeHeight,
+    required this.columns,
     required this.positions,
   });
+
+  /// Cartão estreito: versão compacta, sem o botão de cadeado.
+  bool get compact => nodeWidth < skillTreeCompactBelow;
+}
+
+const skillTreeMaxColumns = 4;
+const skillTreeCardMinWidth = 72.0;
+const skillTreeCardMaxWidth = 154.0;
+const skillTreeCompactBelow = 120.0;
+const skillTreeCardHeight = 92.0;
+const skillTreeCompactCardHeight = 108.0;
+const _treePaddingX = 16.0;
+const _treePaddingY = 24.0;
+const _treeGapX = 10.0;
+const _treeRowGap = 14.0;
+const _treeLevelGap = 52.0;
+
+/// Layout da árvore para a largura disponível: nunca passa da largura, no
+/// máximo [skillTreeMaxColumns] cartões lado a lado; nós a mais de um mesmo
+/// nível descem para a linha seguinte (cada linha centralizada). A profundidade
+/// vem de `parentId` (ciclo ou pai inexistente contam como raiz).
+SkillTreeLayout computeSkillTreeLayout(List<Map<String, dynamic>> nodes, double viewportWidth) {
+  final width = math.max(0.0, viewportWidth);
+  final byId = <String, Map<String, dynamic>>{
+    for (final node in nodes)
+      if ((node['id']?.toString() ?? '').isNotEmpty) node['id'].toString(): node,
+  };
+  final depthCache = <String, int>{};
+
+  int depthOf(Map<String, dynamic> node, Set<String> visiting) {
+    final id = node['id']?.toString() ?? '';
+    if (depthCache.containsKey(id)) return depthCache[id]!;
+    if (!visiting.add(id)) return 0;
+    final parentId = (node['parentId'] ?? '').toString();
+    final parent = byId[parentId];
+    final depth = parent == null ? 0 : depthOf(parent, visiting) + 1;
+    visiting.remove(id);
+    depthCache[id] = depth;
+    return depth;
+  }
+
+  final levels = <int, List<Map<String, dynamic>>>{};
+  for (final node in nodes) {
+    final depth = depthOf(node, <String>{});
+    levels.putIfAbsent(depth, () => []).add(node);
+  }
+  final maxCount = levels.values.fold<int>(1, (value, level) => math.max(value, level.length));
+
+  final usable = math.max(0.0, width - _treePaddingX * 2);
+  var fit = 1;
+  for (var c = skillTreeMaxColumns; c > 1; c--) {
+    if ((usable - (c - 1) * _treeGapX) / c >= skillTreeCardMinWidth) {
+      fit = c;
+      break;
+    }
+  }
+  final columns = math.min(skillTreeMaxColumns, math.min(maxCount, fit));
+  final nodeWidth = math.min(skillTreeCardMaxWidth, (usable - (columns - 1) * _treeGapX) / columns).clamp(0.0, skillTreeCardMaxWidth).toDouble();
+  final nodeHeight = nodeWidth < skillTreeCompactBelow ? skillTreeCompactCardHeight : skillTreeCardHeight;
+
+  final positions = <String, Offset>{};
+  var y = _treePaddingY;
+  final depths = levels.keys.toList()..sort();
+  for (var d = 0; d < depths.length; d++) {
+    if (d > 0) y += _treeLevelGap;
+    final levelNodes = levels[depths[d]]!;
+    for (var start = 0; start < levelNodes.length; start += columns) {
+      if (start > 0) y += _treeRowGap;
+      final row = levelNodes.sublist(start, math.min(start + columns, levelNodes.length));
+      final rowWidth = row.length * nodeWidth + (row.length - 1) * _treeGapX;
+      final startX = (width - rowWidth) / 2;
+      for (var i = 0; i < row.length; i++) {
+        positions[row[i]['id']?.toString() ?? ''] = Offset(startX + i * (nodeWidth + _treeGapX), y);
+      }
+      y += nodeHeight;
+    }
+  }
+
+  return SkillTreeLayout(
+    width: width,
+    height: math.max(y + _treePaddingY, 250.0).toDouble(),
+    nodeWidth: nodeWidth,
+    nodeHeight: nodeHeight,
+    columns: columns,
+    positions: positions,
+  );
 }
 
 class _SkillNodeCard extends StatelessWidget {
@@ -537,6 +568,7 @@ class _SkillNodeCard extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   final VoidCallback onToggle;
+  final bool compact;
 
   const _SkillNodeCard({
     required this.node,
@@ -544,6 +576,7 @@ class _SkillNodeCard extends StatelessWidget {
     required this.icon,
     required this.onTap,
     required this.onToggle,
+    this.compact = false,
   });
 
   @override
@@ -555,6 +588,53 @@ class _SkillNodeCard extends StatelessWidget {
     final stateLabel = unlocked ? 'Desbloqueada' : available ? 'Disponível' : 'Bloqueada';
     final level = (node['level'] as num?)?.toInt();
     final label = level == null ? stateLabel : 'Nível $level • $stateLabel';
+    final name = node['name']?.toString() ?? 'Habilidade';
+
+    if (compact) {
+      // Cartão estreito (várias colunas): sem cadeado; desbloquear/bloquear
+      // fica na folha de detalhes que abre ao tocar.
+      return Semantics(
+        container: true,
+        button: true,
+        excludeSemantics: true,
+        label: level == null ? '$name, $stateLabel' : '$name, nível $level, $stateLabel',
+        onTap: onTap,
+        child: Material(
+          color: Theme.of(context).cardTheme.color,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: borderColor.withValues(alpha: unlocked ? .9 : .55), width: unlocked ? 2 : 1),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(5, 6, 5, 5),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, color: borderColor, size: 18),
+                  const SizedBox(height: 3),
+                  Flexible(
+                    child: Text(
+                      name,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, height: 1.15),
+                    ),
+                  ),
+                  if (level != null) ...[
+                    const SizedBox(height: 2),
+                    Text('Nv $level', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: borderColor, fontSize: 10)),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Material(
       color: Theme.of(context).cardTheme.color,

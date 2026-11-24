@@ -5,6 +5,7 @@ import '../../services/app_state.dart';
 import '../../models/character.dart';
 import '../../models/rpg_system.dart';
 import '../character/character_screen.dart';
+import '../../widgets/card_spacing.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -221,7 +222,7 @@ class _CharacterCard extends StatelessWidget {
     );
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: cardSpacingMargin,
       child: ListTile(
         contentPadding: const EdgeInsets.all(14),
         leading: CircleAvatar(

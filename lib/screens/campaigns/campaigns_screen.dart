@@ -13,6 +13,7 @@ import 'npc_sheet_screen.dart';
 import 'initiative_tools.dart';
 import '../character/resource_quick_adjust.dart';
 import '../../widgets/confirm_delete_dialog.dart';
+import '../../widgets/card_spacing.dart';
 
 
 IconData _npcKindIcon(String kind) => switch (kind) {
@@ -151,8 +152,8 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
       Expanded(child:_metricCard(context,Icons.sports_martial_arts_outlined,'Rodada','${c.sessionRound}')),
     ]),
     const SizedBox(height:8),
-    Card(margin: const EdgeInsets.only(bottom: 9), child:ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2), leading:Icon(c.combatActive?Icons.play_circle_fill:Icons.pause_circle_outline),title:Text(c.combatActive?'Sessão em andamento':'Sessão preparada'),subtitle:Text('${c.initiative.length} na iniciativa • ${c.conditions.length} condições'),trailing:const Icon(Icons.chevron_right),onTap:(){_tabs.animateTo(3);})), 
-    Card(margin: const EdgeInsets.only(bottom: 9), child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2), leading: const Icon(Icons.movie_filter_outlined), title: const Text('Cena atual'), subtitle: Text(c.masterScene.isEmpty ? 'Nenhuma cena definida.' : c.masterScene), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MasterToolsScreen(campaignId: c.id))))),
+    Card(margin: cardSpacingMargin, child:ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2), leading:Icon(c.combatActive?Icons.play_circle_fill:Icons.pause_circle_outline),title:Text(c.combatActive?'Sessão em andamento':'Sessão preparada'),subtitle:Text('${c.initiative.length} na iniciativa • ${c.conditions.length} condições'),trailing:const Icon(Icons.chevron_right),onTap:(){_tabs.animateTo(3);})), 
+    Card(margin: cardSpacingMargin, child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2), leading: const Icon(Icons.movie_filter_outlined), title: const Text('Cena atual'), subtitle: Text(c.masterScene.isEmpty ? 'Nenhuma cena definida.' : c.masterScene), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MasterToolsScreen(campaignId: c.id))))),
   ]);
 
   Widget _masterStatusCard(BuildContext context, Campaign c) {
@@ -181,7 +182,7 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
 
   Widget _players(BuildContext context, AppState state, Campaign c) => ListView(padding: const EdgeInsets.all(16), children: [
     Card(child: ListTile(leading: const Icon(Icons.link), title: const Text('Vincular ficha por código'), subtitle: const Text('Solicite acesso seguro à ficha de outro jogador.'), trailing: Wrap(children: [IconButton(tooltip: 'Atualizar vínculos', onPressed: () => _refreshRemotePlayers(context, c), icon: const Icon(Icons.sync)), const Icon(Icons.chevron_right)]), onTap: () => _linkByCode(context, c))),
-    if (c.linkedCharacters.isNotEmpty) ...[const SizedBox(height: 8), Text('Vínculos remotos', style: Theme.of(context).textTheme.titleMedium), ...c.linkedCharacters.map((x) { final snap=Map<String,dynamic>.from(x['snapshot'] as Map? ?? {}); final resources=Map<String,dynamic>.from(snap['resourceValues'] as Map? ?? {}); final max=Map<String,dynamic>.from(snap['resourceMaxValues'] as Map? ?? {}); final conditions=(snap['conditions'] as List? ?? []).map((e)=>e.toString()).toList(); return Card(margin: const EdgeInsets.only(bottom: 9), child:Padding(padding:const EdgeInsets.symmetric(vertical:2),child:ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+    if (c.linkedCharacters.isNotEmpty) ...[const SizedBox(height: 8), Text('Vínculos remotos', style: Theme.of(context).textTheme.titleMedium), ...c.linkedCharacters.map((x) { final snap=Map<String,dynamic>.from(x['snapshot'] as Map? ?? {}); final resources=Map<String,dynamic>.from(snap['resourceValues'] as Map? ?? {}); final max=Map<String,dynamic>.from(snap['resourceMaxValues'] as Map? ?? {}); final conditions=(snap['conditions'] as List? ?? []).map((e)=>e.toString()).toList(); return Card(margin: cardSpacingMargin, child:Padding(padding:const EdgeInsets.symmetric(vertical:2),child:ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       leading:CircleAvatar(child:Icon(x['status']=='approved'?Icons.person:Icons.hourglass_top)),
       title:Text(snap['name']?.toString() ?? 'Ficha vinculada',style:const TextStyle(fontWeight:FontWeight.w600)),
       subtitle:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -196,7 +197,7 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
     ))); })],
     Row(children: [Expanded(child: Text('Jogadores locais', style: Theme.of(context).textTheme.titleMedium)), IconButton(tooltip: 'Selecionar fichas locais', onPressed: () => _pickLocalPlayers(context, state, c), icon: const Icon(Icons.person_add_alt_1))]),
     if (c.characterIds.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('Nenhum jogador vinculado a esta campanha.'))),
-    ...c.characterIds.map((id) { final found=state.characters.where((x)=>x.id==id); if(found.isEmpty) return const SizedBox.shrink(); final ch=found.first; return Card(margin: const EdgeInsets.only(bottom: 9), child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2), leading: const Icon(Icons.person_outline), title: Text(ch.name), subtitle: Text(ch.resourceValues.entries.map((e)=>'${e.key}: ${e.value}/${ch.resourceMaxValues[e.key] ?? e.value}').take(3).join(' • ')), trailing: ch.conditions.isEmpty ? null : Text('${ch.conditions.length} status'))); }),
+    ...c.characterIds.map((id) { final found=state.characters.where((x)=>x.id==id); if(found.isEmpty) return const SizedBox.shrink(); final ch=found.first; return Card(margin: cardSpacingMargin, child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2), leading: const Icon(Icons.person_outline), title: Text(ch.name), subtitle: Text(ch.resourceValues.entries.map((e)=>'${e.key}: ${e.value}/${ch.resourceMaxValues[e.key] ?? e.value}').take(3).join(' • ')), trailing: ch.conditions.isEmpty ? null : Text('${ch.conditions.length} status'))); }),
   ]);
 
   Future<void> _linkByCode(BuildContext context, Campaign c) async {
@@ -348,7 +349,7 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
       ]),
       const SizedBox(height:12),
       if(total==0) const Card(child:Padding(padding:EdgeInsets.all(20),child:Column(children:[Icon(Icons.person_search_outlined,size:38),SizedBox(height:10),Text('Nenhum NPC ou monstro cadastrado.'),SizedBox(height:4),Text('Crie uma ficha própria ou copie uma ficha existente.',textAlign:TextAlign.center)]))),
-      ...c.npcSheets.map((npc){
+      ...spacedCards(c.npcSheets.map((npc){
         final raw=npc['sheet']; final sheet=raw is Map ? Character.fromJson(Map<String,dynamic>.from(raw)) : null; final kind='${npc['kind'] ?? 'NPC'}';
         final hp=sheet?.resourceValues['Vida'] ?? sheet?.hp ?? 0; final max=sheet?.resourceMaxValues['Vida'] ?? sheet?.maxHp ?? 0;
         return Card(child:ListTile(
@@ -362,12 +363,12 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
           }),
           onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>NpcSheetScreen(campaignId:c.id,npcId:'${npc['id']}'))),
         ));
-      }),
+      })),
       if(c.npcs.isNotEmpty)...[
         const SizedBox(height:10),
         Text('NPCs antigos',style:Theme.of(context).textTheme.labelLarge),
         const SizedBox(height:4),
-        ...c.npcs.asMap().entries.map((e)=>Card(child:ListTile(leading:const Icon(Icons.person_outline),title:Text(e.value),subtitle:const Text('Formato simples antigo'),trailing:PopupMenuButton<String>(itemBuilder:(_)=>const [PopupMenuItem(value:'convert',child:Text('Converter em ficha')),PopupMenuItem(value:'delete',child:Text('Excluir'))],onSelected:(v)async{if(v=='convert')await _convertLegacyNpc(context,c,e.key,e.value);if(v=='delete'){if(!await confirmDelete(context,title:'Excluir NPC?',message:'"${e.value}" será removido da campanha.'))return;if(!context.mounted)return;c.npcs.removeAt(e.key);await context.read<AppState>().updateCampaign(c);}})))),
+        ...spacedCards(c.npcs.asMap().entries.map((e)=>Card(child:ListTile(leading:const Icon(Icons.person_outline),title:Text(e.value),subtitle:const Text('Formato simples antigo'),trailing:PopupMenuButton<String>(itemBuilder:(_)=>const [PopupMenuItem(value:'convert',child:Text('Converter em ficha')),PopupMenuItem(value:'delete',child:Text('Excluir'))],onSelected:(v)async{if(v=='convert')await _convertLegacyNpc(context,c,e.key,e.value);if(v=='delete'){if(!await confirmDelete(context,title:'Excluir NPC?',message:'"${e.value}" será removido da campanha.'))return;if(!context.mounted)return;c.npcs.removeAt(e.key);await context.read<AppState>().updateCampaign(c);}}))))),
       ],
     ]);
   }
@@ -420,6 +421,7 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
     final done=ordered.where((e)=>e['done']==true).length;
     final currentConditions=current==null ? <String>[] : _participantConditions(context.read<AppState>(),c,current);
     return ListView(padding: const EdgeInsets.all(16), children: [
+      ...spacedCards([
       Card(child: Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         Row(children:[Icon(c.combatActive?Icons.sports_martial_arts:Icons.pause_circle_outline),const SizedBox(width:10),Expanded(child:Text(c.combatActive?'Combate ativo':'Sem combate ativo',style:Theme.of(context).textTheme.titleLarge)),Text('Rodada ${c.sessionRound}')]),
         if(current!=null)...[const SizedBox(height:12),Text('TURNO ATUAL',style:Theme.of(context).textTheme.labelMedium),const SizedBox(height:4),Text('${current['name']}',style:Theme.of(context).textTheme.headlineSmall),Text('Iniciativa ${current['value']} • $done/${ordered.length} concluídos'),
@@ -437,6 +439,7 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
         );}),
       ]))),
       FilledButton.icon(onPressed:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>SessionToolsScreen(campaignId:c.id))),icon:const Icon(Icons.open_in_new),label:Text(c.combatActive?'Abrir controle da sessão':'Preparar sessão')),
+      ]),
       if(c.sessionLog.isNotEmpty)...[const SizedBox(height:16),Text('Histórico recente',style:Theme.of(context).textTheme.titleMedium),...c.sessionLog.reversed.take(5).map((e)=>ListTile(dense:true,leading:const Icon(Icons.history),title:Text(e)))],
     ]);
   }
@@ -477,8 +480,8 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
   }
 
   Widget _notes(BuildContext context, Campaign c) => ListView(padding: const EdgeInsets.all(16), children: [
-    Card(margin: const EdgeInsets.only(bottom: 9), child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2), leading: const Icon(Icons.lock_outline), title: const Text('Notas privadas do Mestre'), subtitle: Text(c.masterNotes.isEmpty?'Nenhuma nota privada.':c.masterNotes,maxLines:4,overflow:TextOverflow.ellipsis), trailing:const Icon(Icons.edit_outlined), onTap:()=>_editNotes(context,c,true))),
-    Card(margin: const EdgeInsets.only(bottom: 9), child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2), leading: const Icon(Icons.notes_outlined), title: const Text('Notas da campanha'), subtitle: Text(c.notes.isEmpty?'Nenhuma nota.':c.notes,maxLines:4,overflow:TextOverflow.ellipsis), trailing:const Icon(Icons.edit_outlined), onTap:()=>_editNotes(context,c,false))),
+    Card(margin: cardSpacingMargin, child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2), leading: const Icon(Icons.lock_outline), title: const Text('Notas privadas do Mestre'), subtitle: Text(c.masterNotes.isEmpty?'Nenhuma nota privada.':c.masterNotes,maxLines:4,overflow:TextOverflow.ellipsis), trailing:const Icon(Icons.edit_outlined), onTap:()=>_editNotes(context,c,true))),
+    Card(margin: cardSpacingMargin, child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2), leading: const Icon(Icons.notes_outlined), title: const Text('Notas da campanha'), subtitle: Text(c.notes.isEmpty?'Nenhuma nota.':c.notes,maxLines:4,overflow:TextOverflow.ellipsis), trailing:const Icon(Icons.edit_outlined), onTap:()=>_editNotes(context,c,false))),
   ]);
   Future<void> _editNotes(BuildContext context, Campaign c, bool private) async { final ctrl=TextEditingController(text:private?c.masterNotes:c.notes); final ok=await showDialog<bool>(context:context,builder:(_)=>AlertDialog(title:Text(private?'Notas privadas do Mestre':'Notas da campanha'),content:TextField(controller:ctrl,minLines:6,maxLines:12),actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancelar')),FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('Salvar'))])); if(ok==true&&context.mounted){if(private){c.masterNotes=ctrl.text;}else{c.notes=ctrl.text;}await context.read<AppState>().updateCampaign(c);} }
 }
@@ -683,7 +686,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
     final theme = Theme.of(context);
     final contentCount = campaign.npcs.length + campaign.npcSheets.length + campaign.locations.length;
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: cardSpacingMargin,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () => Navigator.push(
@@ -841,7 +844,7 @@ class _CampaignDetailScreenState extends State<CampaignDetailScreen> {
           IconButton(tooltip: 'Editar campanha', icon: const Icon(Icons.edit), onPressed: () => _editInfo(context, c)),
         ],
       ),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
+      body: ListView(padding: const EdgeInsets.all(16), children: spacedCards([
         Card(child: SwitchListTile(
           secondary: Icon(masterMode ? Icons.workspace_premium : Icons.person),
           title: Text(masterMode ? 'Modo Mestre' : 'Modo Jogador'),
@@ -881,7 +884,7 @@ class _CampaignDetailScreenState extends State<CampaignDetailScreen> {
           subtitle: Text('${c.hiddenCharacterIds.length} ficha(s) oculta(s) dos jogadores'),
           trailing: const Icon(Icons.tune), onTap: () => _visibility(context, c),
         )),
-      ]),
+      ])),
     );
   }
 
@@ -960,7 +963,7 @@ class MasterToolsScreen extends StatelessWidget {
     final c = matches.first;
     return Scaffold(
       appBar: AppBar(title: Text('Painel do Mestre • ${c.name}')),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
+      body: ListView(padding: const EdgeInsets.all(16), children: spacedCards([
         Card(child: ListTile(
           leading: const Icon(Icons.movie_filter_outlined),
           title: const Text('Cena atual'),
@@ -1003,7 +1006,7 @@ class MasterToolsScreen extends StatelessWidget {
           ...c.sessionLog.reversed.take(20).map((x) => ListTile(dense: true, leading: const Icon(Icons.circle, size: 9), title: Text(x))),
           if (c.sessionLog.isNotEmpty) Align(alignment: Alignment.centerRight, child: TextButton.icon(onPressed: () => _clearLog(context, c), icon: const Icon(Icons.delete_sweep_outlined), label: const Text('Limpar registro'))),
         ]))),
-      ]),
+      ])),
     );
   }
 
@@ -1107,7 +1110,7 @@ class SessionToolsScreen extends StatelessWidget {
       appBar: AppBar(title: Text('Sessão • ${campaign.name}')),
       body: ListView(
         padding: const EdgeInsets.all(16),
-        children: [
+        children: spacedCards([
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -1298,7 +1301,7 @@ class SessionToolsScreen extends StatelessWidget {
               onTap: () => _sessionNotes(context, campaign),
             ),
           ),
-        ],
+        ]),
       ),
     );
   }

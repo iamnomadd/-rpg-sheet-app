@@ -40,7 +40,7 @@ class CharacterPublishQueue {
   final Duration delay;
 
   final _timers = <String, Timer>{};
-  final _running = <String>{};
+  final _running = <String, Future<void>>{};
   final _again = <String>{};
 
   /// Há publicação agendada ou em andamento.
@@ -54,19 +54,44 @@ class CharacterPublishQueue {
     });
   }
 
-  Future<void> _run(String characterId) async {
-    if (_running.contains(characterId)) {
-      _again.add(characterId);
-      return;
+  /// Publica JÁ o estado mais recente de cada ficha com publicação pendente
+  /// (usado quando o app vai para segundo plano) e espera também as que estão
+  /// em andamento. Sem pendência, não publica nada.
+  Future<void> flush() {
+    final pending = _timers.keys.toList();
+    for (final timer in _timers.values) {
+      timer.cancel();
     }
-    _running.add(characterId);
+    _timers.clear();
+    final runs = [for (final id in pending) _run(id)];
+    return Future.wait([...runs, ..._running.values]);
+  }
+
+  /// Uma publicação por vez por ficha. Se outra for pedida durante o envio,
+  /// sai mais uma ao terminar, já com o estado mais novo.
+  Future<void> _run(String characterId) {
+    final running = _running[characterId];
+    if (running != null) {
+      _again.add(characterId);
+      return running;
+    }
+    final future = _loop(characterId);
+    _running[characterId] = future;
+    return future;
+  }
+
+  Future<void> _loop(String characterId) async {
     try {
-      await publish(characterId);
-    } catch (error) {
-      debugPrint(describePublishError(error));
+      do {
+        _again.remove(characterId);
+        try {
+          await publish(characterId);
+        } catch (error) {
+          debugPrint(describePublishError(error));
+        }
+      } while (_again.contains(characterId));
     } finally {
       _running.remove(characterId);
     }
-    if (_again.remove(characterId)) await _run(characterId);
   }
 }
