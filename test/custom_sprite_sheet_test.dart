@@ -218,5 +218,21 @@ void main() {
       expect(find.text('Usar minhas imagens'), findsOneWidget);
       await finish(tester);
     });
+
+    for (final enabled in [true, false]) {
+      testWidgets('toque discreto abre a folha (imagens próprias ${enabled ? 'ligadas' : 'desligadas'})', (tester) async {
+        await pumpSheet(tester, withLife(10, enabled: enabled));
+        final ink = tester.widget<InkWell>(find.descendant(of: find.byTooltip('Personagem 2D'), matching: find.byType(InkWell)).first);
+        expect(ink.splashFactory, NoSplash.splashFactory);
+        expect(ink.highlightColor, Colors.transparent);
+        expect(ink.onTap, isNotNull);
+        expect(ink.canRequestFocus, isTrue);
+        expect(find.byWidgetPredicate((w) => w is Semantics && w.properties.button == true && w.properties.label == 'Personagem 2D'), findsOneWidget);
+        await tester.tap(find.byTooltip('Personagem 2D'));
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.text('Usar minhas imagens'), findsOneWidget);
+        await finish(tester);
+      });
+    }
   });
 }
