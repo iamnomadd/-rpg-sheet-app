@@ -411,8 +411,7 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
           themeId: themeId,
           artPath: themeId == 'abyss' ? ActionArtResolver.resolve(kind: ActionArtKind.weapon, name: name, description: sheet.inventoryDescriptions[name] ?? '') : null,
           size: artSize,
-          fallback:
-        const Icon(Icons.gps_fixed),
+          fallback: const Icon(Icons.gps_fixed),
         ),
         title: Text(name),
         subtitle: Text('Dano ${d['damage'] ?? '—'}${d['ammo'] != null ? ' • Munição ${d['ammo']}' : ''}'),
@@ -429,11 +428,10 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
               ? ActionArtResolver.resolve(kind: isSpell ? ActionArtKind.spell : ActionArtKind.ability, name: name, description: sheet.abilityDescriptions[name] ?? '', category: d['category']?.toString() ?? '')
               : null,
           size: artSize,
-          fallback:
-        Icon(
-          isSpell ? SpellIconResolver.resolve(name, description: sheet.abilityDescriptions[name] ?? '') : Icons.auto_awesome,
-          color: Theme.of(context).colorScheme.primary,
-        ),
+          fallback: Icon(
+            isSpell ? SpellIconResolver.resolve(name, description: sheet.abilityDescriptions[name] ?? '') : Icons.auto_awesome,
+            color: Theme.of(context).colorScheme.primary,
+          ),
         ),
         title: Text(name),
         subtitle: Text([if ((d['damage'] ?? '').toString().isNotEmpty) 'Dano ${d['damage']}', if ((sheet.abilityDescriptions[name] ?? '').isNotEmpty) sheet.abilityDescriptions[name]!].join(' • ')),

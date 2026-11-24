@@ -393,8 +393,7 @@ class _CombatTabState extends State<CombatTab> with SingleTickerProviderStateMix
                       themeId: themeId,
                       artPath: art(ActionArtKind.weapon, item, description: widget.character.inventoryDescriptions[item] ?? ''),
                       size: artSize,
-                      fallback:
-                    const Icon(Icons.gps_fixed),
+                      fallback: const Icon(Icons.gps_fixed),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -443,11 +442,10 @@ class _CombatTabState extends State<CombatTab> with SingleTickerProviderStateMix
                   themeId: themeId,
                   artPath: art(ActionArtKind.spell, spell, description: widget.character.abilityDescriptions[spell] ?? '', category: 'Magia'),
                   size: artSize,
-                  fallback:
-                Icon(
-                  SpellIconResolver.resolve(spell, description: widget.character.abilityDescriptions[spell] ?? ''),
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                  fallback: Icon(
+                    SpellIconResolver.resolve(spell, description: widget.character.abilityDescriptions[spell] ?? ''),
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
                 title: Text(spell),
                 subtitle: Text([

@@ -1720,6 +1720,9 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
       }).toList();
     }
     if (names.isEmpty) return const SizedBox.shrink();
+    // Lidos uma vez por grupo (não em cada linha).
+    final themeId = context.watch<AppState>().themeId;
+    final artSize = actionArtSize(compact);
 
     final groupIcon = switch (id) {
       'weapons' => Icons.gps_fixed,
@@ -1776,12 +1779,12 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
         return Card(
           margin: EdgeInsets.only(bottom: compact ? 5 : 8),
           child: Padding(
-            padding: abyssCardInset(context.watch<AppState>().themeId, EdgeInsets.fromLTRB(compact ? 9 : 11, compact ? 7 : 9, compact ? 7 : 9, compact ? 7 : 9)),
+            padding: abyssCardInset(themeId, EdgeInsets.fromLTRB(compact ? 9 : 11, compact ? 7 : 9, compact ? 7 : 9, compact ? 7 : 9)),
             child: Row(children: [
               // Abissal: ilustração da ação; nos outros temas, o mesmo ícone de antes.
               ActionIconSlot(
-                themeId: context.watch<AppState>().themeId,
-                artPath: context.watch<AppState>().themeId != 'abyss'
+                themeId: themeId,
+                artPath: themeId != 'abyss'
                     ? null
                     : ActionArtResolver.resolve(
                         kind: switch (id) { 'weapons' => ActionArtKind.weapon, 'consumables' => ActionArtKind.item, 'spells' => ActionArtKind.spell, _ => ActionArtKind.ability },
@@ -1789,15 +1792,14 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
                         description: (id == 'weapons' || id == 'consumables' ? c.inventoryDescriptions[name] : c.abilityDescriptions[name]) ?? '',
                         category: switch (id) { 'consumables' => 'Consumível', 'spells' => 'Magia', _ => d['category']?.toString() ?? '' },
                       ),
-                size: actionArtSize(compact),
-                fallback:
-              Icon(
-                id == 'spells'
-                    ? SpellIconResolver.resolve(name, description: c.abilityDescriptions[name] ?? '')
-                    : groupIcon,
-                size: 20,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+                size: artSize,
+                fallback: Icon(
+                  id == 'spells'
+                      ? SpellIconResolver.resolve(name, description: c.abilityDescriptions[name] ?? '')
+                      : groupIcon,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
               ),
               const SizedBox(width: 9),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -2144,6 +2146,7 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
   Widget build(BuildContext context) {
     final icon = themedIcon(context.watch<AppState>().themeId, widget.iconRole);
     final compact = context.watch<AppState>().compactMode;
+    final themeId = context.watch<AppState>().themeId;
     final scheme = Theme.of(context).colorScheme;
 
     final inventoryFilters = const ['Todos', 'Arma', 'Armadura', 'Consumível', 'Munição', 'Acessório', 'Ferramenta', 'Outro'];
@@ -2196,7 +2199,7 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
         ),
         const SizedBox(height: 10),
         SizedBox(
-          height: abyssChipBarHeight(context, context.watch<AppState>().themeId, 38),
+          height: abyssChipBarHeight(context, themeId, 38),
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: (widget.isAbility ? abilityFilters : inventoryFilters).length,
@@ -2284,8 +2287,8 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
                   child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
                     // Abissal: ilustração no lugar do quadrado cinza com ícone.
                     ActionIconSlot(
-                      themeId: context.watch<AppState>().themeId,
-                      artPath: context.watch<AppState>().themeId != 'abyss'
+                      themeId: themeId,
+                      artPath: themeId != 'abyss'
                           ? null
                           : ActionArtResolver.resolve(
                               kind: widget.isAbility ? ActionArtKind.ability : ActionArtKind.item,
@@ -2294,18 +2297,17 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
                               category: category,
                             ),
                       size: actionArtSize(compact),
-                      fallback:
-                    Container(
-                      width: compact ? 36 : 42,
-                      height: compact ? 36 : 42,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withOpacity(.42), borderRadius: BorderRadius.circular(11)),
-                      child: Icon(
-                        _itemIcon(category, name: item, description: widget.descriptions[item] ?? ''),
-                        size: compact ? 19 : 21,
-                        color: scheme.primary,
+                      fallback: Container(
+                        width: compact ? 36 : 42,
+                        height: compact ? 36 : 42,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withOpacity(.42), borderRadius: BorderRadius.circular(11)),
+                        child: Icon(
+                          _itemIcon(category, name: item, description: widget.descriptions[item] ?? ''),
+                          size: compact ? 19 : 21,
+                          color: scheme.primary,
+                        ),
                       ),
-                    ),
                     ),
                     const SizedBox(width: 11),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

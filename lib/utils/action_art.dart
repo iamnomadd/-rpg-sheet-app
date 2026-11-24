@@ -54,6 +54,15 @@ class ActionArtResolver {
     ('spell_gravity', ['gravidade', 'gravit', 'peso', 'gravity']),
   ];
 
+  /// Termos comuns em texto de regra ("Soma 2 ao dano", "somente", "no mesmo
+  /// tempo"...) que só valem no NOME, nunca na descrição. Todos os outros
+  /// termos (inclusive curtos, como gelo, fogo, raio) valem nos dois.
+  static const descriptionExcluded = {'som', 'voz', 'luz', 'tempo', 'peso', 'vinha', 'terra', 'cura', 'curar', 'onda', 'agua', 'mare'};
+
+  static final List<(String, List<String>)> _spellTermsForDescription = [
+    for (final (file, terms) in spellTerms) (file, [for (final t in terms) if (!descriptionExcluded.contains(t)) t]),
+  ];
+
   static const weaponTerms = <(String, List<String>)>[
     ('item_pistol', ['pistola', 'revolver', 'garrucha', 'pederneira', 'flintlock', 'pistol']),
     ('item_shotgun', ['escopeta', 'espingarda', 'mosquete', 'arcabuz', 'bacamarte', 'trabuco', 'carabina', 'rifle', 'fuzil', 'musket', 'shotgun']),
@@ -86,7 +95,7 @@ class ActionArtResolver {
       case ActionArtKind.ability:
         if (category == 'Passiva') return 'ability_passive';
         return _first(spellTerms, name) ??
-            _first(spellTerms, description) ??
+            _first(_spellTermsForDescription, description) ??
             (category == 'Técnica' ? 'ability_technique' : 'spell_magic_generic');
       case ActionArtKind.weapon:
         return _weapon(name, description) ?? 'item_sword';
