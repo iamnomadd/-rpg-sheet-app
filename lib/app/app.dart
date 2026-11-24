@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 
 import '../core/feature_flags.dart';
+import 'abyss_theme.dart';
 import '../services/app_state.dart';
 import '../services/cloud_service.dart';
 
@@ -97,7 +98,9 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
       builder: (context, child) {
         final media = MediaQuery.of(context);
         final content = child ?? const SizedBox.shrink();
-        final themedContent = themeId == 'parchment'
+        final themedContent = themeId == 'abyss'
+            ? AbyssBackground(child: content)
+            : themeId == 'parchment'
             ? DecoratedBox(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -238,7 +241,7 @@ class MainTabsShell extends StatelessWidget {
           top: false,
           child: Container(
             height: 78,
-            decoration: BoxDecoration(
+            decoration: themeId == 'abyss' ? const AbyssNavBarDecoration() : BoxDecoration(
               border: Border(top: BorderSide(
                 color: Theme.of(context).colorScheme.outlineVariant.withOpacity(.32),
               )),
@@ -264,7 +267,17 @@ class MainTabsShell extends StatelessWidget {
                             controller.animateToPage(value, duration: duration, curve: Curves.easeInOutCubic);
                           }
                         },
-                        child: AnimatedContainer(
+                        child: themeId == 'abyss'
+                            ? AbyssTabCell(
+                                selected: selected,
+                                reduceMotion: reduceMotion,
+                                fill: true,
+                                margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
+                                icon: (color) => Icon(themedMainIcon(themeId, item.role), size: 24, color: color),
+                                label: item.label,
+                                labelStyle: Theme.of(context).textTheme.labelSmall,
+                              )
+                            : AnimatedContainer(
                           duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 180),
                           decoration: BoxDecoration(
                             border: Border(bottom: BorderSide(
