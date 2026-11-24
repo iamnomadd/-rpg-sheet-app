@@ -33,6 +33,11 @@ class Character {
   List<String> actionOrder;
   List<String> hiddenActionGroups;
   String shareCode;
+  /// Imagens próprias do personagem 2D: pose ('normal', 'agony', 'critical',
+  /// 'incapacitated') → data URI. Vazio = usa o personagem do tema.
+  Map<String, String> customSpriteImages;
+  /// Liga/desliga as imagens próprias sem apagá-las.
+  bool customSpriteEnabled;
 
   Character({
     required this.id,
@@ -69,7 +74,10 @@ class Character {
     List<String>? actionOrder,
     List<String>? hiddenActionGroups,
     this.shareCode = '',
-  })  : attributes = attributes ?? {'FOR': 10, 'DES': 10, 'CON': 10, 'INT': 10, 'SAB': 10, 'CAR': 10},
+    Map<String, String>? customSpriteImages,
+    this.customSpriteEnabled = false,
+  })  : customSpriteImages = customSpriteImages ?? {},
+        attributes = attributes ?? {'FOR': 10, 'DES': 10, 'CON': 10, 'INT': 10, 'SAB': 10, 'CAR': 10},
         resourceValues = resourceValues ?? {'Vida': 10, 'Energia': 0},
         resourceMaxValues = resourceMaxValues ?? {'Vida': 10, 'Energia': 0},
         sectionNotes = sectionNotes ?? {},
@@ -123,7 +131,23 @@ class Character {
         'actionOrder': actionOrder,
         'hiddenActionGroups': hiddenActionGroups,
         'shareCode': shareCode,
+        'customSpriteImages': customSpriteImages,
+        'customSpriteEnabled': customSpriteEnabled,
       };
+
+  static const _customSpritePoses = {'normal', 'agony', 'critical', 'incapacitated'};
+
+  /// Leitura tolerante: só poses conhecidas com data URI de imagem; sem a
+  /// imagem 'normal' o conjunto é ignorado (ficha abre com o personagem do tema).
+  static Map<String, String> _parseCustomSpriteImages(Object? raw) {
+    if (raw is! Map) return {};
+    final images = <String, String>{};
+    raw.forEach((key, value) {
+      final pose = key.toString();
+      if (_customSpritePoses.contains(pose) && value is String && value.startsWith('data:image/')) images[pose] = value;
+    });
+    return images.containsKey('normal') ? images : {};
+  }
 
   factory Character.fromJson(Map<String, dynamic> json) {
     final oldHp = (json['hp'] ?? 10) as int;
@@ -176,6 +200,8 @@ class Character {
       actionOrder: (json['actionOrder'] as List?)?.map((e) => e.toString()).toList() ?? ['weapons', 'spells', 'abilities', 'consumables'],
       hiddenActionGroups: (json['hiddenActionGroups'] as List?)?.map((e) => e.toString()).toList() ?? [],
       shareCode: json['shareCode']?.toString() ?? '',
+      customSpriteImages: _parseCustomSpriteImages(json['customSpriteImages']),
+      customSpriteEnabled: json['customSpriteEnabled'] == true,
     );
   }
 }

@@ -17,6 +17,8 @@ import 'character_sprites.dart';
 import 'resource_quick_adjust.dart';
 import '../../widgets/confirm_delete_dialog.dart';
 import 'skill_roll.dart';
+import 'custom_sprite.dart';
+import 'custom_sprite_sheet.dart';
 import '../campaigns/initiative_tools.dart';
 
 
@@ -1316,6 +1318,20 @@ class _CombatCharacter2D extends StatelessWidget {
     );
   }
 
+  /// Tocar no personagem abre a folha "Personagem 2D" (imagens próprias).
+  Widget _customizeTarget(BuildContext context, {required Widget child}) => Semantics(
+        button: true,
+        label: 'Personagem 2D',
+        child: Tooltip(
+          message: 'Personagem 2D',
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => showCustomSpriteSheet(context, character),
+            child: child,
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -1330,6 +1346,8 @@ class _CombatCharacter2D extends StatelessWidget {
     final reduceMotion = state.reduceAnimations || MediaQuery.maybeOf(context)?.disableAnimations == true;
     final vampiricTheme = themeId == 'vampire';
     final spritePath = characterSpritePath(themeId: themeId, pose: _pose);
+    // Imagens próprias (ilustrações) no lugar do sprite do tema, quando ligadas.
+    final customImage = customSpriteActive(character) ? resolveCustomSpriteImage(character.customSpriteImages, _pose) : null;
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -1352,7 +1370,7 @@ class _CombatCharacter2D extends StatelessWidget {
             ),
           ]),
           const SizedBox(height: 4),
-          AnimatedBuilder(
+          _customizeTarget(context, child: AnimatedBuilder(
             animation: idle,
             builder: (context, _) {
               final phase = idle.value;
@@ -1378,7 +1396,15 @@ class _CombatCharacter2D extends StatelessWidget {
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 320),
                     transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
-                    child: Transform.translate(
+                    child: customImage != null
+                        ? CustomSpriteView(
+                            key: ValueKey('custom-$_pose'),
+                            dataUri: customImage,
+                            pose: _pose,
+                            breath: idle,
+                            reduceMotion: reduceMotion,
+                          )
+                        : Transform.translate(
                       key: ValueKey(_pose),
                       offset: Offset(sideSway, breath),
                       child: Transform.rotate(
@@ -1414,7 +1440,7 @@ class _CombatCharacter2D extends StatelessWidget {
                 ]),
               );
             },
-          ),
+          )),
           if (visibleStatuses.isNotEmpty) ...[
             const SizedBox(height: 2),
             Wrap(
