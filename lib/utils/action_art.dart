@@ -5,7 +5,7 @@ import 'package:flutter/widgets.dart';
 /// Tipo de ação para escolher a ilustração.
 enum ActionArtKind { spell, ability, weapon, item }
 
-/// Escolhe uma das 36 ilustrações de `assets/icons/action/` (só usadas no tema
+/// Escolhe uma das 60 ilustrações de `assets/icons/action/` (só usadas no tema
 /// Abissal) pelo nome, depois pela descrição e por fim pela categoria.
 ///
 /// Diferente do [SpellIconResolver], um termo só casa no INÍCIO de uma
@@ -16,7 +16,7 @@ class ActionArtResolver {
 
   static const folder = 'assets/icons/action/';
 
-  /// Os 36 arquivos de arte (sem a pasta).
+  /// Os 60 arquivos de arte (sem a pasta): os 36 originais + 24 novos.
   static const files = <String>[
     'spell_fire', 'spell_lightning', 'spell_ice', 'spell_poison', 'spell_heal', 'spell_shield',
     'spell_blood', 'spell_death', 'spell_shadow', 'spell_light', 'spell_water', 'spell_wind',
@@ -24,6 +24,11 @@ class ActionArtResolver {
     'spell_sound', 'spell_time', 'spell_gravity', 'spell_magic_generic', 'ability_technique',
     'ability_passive', 'item_pistol', 'item_shotgun', 'item_sword', 'item_dagger', 'item_bow',
     'item_axe', 'item_staff', 'item_armor', 'item_potion', 'item_ammo', 'item_accessory', 'item_tool',
+    // 24 novos
+    'spell_arcane', 'spell_curse', 'spell_blessing', 'spell_bind', 'spell_invisibility', 'spell_summon',
+    'spell_transform', 'spell_flight', 'spell_vision', 'spell_enchanted_weapon', 'spell_dispel', 'spell_cloud',
+    'item_club', 'item_mace', 'item_hammer', 'item_spear', 'item_trident', 'item_grenade',
+    'item_scroll', 'item_book', 'item_food', 'item_map', 'item_coins', 'item_torch',
   ];
 
   static String path(String file) => '$folder$file.webp';
@@ -63,6 +68,59 @@ class ActionArtResolver {
     for (final (file, terms) in spellTerms) (file, [for (final t in terms) if (!descriptionExcluded.contains(t)) t]),
   ];
 
+  /// Termos fracos no NOME: só valem se nenhuma outra categoria casar
+  /// ("Raio de Gelo" é gelo; "Raio" sozinho é raio).
+  static const weakNameTerms = <(String, List<String>)>[
+    ('spell_lightning', ['raio']),
+    ('spell_water', ['onda', 'chuva']),
+    ('spell_wind', ['rajada']),
+  ];
+
+  /// Radicais a mais por categoria, só para o NOME (nunca a descrição).
+  static const nameOnlyExtra = <String, List<String>>{
+    'spell_fire': ['infern', 'abras', 'ardent', 'esquent', 'calor'],
+    'spell_lightning': ['choc'],
+    'spell_ice': ['granizo', 'gelad'],
+    'spell_poison': ['fetid', 'doenc', 'contag', 'pestil'],
+    'spell_heal': ['reviv', 'ressusc'],
+    'spell_shield': ['protet', 'proteg', 'invulner'],
+    'spell_death': ['mort', 'necrot'],
+    'spell_shadow': ['escur'],
+    'spell_light': ['sagrad', 'divin', 'lunar', 'radian'],
+    'spell_sound': ['trovej', 'estrond', 'despedac'],
+    'spell_mind': ['enfeit', 'hipno', 'loucur', 'confus', 'domin', 'pensament', 'telecin'],
+    'spell_nature': ['inset', 'arvore', 'fruto'],
+    'spell_time': ['velocid'],
+    'spell_fear': ['pavor', 'assust'],
+  };
+
+  /// Categorias novas de magia: só pelo NOME, depois das de elemento.
+  static const newSpellTerms = <(String, List<String>)>[
+    ('spell_arcane', ['arcan', 'missil', 'misseis', 'runa', 'sigilo']),
+    ('spell_curse', ['maldi', 'maleficio', 'praga', 'bruxar', 'vodu']),
+    ('spell_blessing', ['bencao', 'abenco', 'bendi', 'benzer', 'inspir']),
+    ('spell_bind', ['prend', 'algema', 'enred', 'amarr', 'imobiliz', 'teia', 'corrent']),
+    ('spell_invisibility', ['invisi', 'camufl', 'furtiv']),
+    ('spell_summon', ['invoc', 'conjur', 'convoc', 'familiar']),
+    ('spell_transform', ['transform', 'metamorf', 'polimorf', 'disfarc', 'encolh', 'agigant']),
+    ('spell_flight', ['voo', 'voar', 'voand', 'flutu', 'levit', 'salto', 'pulo']),
+    ('spell_vision', ['visao', 'enxerg', 'olho', 'clarivid', 'detect', 'revel', 'adivinh', 'vidente']),
+    ('spell_enchanted_weapon', ['arma magica', 'arma sagrada', 'arma espiritual', 'arma elemental', 'lamina']),
+    ('spell_dispel', ['dissip', 'anul', 'contrafeit', 'neutraliz', 'banir', 'banim', 'purific', 'exorc', 'desfaz']),
+    ('spell_cloud', ['nuvem', 'nevoa', 'neblina', 'fumaca', 'bruma', 'miasma']),
+  ];
+
+  /// Elementos para o NOME: os termos de sempre (sem os fracos) + os radicais
+  /// só de nome.
+  static final List<(String, List<String>)> _spellTermsForName = [
+    for (final (file, terms) in spellTerms)
+      (file, [
+        for (final t in terms)
+          if (!weakNameTerms.any((weak) => weak.$2.contains(t))) t,
+        ...?nameOnlyExtra[file],
+      ]),
+  ];
+
   static const weaponTerms = <(String, List<String>)>[
     ('item_pistol', ['pistola', 'revolver', 'garrucha', 'pederneira', 'flintlock', 'pistol']),
     ('item_shotgun', ['escopeta', 'espingarda', 'mosquete', 'arcabuz', 'bacamarte', 'trabuco', 'carabina', 'rifle', 'fuzil', 'musket', 'shotgun']),
@@ -70,7 +128,36 @@ class ActionArtResolver {
     ('item_dagger', ['faca', 'adaga', 'punhal', 'estilete', 'canivete', 'dagger', 'knife']),
     ('item_bow', ['arco', 'besta', 'bow', 'crossbow']),
     ('item_axe', ['machado', 'machadinha', 'tomahawk', 'alabarda', 'axe']),
-    ('item_staff', ['cajado', 'bastao', 'varinha', 'cetro', 'staff', 'wand']),
+    ('item_staff', ['cajado', 'bastao', 'varinha', 'cetro', 'staff', 'wand', 'bordao']),
+    // Novas (depois das que já existiam).
+    ('item_club', ['clava', 'porrete', 'cacete']),
+    ('item_mace', ['maca']),
+    ('item_hammer', ['martelo', 'marreta', 'malho']),
+    ('item_spear', ['lanca', 'pique']),
+    ('item_trident', ['tridente']),
+    ('item_grenade', ['granada', 'bomba']),
+  ];
+
+  /// Na descrição de armas, 'lanca' não vale ("lança uma rajada"...).
+  static final List<(String, List<String>)> _weaponTermsForDescription = [
+    for (final (file, terms) in weaponTerms) (file, [for (final t in terms) if (t != 'lanca') t]),
+  ];
+
+  /// Itens novos de "Outro", só pelo NOME.
+  static const newItemTerms = <(String, List<String>)>[
+    ('item_scroll', ['pergaminho']),
+    ('item_book', ['livro', 'grimorio', 'tomo', 'diario']),
+    ('item_food', ['comida', 'racao', 'pao', 'fruta', 'carne', 'banquete']),
+    ('item_map', ['mapa']),
+    ('item_torch', ['tocha', 'lanterna', 'lampiao']),
+    ('item_coins', ['moeda', 'ouro']),
+  ];
+
+  /// Consumíveis: checados pelo NOME antes do ícone genérico de poção.
+  static const consumableTerms = <(String, List<String>)>[
+    ('item_grenade', ['granada', 'bomba']),
+    ('item_scroll', ['pergaminho']),
+    ('item_food', ['comida', 'racao', 'pao', 'fruta', 'carne', 'banquete']),
   ];
 
   static const shieldTerms = ['escudo', 'broquel', 'shield'];
@@ -94,7 +181,9 @@ class ActionArtResolver {
       case ActionArtKind.spell:
       case ActionArtKind.ability:
         if (category == 'Passiva') return 'ability_passive';
-        return _first(spellTerms, name) ??
+        return _first(_spellTermsForName, name) ??
+            _first(newSpellTerms, name) ??
+            _first(weakNameTerms, name) ??
             _first(_spellTermsForDescription, description) ??
             (category == 'Técnica' ? 'ability_technique' : 'spell_magic_generic');
       case ActionArtKind.weapon:
@@ -106,7 +195,7 @@ class ActionArtResolver {
           case 'Armadura':
             return _has(name, shieldTerms) || (!_hasAny(name) && _has(description, shieldTerms)) ? 'spell_shield' : 'item_armor';
           case 'Consumível':
-            return 'item_potion';
+            return _first(consumableTerms, name) ?? 'item_potion';
           case 'Munição':
             return 'item_ammo';
           case 'Acessório':
@@ -114,19 +203,19 @@ class ActionArtResolver {
           case 'Ferramenta':
             return 'item_tool';
           default:
-            return _otherItem(name) ?? _otherItem(description);
+            return _otherItem(name, isName: true) ?? _otherItem(description, isName: false);
         }
     }
   }
 
-  static String? _weapon(String name, String description) => _first(weaponTerms, name) ?? _first(weaponTerms, description);
+  static String? _weapon(String name, String description) => _first(weaponTerms, name) ?? _first(_weaponTermsForDescription, description);
 
-  static String? _otherItem(String text) {
-    final weapon = _first(weaponTerms, text);
+  static String? _otherItem(String text, {required bool isName}) {
+    final weapon = _first(isName ? weaponTerms : _weaponTermsForDescription, text);
     if (weapon != null) return weapon;
     if (_has(text, shieldTerms)) return 'spell_shield';
     if (_has(text, armorTerms)) return 'item_armor';
-    return _first(itemTerms, text);
+    return _first(itemTerms, text) ?? (isName ? _first(newItemTerms, text) : null);
   }
 
   // Nome "com conteúdo" (qualquer palavra-chave de armadura) decide antes da descrição.

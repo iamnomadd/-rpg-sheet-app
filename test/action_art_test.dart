@@ -77,7 +77,7 @@ void main() {
 
   group('(c) ordem nome → descrição → categoria', () {
     test('descrição decide quando o nome não casa', () {
-      expect(art(ActionArtKind.spell, 'Toque Arcano', description: 'Um toque de gelo puro.', category: 'Magia'), 'spell_ice');
+      expect(art(ActionArtKind.spell, 'Toque Etéreo', description: 'Um toque de gelo puro.', category: 'Magia'), 'spell_ice');
     });
     test('o nome vence a descrição', () {
       expect(art(ActionArtKind.spell, 'Bola de Fogo', description: 'Congela o alvo', category: 'Magia'), 'spell_fire');
@@ -101,7 +101,7 @@ void main() {
   test('(d) todo caminho existe em disco e fica sob a pasta declarada no pubspec', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
     expect(pubspec, contains('    - assets/icons/action/\n'));
-    expect(ActionArtResolver.files.toSet().length, 36);
+    expect(ActionArtResolver.files.toSet().length, 60);
     final onDisk = Directory('assets/icons/action').listSync().map((f) => f.uri.pathSegments.last).toSet();
     expect(onDisk, ActionArtResolver.files.map((f) => '$f.webp').toSet());
     final reachable = <String>{
