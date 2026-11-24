@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:rpg_sheet_app/app/app.dart';
 import 'package:rpg_sheet_app/app/theme.dart';
+import 'package:rpg_sheet_app/core/feature_flags.dart';
 import 'package:rpg_sheet_app/services/app_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,16 +13,18 @@ void main() {
   late ValueNotifier<int> index;
   late int pagesBuilds;
 
-  List<Widget> pages(bool masterToolsEnabled) {
-    pagesBuilds++;
-    return [
-      const Center(child: Text('Página Fichas')),
-      const Center(child: Text('Página Sistemas')),
-      const Center(child: Text('Página Árvore')),
-      const Center(child: Text('Página Dados')),
-      if (masterToolsEnabled) const Center(child: Text('Página Mestre')),
-      const Center(child: Text('Página Config')),
-    ];
+  // Uma página por papel de aba; conta quantas vezes a lista de páginas é montada.
+  Widget page(String role) {
+    if (role == 'characters') pagesBuilds++;
+    const names = {
+      'characters': 'Fichas',
+      'systems': 'Sistemas',
+      'tree': 'Árvore',
+      'dice': 'Dados',
+      'campaigns': 'Mestre',
+      'settings': 'Config',
+    };
+    return Center(child: Text('Página ${names[role]}'));
   }
 
   Future<void> pumpShell(WidgetTester tester) async {
@@ -30,7 +33,7 @@ void main() {
       child: Consumer<AppState>(
         builder: (context, s, _) => MaterialApp(
           theme: buildAppTheme(s.themeId, s.compactMode),
-          home: MainTabsShell(controller: controller, index: index, pagesBuilder: pages),
+          home: MainTabsShell(controller: controller, index: index, pageBuilder: page),
         ),
       ),
     ));
@@ -49,6 +52,8 @@ void main() {
   }
 
   setUp(() {
+    // Estes testes cobrem a barra com a aba Dados ligada (como antes da 1.3.52).
+    diceTabEnabled = true;
     SharedPreferences.setMockInitialValues({});
     state = AppState();
     controller = PageController();
@@ -57,6 +62,7 @@ void main() {
   });
 
   tearDown(() {
+    diceTabEnabled = false;
     controller.dispose();
     index.dispose();
   });
