@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../../app/abyss_theme.dart';
 import '../../app/theme.dart';
 import '../../models/character.dart';
 import '../../models/rpg_system.dart';
@@ -525,6 +526,7 @@ class _CombatResourceBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (themeId == 'abyss') return AbyssResourceBar(value: value, secondary: secondary);
     final colors = themedResourceBarColors(themeId, secondary: secondary);
     final widthFactor = value.clamp(0.0, 1.0);
     return Container(

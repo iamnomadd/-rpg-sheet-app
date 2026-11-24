@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'abyss_theme.dart';
+
 class AppThemePreset {
   final String id;
   final String name;
@@ -35,6 +37,8 @@ const appThemes = <AppThemePreset>[
   AppThemePreset(id: 'cyberpunk', name: 'Cyberpunk', description: 'Azul elétrico pontual sobre superfícies tecnológicas escuras.', icon: Icons.memory, seed: Color(0xFF1755FF), background: Color(0xFF08090E), card: Color(0xFF12141B)),
   AppThemePreset(id: 'infernal', name: 'Infernal', description: 'Vermelho e brasa usados como acento em uma base carbonizada.', icon: Icons.local_fire_department, seed: Color(0xFFFD0F04), background: Color(0xFF100605), card: Color(0xFF1D0D0A)),
   AppThemePreset(id: 'ice', name: 'Gelo', description: 'Azul glacial em superfícies frias e minimalistas.', icon: Icons.ac_unit, seed: Color(0xFF62D8F2), background: Color(0xFF071014), card: Color(0xFF0E1B20)),
+  // Experimental e isolado (lib/app/abyss_theme.dart); fácil de remover.
+  AppThemePreset(id: 'abyss', name: 'Abissal (experimental)', description: 'Ardósia escura, molduras douradas e fumaça roxa. Tema experimental.', icon: Icons.diamond_outlined, seed: Color(0xFFC9A24A), background: Color(0xFF05080D), card: Color(0xFF10171C)),
 ];
 
 AppThemePreset themePreset(String id) => appThemes.firstWhere(
@@ -54,6 +58,7 @@ IconData themedIcon(String themeId, String role) {
     'ocean': {'general': Icons.air, 'attributes': Icons.speed, 'attributesResources': Icons.air, 'actions': Icons.air, 'skills': Icons.explore_outlined, 'resources': Icons.cloud_outlined, 'sections': Icons.menu_book, 'extras': Icons.inventory_2, 'inventory': Icons.inventory_2, 'abilities': Icons.bolt, 'skillTree': Icons.alt_route},
     'infernal': {'general': Icons.local_fire_department, 'attributes': Icons.whatshot, 'attributesResources': Icons.whatshot, 'actions': Icons.local_fire_department, 'skills': Icons.psychology_alt, 'resources': Icons.favorite, 'sections': Icons.menu_book, 'extras': Icons.inventory_2, 'inventory': Icons.inventory_2, 'abilities': Icons.bolt, 'skillTree': Icons.call_split},
     'ice': {'general': Icons.ac_unit, 'attributes': Icons.stacked_line_chart, 'attributesResources': Icons.ac_unit, 'actions': Icons.ac_unit, 'skills': Icons.diamond_outlined, 'resources': Icons.severe_cold, 'sections': Icons.menu_book, 'extras': Icons.inventory_2, 'inventory': Icons.inventory_2, 'abilities': Icons.auto_awesome, 'skillTree': Icons.hub_outlined},
+    'abyss': {'general': Icons.explore, 'attributes': Icons.anchor, 'attributesResources': Icons.anchor, 'actions': Icons.gps_fixed, 'combat': Icons.shield_outlined, 'skills': Icons.menu_book_outlined, 'resources': Icons.water_drop_outlined, 'sections': Icons.auto_stories_outlined, 'extras': Icons.inventory_2_outlined, 'inventory': Icons.inventory_2_outlined, 'abilities': Icons.flash_on, 'skillTree': Icons.alt_route},
   };
   return sets[themeId]?[role] ?? sets['classic']![role] ?? Icons.circle;
 }
@@ -101,6 +106,10 @@ IconData themedMainIcon(String themeId, String role) {
       'characters': Icons.ac_unit, 'systems': Icons.severe_cold, 'tree': Icons.hub_outlined,
       'dice': Icons.casino_outlined, 'campaigns': Icons.groups_outlined, 'settings': Icons.settings_outlined,
     },
+    'abyss': {
+      'characters': Icons.people_outline, 'systems': Icons.menu_book_outlined, 'tree': Icons.alt_route,
+      'dice': Icons.casino_outlined, 'campaigns': Icons.shield_outlined, 'settings': Icons.explore_outlined,
+    },
   };
   return sets[themeId]?[role] ?? sets['classic']![role] ?? Icons.circle;
 }
@@ -126,6 +135,8 @@ List<Color> themedResourceBarColors(String themeId, {bool secondary = false}) {
       return secondary ? [const Color(0xFFFF6D00), const Color(0xFFFFAB40)] : [const Color(0xFFFF3D00), const Color(0xFFFF8A65)];
     case 'ice':
       return secondary ? [const Color(0xFF00B8D4), const Color(0xFFB2EBF2)] : [const Color(0xFF00E5FF), const Color(0xFFE1F5FE)];
+    case 'abyss':
+      return secondary ? AbyssColors.energy : AbyssColors.life;
     default:
       return secondary ? [const Color(0xFF7E57C2), const Color(0xFFD1C4E9)] : [const Color(0xFFB39DDB), const Color(0xFFEDE7F6)];
   }
@@ -151,16 +162,20 @@ Color themedResourceTrackColor(String themeId) {
       return const Color(0xFF2A0B05);
     case 'ice':
       return const Color(0xFF07202A);
+    case 'abyss':
+      return AbyssColors.track;
     default:
       return const Color(0xFF181824);
   }
 }
 
 ShapeBorder themedNavigationIndicatorShape(String themeId, double radius) {
+  if (themeId == 'abyss') return abyssIndicatorShape();
   return RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius.clamp(10, 22)));
 }
 
 Widget themedCharacterTabIcon(String themeId, String role, {double size = 18, Color? color}) {
+  if (themeId == 'abyss') return Icon(themedIcon(themeId, role), size: size, color: color ?? AbyssColors.gold);
   if (themeId == 'cyberpunk') {
     final iconColor = color ?? const Color(0xFF1755FF);
     if (role == 'general') {
@@ -229,6 +244,7 @@ class _AnatomicalHeartPainter extends CustomPainter {
 }
 
 ThemeData buildTheme([String themeId = 'classic']) {
+  if (themeId == 'abyss') return buildAbyssTheme();
   final preset = themePreset(themeId);
   final pirate = themeId == 'parchment';
   final vampire = themeId == 'vampire';

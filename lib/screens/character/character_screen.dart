@@ -8,6 +8,7 @@ import '../../services/cloud_service.dart';
 import 'skill_tree_screen.dart';
 import 'player_turn_banner.dart';
 import '../../services/rpg_file_service.dart';
+import '../../app/abyss_theme.dart';
 import '../../app/theme.dart';
 import '../../app/condition_presets.dart';
 import '../../services/skill_tree_templates.dart';
@@ -375,7 +376,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
                 delegate: _CharacterTabsHeader(
                   height: 72,
                   child: Material(
-                    color: state.themeId == 'parchment' ? Theme.of(context).colorScheme.surface.withOpacity(.96) : Theme.of(context).scaffoldBackgroundColor,
+                    color: state.themeId == 'abyss' ? AbyssColors.bar : state.themeId == 'parchment' ? Theme.of(context).colorScheme.surface.withOpacity(.96) : Theme.of(context).scaffoldBackgroundColor,
                     child: Container(
                       decoration: BoxDecoration(
                         border: Border(bottom: BorderSide(
@@ -404,7 +405,16 @@ class _CharacterScreenState extends State<CharacterScreen> {
                                   );
                                 }
                               },
-                              child: AnimatedContainer(
+                              child: state.themeId == 'abyss'
+                                  ? AbyssTabCell(
+                                      selected: selected,
+                                      reduceMotion: reduceMotion,
+                                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                                      icon: (color) => themedCharacterTabIcon(state.themeId, id, size: 22, color: color),
+                                      label: _tabLabel(id),
+                                      labelStyle: Theme.of(context).textTheme.labelMedium,
+                                    )
+                                  : AnimatedContainer(
                                 duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 180),
                                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                                 decoration: BoxDecoration(
@@ -1002,6 +1012,7 @@ class _ThemedResourceBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (themeId == 'abyss') return AbyssResourceBar(value: value, secondary: secondary);
     final fillColors = themedResourceBarColors(themeId, secondary: secondary);
     final trackColor = themedResourceTrackColor(themeId);
     final scheme = Theme.of(context).colorScheme;
