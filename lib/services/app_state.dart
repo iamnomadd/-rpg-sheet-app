@@ -490,6 +490,10 @@ class AppState extends ChangeNotifier {
 
   late final CharacterPublishQueue _publishQueue = CharacterPublishQueue(publish: _publishShared);
 
+  /// Envia na hora as publicações pendentes das fichas compartilhadas (o app
+  /// foi para segundo plano ou ficou oculto).
+  Future<void> flushSharedCharacterPublications() => _publishQueue.flush();
+
   Future<void> _publishShared(String characterId) async {
     final current = characters.where((c) => c.id == characterId).firstOrNull;
     // Apagada ou descompartilhada depois do agendamento: não publica.

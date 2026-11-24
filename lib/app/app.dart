@@ -17,6 +17,7 @@ import '../screens/dice/dice_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/home/skill_trees_screen.dart';
 import 'theme.dart';
+import '../widgets/flush_on_background.dart';
 import '../widgets/update_available_listener.dart';
 
 class RpgSheetApp extends StatefulWidget {
@@ -89,7 +90,7 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
     final themeId = context.select<AppState, String>((s) => s.themeId);
     final compact = context.select<AppState, bool>((s) => s.compactMode);
     final largeText = context.select<AppState, bool>((s) => s.largeText);
-    return MaterialApp(
+    return FlushOnBackground(child: MaterialApp(
       title: 'RPG Sheet',
       debugShowCheckedModeBanner: false,
       theme: _themeCache.resolve(themeId, compact),
@@ -126,7 +127,7 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
         index: _tabIndex,
         pageBuilder: _mainPage,
       )),
-    );
+    ));
   }
 }
 
