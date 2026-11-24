@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../app/theme.dart';
 import '../../services/app_state.dart';
 import 'theme_screen.dart';
 import 'beta_check_screen.dart';
@@ -47,7 +48,7 @@ class SettingsScreen extends StatelessWidget {
                   ListTile(
                     leading: const Icon(Icons.palette_outlined),
                     title: const Text('Aparência e temas'),
-                    subtitle: const Text('Escolha entre 10 estilos visuais para o RPG Sheet.'),
+                    subtitle: Text('Escolha entre ${appThemes.length} estilos visuais para o RPG Sheet.'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThemeScreen())),
                   ),

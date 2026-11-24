@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../app/abyss_theme.dart';
 import '../../models/rpg_system.dart';
 import '../../services/app_state.dart';
 import '../../widgets/card_spacing.dart';
@@ -552,7 +553,7 @@ class _DiceEditorSection extends StatelessWidget {
     return Card(
       margin: cardSpacingMargin,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 10, 10),
+        padding: abyssCardInset(context.watch<AppState>().themeId, const EdgeInsets.fromLTRB(16, 14, 10, 10)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             const Icon(Icons.casino),
