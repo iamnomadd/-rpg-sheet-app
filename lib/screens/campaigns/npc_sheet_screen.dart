@@ -9,6 +9,7 @@ import '../../utils/resource_math.dart';
 import '../../utils/spell_icon.dart';
 import '../character/resource_quick_adjust.dart';
 import 'initiative_tools.dart';
+import '../../widgets/card_spacing.dart';
 
 class NpcSheetScreen extends StatefulWidget {
   final String campaignId;
@@ -401,8 +402,8 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
     final weaponNames = sheet.inventory.where((name) => (sheet.inventoryDetails[name]?['damage']?.toString().trim().isNotEmpty ?? false)).toList();
     return ListView(padding: const EdgeInsets.all(16), children: [
       Row(children: [Expanded(child: Text('Ataques', style: Theme.of(context).textTheme.titleMedium)), IconButton(onPressed: () => _addAction(campaign, npc, sheet, weapon: true), icon: const Icon(Icons.add))]),
-      if (weaponNames.isEmpty) const Card(margin: EdgeInsets.only(bottom: 9), child: Padding(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10), child: Text('Nenhum ataque cadastrado.'))),
-      ...weaponNames.map((name) { final d = sheet.inventoryDetails[name] ?? {}; return Card(margin: const EdgeInsets.only(bottom: 9), child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      if (weaponNames.isEmpty) const Card(margin: cardSpacingMargin, child: Padding(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10), child: Text('Nenhum ataque cadastrado.'))),
+      ...weaponNames.map((name) { final d = sheet.inventoryDetails[name] ?? {}; return Card(margin: cardSpacingMargin, child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
         leading: const Icon(Icons.gps_fixed),
         title: Text(name),
         subtitle: Text('Dano ${d['damage'] ?? '—'}${d['ammo'] != null ? ' • Munição ${d['ammo']}' : ''}'),
@@ -412,7 +413,7 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
       const SizedBox(height: 14),
       Row(children: [Expanded(child: Text('Poderes / Magias', style: Theme.of(context).textTheme.titleMedium)), IconButton(onPressed: () => _addAction(campaign, npc, sheet, weapon: false), icon: const Icon(Icons.add))]),
       if (sheet.abilities.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('Nenhuma habilidade cadastrada.'))),
-      ...sheet.abilities.map((name) { final d = sheet.abilityDetails[name] ?? {}; final isSpell = d['category'] == 'Magia'; return Card(margin: const EdgeInsets.only(bottom: 9), child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      ...sheet.abilities.map((name) { final d = sheet.abilityDetails[name] ?? {}; final isSpell = d['category'] == 'Magia'; return Card(margin: cardSpacingMargin, child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
         leading: Icon(
           isSpell ? SpellIconResolver.resolve(name, description: sheet.abilityDescriptions[name] ?? '') : Icons.auto_awesome,
           color: Theme.of(context).colorScheme.primary,
@@ -429,8 +430,8 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
     padding: const EdgeInsets.all(16),
     children: [
       Row(children: [Expanded(child: Text(title, style: Theme.of(context).textTheme.titleMedium)), IconButton(onPressed: () => _addSimpleItem(campaign, npc, sheet, title, items, descriptions), icon: const Icon(Icons.add))]),
-      if (items.isEmpty) Card(margin: const EdgeInsets.only(bottom: 9), child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), child: Text('Nenhum item em $title.'))),
-      ...items.map((name) => Card(margin: const EdgeInsets.only(bottom: 9), child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      if (items.isEmpty) Card(margin: cardSpacingMargin, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), child: Text('Nenhum item em $title.'))),
+      ...items.map((name) => Card(margin: cardSpacingMargin, child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
         title: Text(name),
         subtitle: (descriptions[name] ?? '').isEmpty ? null : Text(descriptions[name]!),
         trailing: PopupMenuButton<String>(itemBuilder: (_) => const [PopupMenuItem(value:'edit',child:Text('Editar')),PopupMenuItem(value:'delete',child:Text('Excluir'))], onSelected: (v) async {

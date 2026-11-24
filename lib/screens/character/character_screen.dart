@@ -20,6 +20,7 @@ import 'skill_roll.dart';
 import 'custom_sprite.dart';
 import 'custom_sprite_sheet.dart';
 import '../campaigns/initiative_tools.dart';
+import '../../widgets/card_spacing.dart';
 
 
 /// Aplica os valores da folha do recurso na ficha, com o máximo em [0, 999999]
@@ -944,7 +945,7 @@ class _AttributesResourcesTab extends StatelessWidget {
           final max = character.resourceMaxValues[name] ?? 0;
           final progress = max <= 0 ? 0.0 : (value / max).clamp(0.0, 1.0);
           return Card(
-            margin: const EdgeInsets.only(bottom: 10),
+            margin: cardSpacingMargin,
             child: Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
@@ -1106,7 +1107,7 @@ class _SkillsTab extends StatelessWidget {
         const SizedBox(height: 8),
       ],
       if (system.skills.isEmpty) const Text('Este sistema não possui perícias configuradas.')
-      else ...system.skills.map((skill) => Card(margin: const EdgeInsets.only(bottom: 9), child: ListTile(
+      else ...system.skills.map((skill) => Card(margin: cardSpacingMargin, child: ListTile(
         leading: const Icon(Icons.psychology),
         title: Text(skill),
         trailing: Checkbox(
@@ -1143,7 +1144,7 @@ class _SectionsTab extends StatelessWidget {
       const SizedBox(height: 10),
       if (system.sections.isEmpty) const Text('Este sistema não possui seções configuradas.'),
       ...system.sections.map((section) => Card(
-        margin: const EdgeInsets.only(bottom: 9),
+        margin: cardSpacingMargin,
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
           title: Text(section, style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -2240,7 +2241,7 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
             final stackable = !widget.isAbility && (category == 'Consumível' || category == 'Munição');
 
             return Card(
-              margin: EdgeInsets.only(bottom: compact ? 6 : 9),
+              margin: EdgeInsets.only(bottom: compact ? 6 : cardSpacing),
               child: InkWell(
                 borderRadius: BorderRadius.circular(14),
                 onTap: () => _openEditor(index: entry.key),
