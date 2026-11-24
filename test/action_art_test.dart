@@ -93,8 +93,8 @@ void main() {
       expect(art(ActionArtKind.ability, 'Pele de Fogo', description: 'gelo', category: 'Passiva'), 'ability_passive');
     });
     test('item Outro sem palavra-chave → null (mantém o ícone Material)', () {
-      expect(art(ActionArtKind.item, 'Mapa velho', category: 'Outro'), isNull);
-      expect(art(ActionArtKind.item, 'Mapa velho'), isNull);
+      expect(art(ActionArtKind.item, 'Estatueta velha', category: 'Outro'), isNull);
+      expect(art(ActionArtKind.item, 'Estatueta velha'), isNull);
     });
   });
 
