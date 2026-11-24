@@ -6,6 +6,7 @@ import '../../models/campaign.dart';
 import '../../models/character.dart';
 import '../../services/app_state.dart';
 import '../../utils/resource_math.dart';
+import '../../utils/action_art.dart';
 import '../../utils/spell_icon.dart';
 import '../character/resource_quick_adjust.dart';
 import 'initiative_tools.dart';
@@ -400,11 +401,19 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
 
   Widget _actions(Campaign campaign, Map<String, dynamic> npc, Character sheet) {
     final weaponNames = sheet.inventory.where((name) => (sheet.inventoryDetails[name]?['damage']?.toString().trim().isNotEmpty ?? false)).toList();
+    final themeId = context.watch<AppState>().themeId;
+    final artSize = actionArtSize(context.watch<AppState>().compactMode);
     return ListView(padding: const EdgeInsets.all(16), children: [
       Row(children: [Expanded(child: Text('Ataques', style: Theme.of(context).textTheme.titleMedium)), IconButton(onPressed: () => _addAction(campaign, npc, sheet, weapon: true), icon: const Icon(Icons.add))]),
       if (weaponNames.isEmpty) const Card(margin: cardSpacingMargin, child: Padding(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10), child: Text('Nenhum ataque cadastrado.'))),
       ...weaponNames.map((name) { final d = sheet.inventoryDetails[name] ?? {}; return Card(margin: cardSpacingMargin, child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-        leading: const Icon(Icons.gps_fixed),
+        leading: ActionIconSlot(
+          themeId: themeId,
+          artPath: themeId == 'abyss' ? ActionArtResolver.resolve(kind: ActionArtKind.weapon, name: name, description: sheet.inventoryDescriptions[name] ?? '') : null,
+          size: artSize,
+          fallback:
+        const Icon(Icons.gps_fixed),
+        ),
         title: Text(name),
         subtitle: Text('Dano ${d['damage'] ?? '—'}${d['ammo'] != null ? ' • Munição ${d['ammo']}' : ''}'),
         trailing: const Icon(Icons.edit_outlined),
@@ -414,9 +423,17 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
       Row(children: [Expanded(child: Text('Poderes / Magias', style: Theme.of(context).textTheme.titleMedium)), IconButton(onPressed: () => _addAction(campaign, npc, sheet, weapon: false), icon: const Icon(Icons.add))]),
       if (sheet.abilities.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('Nenhuma habilidade cadastrada.'))),
       ...sheet.abilities.map((name) { final d = sheet.abilityDetails[name] ?? {}; final isSpell = d['category'] == 'Magia'; return Card(margin: cardSpacingMargin, child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-        leading: Icon(
+        leading: ActionIconSlot(
+          themeId: themeId,
+          artPath: themeId == 'abyss'
+              ? ActionArtResolver.resolve(kind: isSpell ? ActionArtKind.spell : ActionArtKind.ability, name: name, description: sheet.abilityDescriptions[name] ?? '', category: d['category']?.toString() ?? '')
+              : null,
+          size: artSize,
+          fallback:
+        Icon(
           isSpell ? SpellIconResolver.resolve(name, description: sheet.abilityDescriptions[name] ?? '') : Icons.auto_awesome,
           color: Theme.of(context).colorScheme.primary,
+        ),
         ),
         title: Text(name),
         subtitle: Text([if ((d['damage'] ?? '').toString().isNotEmpty) 'Dano ${d['damage']}', if ((sheet.abilityDescriptions[name] ?? '').isNotEmpty) sheet.abilityDescriptions[name]!].join(' • ')),

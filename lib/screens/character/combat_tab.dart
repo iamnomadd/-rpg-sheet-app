@@ -11,6 +11,7 @@ import '../../models/character.dart';
 import '../../models/rpg_system.dart';
 import '../../services/app_state.dart';
 import '../../services/local_image_provider.dart';
+import '../../utils/action_art.dart';
 import '../../utils/spell_icon.dart';
 
 class CombatTab extends StatefulWidget {
@@ -338,6 +339,10 @@ class _CombatTabState extends State<CombatTab> with SingleTickerProviderStateMix
       );
     }
 
+    final themeId = context.watch<AppState>().themeId;
+    final artSize = actionArtSize(context.watch<AppState>().compactMode);
+    String? art(ActionArtKind kind, String name, {String description = '', String category = ''}) =>
+        themeId == 'abyss' ? ActionArtResolver.resolve(kind: kind, name: name, description: description, category: category) : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -349,6 +354,10 @@ class _CombatTabState extends State<CombatTab> with SingleTickerProviderStateMix
             return Card(
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
+                // Abissal: arte do consumível; nos outros temas a linha segue sem ícone.
+                leading: themeId == 'abyss'
+                    ? ActionIconSlot(themeId: themeId, artPath: art(ActionArtKind.item, item, category: 'Consumível'), size: artSize, fallback: const SizedBox.shrink())
+                    : null,
                 title: Text(item),
                 subtitle: Text('Quantidade: $quantity'),
                 trailing: FilledButton.tonalIcon(
@@ -380,7 +389,13 @@ class _CombatTabState extends State<CombatTab> with SingleTickerProviderStateMix
                 padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
                 child: Row(
                   children: [
+                    ActionIconSlot(
+                      themeId: themeId,
+                      artPath: art(ActionArtKind.weapon, item, description: widget.character.inventoryDescriptions[item] ?? ''),
+                      size: artSize,
+                      fallback:
                     const Icon(Icons.gps_fixed),
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -424,9 +439,15 @@ class _CombatTabState extends State<CombatTab> with SingleTickerProviderStateMix
             return Card(
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
-                leading: Icon(
+                leading: ActionIconSlot(
+                  themeId: themeId,
+                  artPath: art(ActionArtKind.spell, spell, description: widget.character.abilityDescriptions[spell] ?? '', category: 'Magia'),
+                  size: artSize,
+                  fallback:
+                Icon(
                   SpellIconResolver.resolve(spell, description: widget.character.abilityDescriptions[spell] ?? ''),
                   color: Theme.of(context).colorScheme.primary,
+                ),
                 ),
                 title: Text(spell),
                 subtitle: Text([

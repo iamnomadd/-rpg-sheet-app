@@ -13,6 +13,7 @@ import '../../app/theme.dart';
 import '../../app/condition_presets.dart';
 import '../../services/skill_tree_templates.dart';
 import '../../utils/resource_math.dart';
+import '../../utils/action_art.dart';
 import '../../utils/spell_icon.dart';
 import 'character_sprites.dart';
 import 'resource_quick_adjust.dart';
@@ -1777,12 +1778,26 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
           child: Padding(
             padding: abyssCardInset(context.watch<AppState>().themeId, EdgeInsets.fromLTRB(compact ? 9 : 11, compact ? 7 : 9, compact ? 7 : 9, compact ? 7 : 9)),
             child: Row(children: [
+              // Abissal: ilustração da ação; nos outros temas, o mesmo ícone de antes.
+              ActionIconSlot(
+                themeId: context.watch<AppState>().themeId,
+                artPath: context.watch<AppState>().themeId != 'abyss'
+                    ? null
+                    : ActionArtResolver.resolve(
+                        kind: switch (id) { 'weapons' => ActionArtKind.weapon, 'consumables' => ActionArtKind.item, 'spells' => ActionArtKind.spell, _ => ActionArtKind.ability },
+                        name: name,
+                        description: (id == 'weapons' || id == 'consumables' ? c.inventoryDescriptions[name] : c.abilityDescriptions[name]) ?? '',
+                        category: switch (id) { 'consumables' => 'Consumível', 'spells' => 'Magia', _ => d['category']?.toString() ?? '' },
+                      ),
+                size: actionArtSize(compact),
+                fallback:
               Icon(
                 id == 'spells'
                     ? SpellIconResolver.resolve(name, description: c.abilityDescriptions[name] ?? '')
                     : groupIcon,
                 size: 20,
                 color: Theme.of(context).colorScheme.primary,
+              ),
               ),
               const SizedBox(width: 9),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -2267,6 +2282,19 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12, vertical: compact ? 9 : 11),
                   child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                    // Abissal: ilustração no lugar do quadrado cinza com ícone.
+                    ActionIconSlot(
+                      themeId: context.watch<AppState>().themeId,
+                      artPath: context.watch<AppState>().themeId != 'abyss'
+                          ? null
+                          : ActionArtResolver.resolve(
+                              kind: widget.isAbility ? ActionArtKind.ability : ActionArtKind.item,
+                              name: item,
+                              description: widget.descriptions[item] ?? '',
+                              category: category,
+                            ),
+                      size: actionArtSize(compact),
+                      fallback:
                     Container(
                       width: compact ? 36 : 42,
                       height: compact ? 36 : 42,
@@ -2277,6 +2305,7 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
                         size: compact ? 19 : 21,
                         color: scheme.primary,
                       ),
+                    ),
                     ),
                     const SizedBox(width: 11),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
