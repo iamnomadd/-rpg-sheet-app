@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'abyss_tab_art.dart';
 import 'abyss_theme.dart';
 
 class AppThemePreset {
@@ -175,7 +176,10 @@ ShapeBorder themedNavigationIndicatorShape(String themeId, double radius) {
 }
 
 Widget themedCharacterTabIcon(String themeId, String role, {double size = 18, Color? color}) {
-  if (themeId == 'abyss') return Icon(themedIcon(themeId, role), size: size, color: color ?? AbyssColors.gold);
+  if (themeId == 'abyss') {
+    final fallback = Icon(themedIcon(themeId, role), size: size, color: color ?? AbyssColors.gold);
+    return abyssCharacterTabArt(role, size: size, color: color, fallback: fallback) ?? fallback;
+  }
   if (themeId == 'cyberpunk') {
     final iconColor = color ?? const Color(0xFF1755FF);
     if (role == 'general') {

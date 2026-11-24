@@ -8,6 +8,7 @@ import '../../services/cloud_service.dart';
 import 'skill_tree_screen.dart';
 import 'player_turn_banner.dart';
 import '../../services/rpg_file_service.dart';
+import '../../app/abyss_tab_art.dart';
 import '../../app/abyss_theme.dart';
 import '../../app/theme.dart';
 import '../../app/condition_presets.dart';
@@ -695,7 +696,7 @@ class _GeneralTab extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [Icon(themedIcon(themeId, 'attributes')), const SizedBox(width: 8), const Text('Atributos', style: TextStyle(fontWeight: FontWeight.bold))]),
+              Row(children: [ThemedSectionIcon(themeId, 'attributes'), const SizedBox(width: 8), const Text('Atributos', style: TextStyle(fontWeight: FontWeight.bold))]),
               const SizedBox(height: 10),
               if (system.attributes.isEmpty)
                 const Text('Nenhum atributo configurado.')
@@ -753,7 +754,7 @@ class _GeneralTab extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                Icon(themedIcon(themeId, 'skillTree')),
+                ThemedSectionIcon(themeId, 'skillTree'),
                 const SizedBox(width: 8),
                 const Expanded(child: Text('Árvore de Habilidades', style: TextStyle(fontWeight: FontWeight.bold))),
                 Text('${unlocked.length}/${character.skillTree.length}'),
@@ -770,7 +771,7 @@ class _GeneralTab extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [Icon(themedIcon(themeId, 'inventory')), const SizedBox(width: 8), const Text('Inventário', style: TextStyle(fontWeight: FontWeight.bold)), const Spacer(), Text('${lines.length} item(ns)')]),
+              Row(children: [ThemedSectionIcon(themeId, 'inventory'), const SizedBox(width: 8), const Text('Inventário', style: TextStyle(fontWeight: FontWeight.bold)), const Spacer(), Text('${lines.length} item(ns)')]),
               const SizedBox(height: 8),
               _verticalSummaryItems(context, lines, character.inventoryDetails, ability: false),
             ]),
@@ -783,7 +784,7 @@ class _GeneralTab extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [Icon(themedIcon(themeId, 'abilities')), const SizedBox(width: 8), const Text('Habilidades', style: TextStyle(fontWeight: FontWeight.bold)), const Spacer(), Text('${lines.length}')]),
+              Row(children: [ThemedSectionIcon(themeId, 'abilities'), const SizedBox(width: 8), const Text('Habilidades', style: TextStyle(fontWeight: FontWeight.bold)), const Spacer(), Text('${lines.length}')]),
               const SizedBox(height: 8),
               _verticalSummaryItems(context, lines, character.abilityDetails, ability: true),
             ]),
@@ -889,7 +890,7 @@ class _AttributesResourcesTab extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(themedIcon(themeId, 'attributes'), size: 22),
+            ThemedSectionIcon(themeId, 'attributes', size: 22),
             const SizedBox(width: 8),
             Text('Atributos', style: Theme.of(context).textTheme.titleLarge),
           ],
@@ -2144,7 +2145,6 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
 
   @override
   Widget build(BuildContext context) {
-    final icon = themedIcon(context.watch<AppState>().themeId, widget.iconRole);
     final compact = context.watch<AppState>().compactMode;
     final themeId = context.watch<AppState>().themeId;
     final scheme = Theme.of(context).colorScheme;
@@ -2167,7 +2167,7 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
       padding: EdgeInsets.fromLTRB(compact ? 10 : 16, compact ? 10 : 14, compact ? 10 : 16, 28),
       children: [
         Row(children: [
-          Icon(icon, size: 20),
+          ThemedSectionIcon(themeId, widget.iconRole, size: 20),
           const SizedBox(width: 8),
           Text(widget.title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           const Spacer(),
