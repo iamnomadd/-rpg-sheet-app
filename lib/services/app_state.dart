@@ -10,6 +10,7 @@ import 'package:uuid/uuid.dart';
 import '../models/campaign.dart';
 import '../models/character.dart';
 import '../models/rpg_system.dart';
+import 'character_publish_queue.dart';
 import 'cloud_service.dart';
 
 class AppState extends ChangeNotifier {
@@ -476,13 +477,28 @@ class AppState extends ChangeNotifier {
     if (index >= 0) characters[index] = character;
     await save();
     notifyListeners();
-    // Ficha que não existe mais localmente (apagada) não é republicada.
-    if (index >= 0 && character.shareCode.isNotEmpty && CloudService.configured) {
-      try {
-        final session = await CloudService.loadSession();
-        if (session != null) await CloudService.publishCharacter(session, character.toJson(), character.shareCode);
-      } catch (_) {}
+    // Ficha que não existe mais localmente (apagada) não é republicada. O envio
+    // é agrupado: toques seguidos geram uma publicação do estado mais recente.
+    if (index >= 0 && character.shareCode.isNotEmpty && (CloudService.configured || sharedCharacterPublisherOverride != null)) {
+      _publishQueue.schedule(character.id);
     }
+  }
+
+  /// Substitui o envio da ficha compartilhada nos testes.
+  @visibleForTesting
+  Future<void> Function(Map<String, dynamic> snapshot, String shareCode)? sharedCharacterPublisherOverride;
+
+  late final CharacterPublishQueue _publishQueue = CharacterPublishQueue(publish: _publishShared);
+
+  Future<void> _publishShared(String characterId) async {
+    final current = characters.where((c) => c.id == characterId).firstOrNull;
+    // Apagada ou descompartilhada depois do agendamento: não publica.
+    if (current == null || current.shareCode.isEmpty) return;
+    final snapshot = sharedSnapshotFor(current.toJson());
+    final override = sharedCharacterPublisherOverride;
+    if (override != null) return override(snapshot, current.shareCode);
+    final session = await CloudService.loadSession();
+    if (session != null) await CloudService.publishCharacter(session, snapshot, current.shareCode);
   }
 
   Future<void> addSystem(RpgSystem system) async {

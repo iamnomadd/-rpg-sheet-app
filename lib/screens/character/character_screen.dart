@@ -1326,6 +1326,9 @@ class _CombatCharacter2D extends StatelessWidget {
           message: 'Personagem 2D',
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
+            // Toque discreto: sem ripple nem realce sobre o personagem.
+            splashFactory: NoSplash.splashFactory,
+            highlightColor: Colors.transparent,
             onTap: () => showCustomSpriteSheet(context, character),
             child: child,
           ),

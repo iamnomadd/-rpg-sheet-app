@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 
+import '../core/feature_flags.dart';
 import '../services/app_state.dart';
 import '../services/cloud_service.dart';
 
@@ -52,7 +53,7 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
     try {
       final result = await CloudService.handleAuthCallback(uri);
       if (!mounted || result == null) return;
-      final target = context.read<AppState>().masterToolsEnabled ? 5 : 4;
+      final target = mainTabIndex('settings', masterToolsEnabled: context.read<AppState>().masterToolsEnabled);
       _tabIndex.value = target;
       if (_pageController.hasClients) _pageController.jumpToPage(target);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(
@@ -72,14 +73,14 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
     super.dispose();
   }
 
-  static List<Widget> _mainPages(bool masterToolsEnabled) => <Widget>[
-        const HomeScreen(),
-        const SystemsScreen(),
-        const SkillTreesScreen(),
-        const DiceScreen(),
-        if (masterToolsEnabled) const MasterScreen(),
-        const SettingsScreen(),
-      ];
+  static Widget _mainPage(String role) => switch (role) {
+        'characters' => const HomeScreen(),
+        'systems' => const SystemsScreen(),
+        'tree' => const SkillTreesScreen(),
+        'dice' => const DiceScreen(),
+        'campaigns' => const MasterScreen(),
+        _ => const SettingsScreen(),
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -123,7 +124,7 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
       home: AccessGate(child: MainTabsShell(
         controller: _pageController,
         index: _tabIndex,
-        pagesBuilder: _mainPages,
+        pageBuilder: _mainPage,
       )),
     );
   }
@@ -179,19 +180,40 @@ ThemeData buildAppTheme(String themeId, bool compact) {
   );
 }
 
+typedef MainTab = ({String role, String label});
+
+/// Fonte única das abas principais, na ordem da barra: Fichas, Sistemas,
+/// Árvore, [Dados], [Mestre], Config. A barra e o PageView saem desta lista,
+/// então botões e páginas nunca divergem.
+List<MainTab> mainTabs({required bool masterToolsEnabled}) => [
+      (role: 'characters', label: 'Fichas'),
+      (role: 'systems', label: 'Sistemas'),
+      (role: 'tree', label: 'Árvore'),
+      if (diceTabEnabled) (role: 'dice', label: 'Dados'),
+      if (masterToolsEnabled) (role: 'campaigns', label: 'Mestre'),
+      (role: 'settings', label: 'Config.'),
+    ];
+
+/// Posição de uma aba na barra atual; 0 (Fichas) se ela não estiver ativa.
+int mainTabIndex(String role, {required bool masterToolsEnabled}) {
+  final index = mainTabs(masterToolsEnabled: masterToolsEnabled).indexWhere((tab) => tab.role == role);
+  return index < 0 ? 0 : index;
+}
+
 /// Abas principais: PageView + barra inferior. Trocar de aba só atualiza o
 /// [index]; apenas a barra reconstrói (ValueListenableBuilder), e as páginas e
 /// o MaterialApp ficam como estão.
 class MainTabsShell extends StatelessWidget {
   final PageController controller;
   final ValueNotifier<int> index;
-  final List<Widget> Function(bool masterToolsEnabled) pagesBuilder;
+  /// Página de cada aba, pelo papel (`role`) de [mainTabs].
+  final Widget Function(String role) pageBuilder;
 
   const MainTabsShell({
     super.key,
     required this.controller,
     required this.index,
-    required this.pagesBuilder,
+    required this.pageBuilder,
   });
 
   @override
@@ -199,16 +221,9 @@ class MainTabsShell extends StatelessWidget {
     final themeId = context.select<AppState, String>((s) => s.themeId);
     final masterToolsEnabled = context.select<AppState, bool>((s) => s.masterToolsEnabled);
     final reduceAnimations = context.select<AppState, bool>((s) => s.reduceAnimations);
-    final pages = pagesBuilder(masterToolsEnabled);
+    final destinations = mainTabs(masterToolsEnabled: masterToolsEnabled);
+    final pages = [for (final tab in destinations) pageBuilder(tab.role)];
     final reduceMotion = reduceAnimations || MediaQuery.maybeDisableAnimationsOf(context) == true;
-    final destinations = <({String role, String label})>[
-      (role: 'characters', label: 'Fichas'),
-      (role: 'systems', label: 'Sistemas'),
-      (role: 'tree', label: 'Árvore'),
-      (role: 'dice', label: 'Dados'),
-      if (masterToolsEnabled) (role: 'campaigns', label: 'Mestre'),
-      (role: 'settings', label: 'Config.'),
-    ];
     return UpdateAvailableListener(child: Scaffold(
       body: PageView(
         controller: controller,
