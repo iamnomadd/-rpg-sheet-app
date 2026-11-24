@@ -356,10 +356,28 @@ ShapeBorder abyssIndicatorShape() => const AbyssFrameBorder(
       ornaments: false,
     );
 
-const _buttonFrame = AbyssFrameBorder(chamfer: 7, ornaments: false, shadowOffset: 2);
+/// Chanfro dos botões (menor que o dos cards, para o botão não ficar
+/// desproporcional com a altura mínima de 40/44 px).
+const double abyssButtonChamfer = 6;
+
+/// Folga lateral do conteúdo do botão: chanfro + 10 (normal) / + 8 (compacto).
+double abyssButtonPaddingH(bool compact) => compact ? 14 : 16;
+
+/// Folga vertical do conteúdo do botão (a sombra de 2 px fica fora da forma).
+double abyssButtonPaddingV(bool compact) => compact ? 8 : 10;
+
+/// Altura mínima do botão: a lateral reta da moldura comporta texto e ícone.
+double abyssButtonMinHeight(bool compact) => compact ? 40 : 44;
+
+const _buttonFrame = AbyssFrameBorder(chamfer: abyssButtonChamfer, ornaments: false, shadowOffset: 2);
 
 ButtonStyle _framedButton({Color background = AbyssColors.raised, TextStyle? label}) => ButtonStyle(
-      padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+      padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: abyssButtonPaddingH(false), vertical: abyssButtonPaddingV(false))),
+      minimumSize: WidgetStatePropertyAll(Size(44, abyssButtonMinHeight(false))),
+      // Sem a densidade compacta do app: ela tiraria até 16 px da altura e
+      // 8 px do padding, jogando texto e ícone nos cantos chanfrados.
+      visualDensity: VisualDensity.standard,
+      alignment: Alignment.center,
       backgroundColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.disabled) ? AbyssColors.card : background),
       foregroundColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.disabled) ? AbyssColors.creamMuted.withValues(alpha: .55) : AbyssColors.goldLight),
       overlayColor: WidgetStatePropertyAll(AbyssColors.gold.withValues(alpha: .12)),
@@ -775,8 +793,10 @@ class AbyssTabCell extends StatelessWidget {
 /// encostar na moldura, e botões mantendo a moldura chanfrada (só padding e
 /// tamanho mínimo do modo compacto, os mesmos de hoje).
 ThemeData buildAbyssAppTheme(ThemeData base, bool compact) {
-  final padding = WidgetStatePropertyAll<EdgeInsetsGeometry>(EdgeInsets.symmetric(horizontal: compact ? 10 : 12, vertical: compact ? 6 : 8));
-  final minimumSize = WidgetStatePropertyAll<Size>(Size(44, compact ? 34 : 38));
+  // Botões com moldura: o conteúdo (texto e ícone, inclusive em .icon e
+  // .tonalIcon) fica fora dos cantos chanfrados e centralizado na forma.
+  final padding = WidgetStatePropertyAll<EdgeInsetsGeometry>(EdgeInsets.symmetric(horizontal: abyssButtonPaddingH(compact), vertical: abyssButtonPaddingV(compact)));
+  final minimumSize = WidgetStatePropertyAll<Size>(Size(44, abyssButtonMinHeight(compact)));
   return base.copyWith(
     visualDensity: compact ? const VisualDensity(horizontal: -4, vertical: -4) : const VisualDensity(horizontal: -3, vertical: -3),
     cardTheme: base.cardTheme.copyWith(margin: EdgeInsets.zero),
@@ -795,8 +815,9 @@ ThemeData buildAbyssAppTheme(ThemeData base, bool compact) {
       minLeadingWidth: compact ? 30 : 34,
       contentPadding: EdgeInsets.symmetric(horizontal: compact ? 14 : 16),
     ),
-    filledButtonTheme: FilledButtonThemeData(style: base.filledButtonTheme.style!.copyWith(padding: padding, minimumSize: minimumSize)),
-    outlinedButtonTheme: OutlinedButtonThemeData(style: base.outlinedButtonTheme.style!.copyWith(padding: padding, minimumSize: minimumSize)),
+    filledButtonTheme: FilledButtonThemeData(style: base.filledButtonTheme.style!.copyWith(padding: padding, minimumSize: minimumSize, visualDensity: VisualDensity.standard)),
+    outlinedButtonTheme: OutlinedButtonThemeData(style: base.outlinedButtonTheme.style!.copyWith(padding: padding, minimumSize: minimumSize, visualDensity: VisualDensity.standard)),
+    elevatedButtonTheme: ElevatedButtonThemeData(style: base.elevatedButtonTheme.style!.copyWith(padding: padding, minimumSize: minimumSize, visualDensity: VisualDensity.standard)),
   );
 }
 

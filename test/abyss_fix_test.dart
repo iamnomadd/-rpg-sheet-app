@@ -36,8 +36,8 @@ void main() {
         for (final style in [theme.filledButtonTheme.style!, theme.outlinedButtonTheme.style!]) {
           expect(style.shape!.resolve({}), isA<AbyssFrameBorder>());
           expect(style.side!.resolve({})!.color, AbyssColors.outline);
-          expect(style.padding!.resolve({}), EdgeInsets.symmetric(horizontal: compact ? 10 : 12, vertical: compact ? 6 : 8));
-          expect(style.minimumSize!.resolve({}), Size(44, compact ? 34 : 38));
+          expect(style.padding!.resolve({}), EdgeInsets.symmetric(horizontal: compact ? 14 : 16, vertical: compact ? 8 : 10));
+          expect(style.minimumSize!.resolve({}), Size(44, compact ? 40 : 44));
           expect(style.textStyle!.resolve({})!.fontSize, isNotNull, reason: 'herda o labelLarge');
         }
         expect(theme.visualDensity, compact ? const VisualDensity(horizontal: -4, vertical: -4) : const VisualDensity(horizontal: -3, vertical: -3));

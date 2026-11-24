@@ -203,6 +203,65 @@ List<String> _auditCards(WidgetTester tester, String where, double scale) {
 
     cardElement.visitChildren(visit);
   }
+  problems.addAll(_auditButtons(tester, where, screen));
+  return problems;
+}
+
+/// Botões com moldura medidos (por tela), para o relatório do PR.
+int _buttonsMeasured = 0;
+final _buttonsByScreen = <String, Set<String>>{};
+
+/// Botões com moldura do Abissal (FilledButton, OutlinedButton e
+/// ElevatedButton, inclusive .tonal/.icon/.tonalIcon): texto e ícone a
+/// >= chanfro + 4 das laterais e >= 6 de cima/baixo da forma (a sombra
+/// chapada de 2 px fica fora da forma e não conta).
+List<String> _auditButtons(WidgetTester tester, String where, Rect screen) {
+  final problems = <String>[];
+  final buttons = find.byWidgetPredicate((w) => w is FilledButton || w is OutlinedButton || w is ElevatedButton).evaluate();
+  for (final button in buttons) {
+    // A forma visível é o Material do botão (a caixa externa inclui a área
+    // mínima de toque).
+    Element? material;
+    void findMaterial(Element e) {
+      if (material != null) return;
+      if (e.widget is Material) {
+        material = e;
+        return;
+      }
+      e.visitChildren(findMaterial);
+    }
+
+    button.visitChildren(findMaterial);
+    final shaped = material;
+    if (shaped == null) continue;
+    final shape = (shaped.widget as Material).shape;
+    if (shape is! AbyssFrameBorder) continue;
+    final render = shaped.renderObject;
+    if (render is! RenderBox || !render.attached || !render.hasSize) continue;
+    final rect = MatrixUtils.transformRect(render.getTransformTo(null), Offset.zero & render.size);
+    if (!rect.overlaps(screen)) continue;
+    _buttonsMeasured++;
+    final minLateral = shape.chamfer + 4;
+    var label = '';
+    void visit(Element element) {
+      final box = element.renderObject;
+      if (element.widget is RichText && box is RenderBox && box.attached && box.hasSize && box.size.width > 0) {
+        final r = MatrixUtils.transformRect(box.getTransformTo(null), Offset.zero & box.size);
+        final text = (element.widget as RichText).text.toPlainText();
+        final isIcon = text.runes.length == 1 && text.codeUnitAt(0) > 0xE000;
+        if (!isIcon) label = text;
+        final left = r.left - rect.left, right = rect.right - r.right, top = r.top - rect.top, bottom = rect.bottom - r.bottom;
+        if (left < minLateral - .01 || right < minLateral - .01 || top < 6 - .01 || bottom < 6 - .01) {
+          problems.add('$where: botão ${isIcon ? 'ícone' : '"$text"'} esq ${left.toStringAsFixed(1)} dir ${right.toStringAsFixed(1)} topo ${top.toStringAsFixed(1)} base ${bottom.toStringAsFixed(1)} (botão ${rect.width.toStringAsFixed(0)}×${rect.height.toStringAsFixed(0)})');
+        }
+        return;
+      }
+      element.visitChildren(visit);
+    }
+
+    shaped.visitChildren(visit);
+    _buttonsByScreen.putIfAbsent(where.split(' › ').first.replaceAll(' (aberto)', ''), () => <String>{}).add(label);
+  }
   return problems;
 }
 
@@ -308,6 +367,13 @@ void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
     await _loadRealFonts();
+  });
+
+  tearDownAll(() {
+    debugPrint('BOTOES| total medido: $_buttonsMeasured');
+    for (final entry in _buttonsByScreen.entries) {
+      debugPrint('BOTOES| ${entry.key}: ${entry.value.where((l) => l.isNotEmpty).join(', ')}');
+    }
   });
 
   for (final compact in [false, true]) {
