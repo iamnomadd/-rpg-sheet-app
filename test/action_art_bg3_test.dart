@@ -196,18 +196,14 @@ void main() {
     expect(reachable.containsAll(_new24), isTrue, reason: 'todos os 24 novos são alcançáveis');
   });
 
-  group('fora do Abissal o fallback é exato', () {
+  group('todos os temas mostram a arte nova (design do Abissal desde a 1.3.62)', () {
     const fallback = Icon(Icons.gps_fixed, key: ValueKey('fallback'));
-    for (final theme in ['classic', 'parchment', 'vampire', 'cyberpunk', 'ice']) {
+    for (final theme in ['abyss', 'classic', 'parchment', 'vampire', 'cyberpunk', 'ice']) {
       testWidgets(theme, (tester) async {
-        await tester.pumpWidget(MaterialApp(home: ActionIconSlot(themeId: theme, artPath: ActionArtResolver.path('spell_arcane'), fallback: fallback)));
-        expect(find.byType(Image), findsNothing);
-        expect(tester.widget(find.byKey(const ValueKey('fallback'))), same(fallback));
+        await tester.pumpWidget(MaterialApp(home: ActionIconSlot(themeId: theme, artPath: ActionArtResolver.path('spell_arcane'), size: actionArtSize(false), fallback: fallback)));
+        expect(find.byType(Image), findsOneWidget);
+        expect(find.byKey(const ValueKey('fallback')), findsNothing);
       });
     }
-    testWidgets('abyss mostra a arte nova', (tester) async {
-      await tester.pumpWidget(MaterialApp(home: ActionIconSlot(themeId: 'abyss', artPath: ActionArtResolver.path('spell_arcane'), fallback: fallback)));
-      expect(find.byType(Image), findsOneWidget);
-    });
   });
 }

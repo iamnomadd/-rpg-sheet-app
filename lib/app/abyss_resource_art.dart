@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../services/app_state.dart';
 import 'abyss_art_size.dart';
+import 'abyss_theme.dart' show usesAbyssDesign;
 
 /// Pasta das 24 ilustrações de recurso.
 const abyssResourceArtFolder = 'assets/icons/resources/';
@@ -140,7 +141,7 @@ class ThemedResourceIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fallback = Icon(fallbackIcon, size: size);
-    final path = themeId == 'abyss' ? abyssResourceArt(resourceName) : null;
+    final path = usesAbyssDesign(themeId) ? abyssResourceArt(resourceName) : null;
     if (path == null) return fallback;
     final side = abyssArtIconSize(context.watch<AppState?>()?.compactMode ?? false);
     return Image.asset(

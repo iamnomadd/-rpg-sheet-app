@@ -2,13 +2,11 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:rpg_sheet_app/app/abyss_resource_art.dart';
 import 'package:rpg_sheet_app/app/abyss_theme.dart';
 import 'package:rpg_sheet_app/app/app.dart';
-import 'package:rpg_sheet_app/app/theme.dart';
 import 'package:rpg_sheet_app/models/character.dart';
 import 'package:rpg_sheet_app/models/rpg_system.dart';
 import 'package:rpg_sheet_app/screens/character/character_screen.dart';
@@ -139,24 +137,4 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 1));
   });
-
-  for (final themeId in ['classic', 'parchment', 'vampire', 'cyberpunk', 'ice']) {
-    testWidgets('$themeId: barras de sempre (themedResourceBarColors), sem AbyssResourceBar', (tester) async {
-      tester.view.physicalSize = const Size(800, 2400);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      final state = await _state(themeId);
-      await tester.pumpWidget(ChangeNotifierProvider<AppState>.value(value: state, child: MaterialApp(theme: buildAppTheme(themeId, false), home: const CharacterScreen(characterId: 'p1'))));
-      await _settle(tester);
-      await tester.tap(find.text('Status').first);
-      await _settle(tester);
-      expect(find.byType(AbyssResourceBar), findsNothing);
-      final gradients = tester.widgetList<Container>(find.byType(Container)).map((c) => c.decoration).whereType<BoxDecoration>().map((d) => d.gradient).whereType<LinearGradient>().map((g) => g.colors).toList();
-      for (final secondary in [false, true]) {
-        expect(gradients.any((c) => listEquals(c, themedResourceBarColors(themeId, secondary: secondary))), isTrue, reason: 'secondary=$secondary');
-      }
-      await tester.pumpWidget(const SizedBox());
-      await tester.pump(const Duration(seconds: 1));
-    });
-  }
 }

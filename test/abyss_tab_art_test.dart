@@ -17,7 +17,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const _files = ['tab_scene', 'tab_status', 'tab_abilities', 'tab_actions', 'tab_tree', 'tab_skills', 'tab_inventory', 'tab_sections'];
 const _sheetTabs = ['general', 'attributesResources', 'abilities', 'skills', 'inventory', 'skillTree', 'sections'];
-const _otherThemes = ['classic', 'parchment', 'vampire', 'cyberpunk', 'ice'];
 
 Future<void> _loadRealFonts() async {
   final root = Platform.environment['FLUTTER_ROOT'] ?? File(Platform.resolvedExecutable).parent.parent.parent.parent.parent.parent.path;
@@ -34,13 +33,6 @@ Future<void> _loadRealFonts() async {
     }
     await loader.load();
   }
-}
-
-/// O que `themedCharacterTabIcon` devolvia antes deste PR (para comparar).
-Type _expectedTypeToday(String themeId, String role) {
-  if (themeId == 'cyberpunk' && (role == 'general' || role == 'skills')) return ImageIcon;
-  if (themeId == 'vampire' && (role == 'skillTree' || role == 'abilities')) return CustomPaint;
-  return Icon;
 }
 
 Future<AppState> _pumpSheet(WidgetTester tester, String themeId, {bool compact = false}) async {
@@ -89,31 +81,6 @@ void main() {
     expect(abyssTabArt('combat'), isNull);
   });
 
-  group('fora do Abissal nada muda', () {
-    for (final themeId in _otherThemes) {
-      testWidgets('$themeId: abas e títulos com os widgets de hoje, sem Image', (tester) async {
-        for (final role in [..._sheetTabs, 'actions', 'attributes', 'resources', 'combat']) {
-          final widget = themedCharacterTabIcon(themeId, role, size: 22, color: Colors.red);
-          expect(widget.runtimeType, _expectedTypeToday(themeId, role), reason: '$themeId/$role');
-          if (widget is Icon && !(themeId == 'cyberpunk' && role == 'abilities') && !(themeId == 'vampire' && role == 'general')) {
-            expect(widget.icon, themedIcon(themeId, role), reason: '$themeId/$role');
-            expect(widget.size, 22);
-          }
-          await tester.pumpWidget(MaterialApp(home: Center(child: ThemedSectionIcon(themeId, role, size: 22))));
-          final icon = tester.widget<Icon>(find.byType(Icon));
-          expect(icon.icon, themedIcon(themeId, role));
-          expect(icon.size, 22);
-          expect(find.byType(Image), findsNothing);
-          await tester.pumpWidget(MaterialApp(home: Center(child: ThemedSectionIcon(themeId, role))));
-          expect(tester.widget<Icon>(find.byType(Icon)).size, isNull, reason: 'sem size, como o Icon de hoje');
-        }
-        await _pumpSheet(tester, themeId);
-        expect(find.byWidgetPredicate((w) => w is Image && (_assetOf(w)?.startsWith(abyssTabArtFolder) ?? false)), findsNothing);
-        await _finish(tester);
-      });
-    }
-  });
-
   group('no Abissal', () {
     testWidgets('as abas da ficha mostram a arte; selecionada 1.0, as outras 0.55', (tester) async {
       tester.view.physicalSize = const Size(800, 1600);
@@ -152,7 +119,7 @@ void main() {
       expect(find.byType(Icon), findsNWidgets(4));
     });
 
-    testWidgets('títulos dos cards: arte 1,35× (mínimo 26) no Em Cena, Status e listas', (tester) async {
+    testWidgets('títulos dos cards: arte de sections/ no tamanho padrão 40/36 (normal/compacto) no Em Cena, Status e listas', (tester) async {
       tester.view.physicalSize = const Size(800, 2400);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);

@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:rpg_sheet_app/app/abyss_theme.dart';
+import 'package:rpg_sheet_app/app/theme.dart' show appThemes;
 import 'package:rpg_sheet_app/app/app.dart';
 import 'package:rpg_sheet_app/models/campaign.dart';
 import 'package:rpg_sheet_app/models/character.dart';
@@ -386,18 +387,22 @@ void main() {
           addTearDown(tester.view.reset);
           addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
-          final abyss = await _run(tester, scenario, 'abyss', compact, scale, audit: true);
           // Base de comparação: a mesma tela no Clássico Escuro. Estouros que
           // também acontecem lá já existem em todos os temas (fora do escopo).
           final classic = await _run(tester, scenario, 'classic', compact, scale, audit: false);
-          for (final line in {...abyss.errors.map((e) => 'ERRO ${scenario.name}: $e'), ...abyss.problems}) {
-            debugPrint('AUDIT| $line');
-          }
           for (final line in classic.errors.toSet()) {
             debugPrint('CLASSICO| ${scenario.name}: $line');
           }
-          expect(abyss.errors.length, lessThanOrEqualTo(classic.errors.length), reason: 'o Abissal não pode ter estouros a mais que o Clássico: ${abyss.errors}');
-          expect(abyss.problems.toSet().toList(), isEmpty);
+          // Desde a 1.3.62 o design do Abissal é o de todos os temas: a
+          // auditoria roda em cada um deles.
+          for (final themeId in appThemes.map((t) => t.id)) {
+            final abyss = await _run(tester, scenario, themeId, compact, scale, audit: true);
+            for (final line in {...abyss.errors.map((e) => 'ERRO $themeId ${scenario.name}: $e'), ...abyss.problems.map((p) => '$themeId $p')}) {
+              debugPrint('AUDIT| $line');
+            }
+            expect(abyss.errors.length, lessThanOrEqualTo(classic.errors.length), reason: '$themeId não pode ter estouros a mais que o Clássico: ${abyss.errors}');
+            expect(abyss.problems.toSet().toList(), isEmpty, reason: themeId);
+          }
         });
       }
     }

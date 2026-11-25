@@ -20,7 +20,6 @@ const _files = [
   'res_fury', 'res_ecstasy', 'res_ki', 'res_generic', 'res_blood', 'res_humanity', 'res_willpower', 'res_hunger',
   'res_thirst', 'res_luck', 'res_xp', 'res_corruption', 'res_exhaustion', 'res_breath', 'res_temperature', 'res_morale',
 ];
-const _otherThemes = ['classic', 'parchment', 'vampire', 'cyberpunk', 'ice'];
 const _resources = ['Vida', 'PV Temporários', 'Energia', 'Êxtase'];
 
 String? file(String name) => abyssResourceArt(name)?.replaceFirst(abyssResourceArtFolder, '').replaceFirst('.webp', '');
@@ -89,16 +88,6 @@ Set<String> _resourceArtShown(WidgetTester tester) => {
         if ((_asset(w) ?? '').startsWith(abyssResourceArtFolder)) _asset(w)!.replaceFirst(abyssResourceArtFolder, '').replaceFirst('.webp', ''),
     };
 
-/// Ícone que cada ponto usava antes (gota para "Vida", raio nos outros).
-void _expectTodayIcons(WidgetTester tester, String themeId) {
-  for (final name in _resources) {
-    final row = find.ancestor(of: find.text(name), matching: find.byType(Row));
-    if (row.evaluate().isEmpty) continue;
-    final icon = tester.widget<Icon>(find.descendant(of: row.first, matching: find.byType(Icon)).first);
-    expect(icon.icon, name == 'Vida' ? themedIcon(themeId, 'resources') : Icons.bolt, reason: '$themeId/$name');
-  }
-}
-
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -159,38 +148,6 @@ void main() {
     test('"Ferro" não é fé (fe) → genérico', () => expect(file('Ferro'), 'res_generic'));
     test('"Arma" não é fôlego (ar) → genérico', () => expect(file('Arma'), 'res_generic'));
     test('"Irado" não é fúria por \'ira\' → genérico', () => expect(file('Irado'), 'res_generic'));
-  });
-
-  group('fora do Abissal: os 4 pontos com o mesmo Icon de hoje e sem Image', () {
-    for (final themeId in _otherThemes) {
-      testWidgets(themeId, (tester) async {
-        tester.view.physicalSize = const Size(800, 2400);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.reset);
-        final state = await _state(themeId);
-        // Pontos 1 (Em Cena) e 2 (Status).
-        await tester.pumpWidget(_app(state, themeId, const CharacterScreen(characterId: 'p1')));
-        await _settle(tester);
-        _expectTodayIcons(tester, themeId);
-        expect(_resourceArtShown(tester), isEmpty);
-        await _openTab(tester, 'Status');
-        _expectTodayIcons(tester, themeId);
-        expect(_resourceArtShown(tester), isEmpty);
-        await _finish(tester);
-        // Ponto 4 (combate, size 20).
-        await tester.pumpWidget(_app(state, themeId, Scaffold(body: CombatTab(character: state.characters.single, system: state.systems.first))));
-        await _settle(tester);
-        _expectTodayIcons(tester, themeId);
-        expect(_resourceArtShown(tester), isEmpty);
-        await _finish(tester);
-        // Ponto 3 (size 22): o widget direto, como o `_resource` usa.
-        await tester.pumpWidget(MaterialApp(home: ThemedResourceIcon(themeId, 'Vida', fallbackIcon: themedIcon(themeId, 'resources'), size: 22)));
-        final icon = tester.widget<Icon>(find.byType(Icon));
-        expect(icon.icon, themedIcon(themeId, 'resources'));
-        expect(icon.size, 22);
-        expect(find.byType(Image), findsNothing);
-      });
-    }
   });
 
   group('no Abissal', () {

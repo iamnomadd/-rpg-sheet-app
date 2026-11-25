@@ -22,7 +22,7 @@ void main() {
     expect(ids.where((id) => id == 'abyss').length, 1);
     expect(ids.last, 'abyss');
     expect(ids.toSet().length, ids.length);
-    expect(themePreset('abyss').name, 'Abissal (experimental)');
+    expect(themePreset('abyss').name, 'Abissal');
     expect(themePreset('abyss').brightness, Brightness.dark);
   });
 
@@ -64,11 +64,11 @@ void main() {
     expect(themedNavigationIndicatorShape('abyss', 20), isA<AbyssFrameBorder>());
   });
 
-  test('(e) os demais temas continuam montando sem exceção e sem as molduras do Abissal', () {
+  test('(e) os demais temas montam sem exceção com as molduras do Abissal (padrão desde a 1.3.62)', () {
     for (final preset in appThemes.where((t) => t.id != 'abyss')) {
       final theme = buildTheme(preset.id);
-      expect(theme.cardTheme.shape, isNot(isA<AbyssFrameBorder>()), reason: preset.id);
-      expect(themedNavigationIndicatorShape(preset.id, 20), isA<RoundedRectangleBorder>());
+      expect(theme.cardTheme.shape, isA<AbyssFrameBorder>(), reason: preset.id);
+      expect(themedNavigationIndicatorShape(preset.id, 20), isA<AbyssFrameBorder>());
     }
   });
 
@@ -129,7 +129,7 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
   });
 
-  testWidgets('outro tema na mesma ficha não usa nada do Abissal', (tester) async {
+  testWidgets('outro tema na mesma ficha usa o design do Abissal (padrão desde a 1.3.62)', (tester) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -143,8 +143,8 @@ void main() {
       child: MaterialApp(theme: buildAppTheme('parchment', false), home: const CharacterScreen(characterId: 'p1')),
     ));
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.byType(AbyssTabCell), findsNothing);
-    expect(find.byType(AbyssResourceBar), findsNothing);
+    expect(find.byType(AbyssTabCell), findsWidgets);
+    expect(find.byType(AbyssResourceBar), findsWidgets);
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 1));
   });

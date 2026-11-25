@@ -38,8 +38,8 @@ const appThemes = <AppThemePreset>[
   AppThemePreset(id: 'cyberpunk', name: 'Cyberpunk', description: 'Azul elétrico pontual sobre superfícies tecnológicas escuras.', icon: Icons.memory, seed: Color(0xFF1755FF), background: Color(0xFF08090E), card: Color(0xFF12141B)),
   AppThemePreset(id: 'infernal', name: 'Infernal', description: 'Vermelho e brasa usados como acento em uma base carbonizada.', icon: Icons.local_fire_department, seed: Color(0xFFFD0F04), background: Color(0xFF100605), card: Color(0xFF1D0D0A)),
   AppThemePreset(id: 'ice', name: 'Gelo', description: 'Azul glacial em superfícies frias e minimalistas.', icon: Icons.ac_unit, seed: Color(0xFF62D8F2), background: Color(0xFF071014), card: Color(0xFF0E1B20)),
-  // Experimental e isolado (lib/app/abyss_theme.dart); fácil de remover.
-  AppThemePreset(id: 'abyss', name: 'Abissal (experimental)', description: 'Ardósia escura, molduras douradas e fumaça roxa. Tema experimental.', icon: Icons.diamond_outlined, seed: Color(0xFFC9A24A), background: Color(0xFF05080D), card: Color(0xFF10171C)),
+  // Paleta do design do Abissal (lib/app/abyss_theme.dart), que desde a 1.3.62 é o design de todos os temas.
+  AppThemePreset(id: 'abyss', name: 'Abissal', description: 'Ardósia escura, molduras douradas e fumaça roxa.', icon: Icons.diamond_outlined, seed: Color(0xFFC9A24A), background: Color(0xFF05080D), card: Color(0xFF10171C)),
 ];
 
 AppThemePreset themePreset(String id) => appThemes.firstWhere(
@@ -171,13 +171,13 @@ Color themedResourceTrackColor(String themeId) {
 }
 
 ShapeBorder themedNavigationIndicatorShape(String themeId, double radius) {
-  if (themeId == 'abyss') return abyssIndicatorShape();
+  if (usesAbyssDesign(themeId)) return abyssIndicatorShape(abyssPaletteFor(themeId));
   return RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius.clamp(10, 22)));
 }
 
 Widget themedCharacterTabIcon(String themeId, String role, {double size = 18, Color? color, bool? selected}) {
-  if (themeId == 'abyss') {
-    final fallback = Icon(themedIcon(themeId, role), size: size, color: color ?? AbyssColors.gold);
+  if (usesAbyssDesign(themeId)) {
+    final fallback = Icon(themedIcon(themeId, role), size: size, color: color ?? abyssPaletteFor(themeId).gold);
     return abyssCharacterTabArt(role, size: size, color: color, selected: selected, fallback: fallback) ?? fallback;
   }
   if (themeId == 'cyberpunk') {
@@ -248,7 +248,7 @@ class _AnatomicalHeartPainter extends CustomPainter {
 }
 
 ThemeData buildTheme([String themeId = 'classic']) {
-  if (themeId == 'abyss') return buildAbyssTheme();
+  if (usesAbyssDesign(themeId)) return buildAbyssTheme(abyssPaletteFor(themeId));
   final preset = themePreset(themeId);
   final pirate = themeId == 'parchment';
   final vampire = themeId == 'vampire';
