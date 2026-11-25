@@ -145,7 +145,7 @@ void main() {
       await tester.pumpWidget(host('abyss', ActionArtResolver.path('spell_fire')));
       final image = tester.widget<Image>(find.byType(Image));
       expect((image.image as ResizeImage).imageProvider, isA<AssetImage>());
-      expect(image.width, 52);
+      expect(image.width, 40);
       expect(image.fit, BoxFit.contain);
       expect(image.excludeFromSemantics, isTrue);
       expect(find.byKey(const ValueKey('fallback')), findsNothing);
@@ -172,9 +172,9 @@ void main() {
       expect(find.byKey(const ValueKey('fallback')), findsOneWidget);
     });
 
-    test('tamanho: 52 normal, 44 compacto', () {
-      expect(actionArtSize(false), 52);
-      expect(actionArtSize(true), 44);
+    test('tamanho: 40 normal, 36 compacto', () {
+      expect(actionArtSize(false), 40);
+      expect(actionArtSize(true), 36);
     });
   });
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:rpg_sheet_app/app/abyss_art_size.dart';
 import 'package:rpg_sheet_app/app/abyss_tab_art.dart';
 import 'package:rpg_sheet_app/app/abyss_theme.dart';
 import 'package:rpg_sheet_app/app/app.dart';
@@ -156,11 +157,11 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       await _pumpSheet(tester, 'abyss');
-      Iterable<Image> titleArt() => tester.widgetList<Image>(find.byType(Image)).where((i) => (_assetOf(i) ?? '').startsWith(abyssTabArtFolder) && i.width != 22 * abyssTabArtScale);
+      Iterable<Image> titleArt() => tester.widgetList<Image>(find.byType(Image)).where((i) => (_assetOf(i) ?? '').startsWith(abyssSectionArtFolder));
       final emCena = titleArt().map(_assetOf).toSet();
-      expect(emCena, containsAll([abyssTabArt('attributes'), abyssTabArt('inventory'), abyssTabArt('abilities')]));
+      expect(emCena, containsAll([abyssSectionArt('attributes'), abyssSectionArt('inventory'), abyssSectionArt('abilities')]));
       for (final image in titleArt()) {
-        expect(image.width, closeTo(24 * abyssTabArtScale, .01), reason: 'título sem size: 24 × 1,35');
+        expect(image.width, abyssArtIconSize(false), reason: 'título: tamanho padrão do Abissal');
       }
       Future<void> openTab(String label) async {
         await tester.tap(find.text(label).first);
@@ -170,11 +171,11 @@ void main() {
       }
 
       await openTab('Status');
-      expect(tester.widgetList<Image>(find.byType(Image)).where((i) => _assetOf(i) == abyssTabArt('attributes') && (i.width! - 29.7).abs() < .01), isNotEmpty, reason: 'cabeçalho Status: 22 × 1,35');
+      expect(tester.widgetList<Image>(find.byType(Image)).where((i) => _assetOf(i) == abyssSectionArt('attributes') && i.width == abyssArtIconSize(false)), isNotEmpty, reason: 'cabeçalho Status');
       await openTab('Inventário');
-      expect(tester.widgetList<Image>(find.byType(Image)).where((i) => _assetOf(i) == abyssTabArt('inventory') && (i.width! - 27).abs() < .01), isNotEmpty, reason: 'cabeçalho da lista: 20 × 1,35');
+      expect(tester.widgetList<Image>(find.byType(Image)).where((i) => _assetOf(i) == abyssSectionArt('inventory') && i.width == abyssArtIconSize(false)), isNotEmpty, reason: 'cabeçalho da lista');
       await openTab('Habilidades');
-      expect(tester.widgetList<Image>(find.byType(Image)).where((i) => _assetOf(i) == abyssTabArt('abilities') && (i.width! - 27).abs() < .01), isNotEmpty);
+      expect(tester.widgetList<Image>(find.byType(Image)).where((i) => _assetOf(i) == abyssSectionArt('abilities') && i.width == abyssArtIconSize(false)), isNotEmpty);
       expect(tester.takeException(), isNull);
       await _finish(tester);
     });

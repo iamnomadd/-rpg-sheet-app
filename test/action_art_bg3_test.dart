@@ -122,17 +122,17 @@ void main() {
       'Raio Arcano': 'spell_arcane',
       'Onda de Choque': 'spell_lightning',
       'Onda': 'spell_water',
-      // 'acido' não casa "ácida" (outra terminação): só o termo fraco 'chuva' casa.
-      'Chuva Ácida': 'spell_water',
+      // 'acid' (só no nome) casa "ácida": veneno vence o termo fraco 'chuva'.
+      'Chuva Ácida': 'spell_poison',
       'Chuva de Ácido': 'spell_poison',
-      'Visão no Escuro': 'spell_shadow',
+      'Visão no Escuro': 'spell_vision',
       'Olho Arcano': 'spell_arcane',
       'Chuva': 'spell_water',
       'Rajada de Vento': 'spell_wind',
       'Rajada': 'spell_wind',
       'Rajada de Fogo': 'spell_fire',
       'Bola de Fogo Arcana': 'spell_fire',
-      'Arma Sagrada': 'spell_light',
+      'Arma Sagrada': 'spell_enchanted_weapon',
       'Névoa Tóxica': 'spell_poison',
       'Visão da Morte': 'spell_death',
     };

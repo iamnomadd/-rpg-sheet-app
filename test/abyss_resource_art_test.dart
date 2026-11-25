@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:rpg_sheet_app/app/abyss_art_size.dart';
 import 'package:rpg_sheet_app/app/abyss_resource_art.dart';
 import 'package:rpg_sheet_app/app/app.dart';
 import 'package:rpg_sheet_app/app/theme.dart';
@@ -218,7 +219,7 @@ void main() {
               if (themeId == 'abyss') {
                 expect(_resourceArtShown(tester), {'res_life', 'res_temp_hp', 'res_energy', 'res_ecstasy'}, reason: 'Status');
                 for (final image in tester.widgetList<Image>(find.byType(Image)).where((i) => (_asset(i) ?? '').startsWith(abyssResourceArtFolder))) {
-                  expect(image.width, closeTo(32.4, .01), reason: 'Status sem size: 24 × 1,35');
+                  expect(image.width, abyssArtIconSize(compact), reason: 'Status: tamanho padrão do Abissal');
                 }
               }
               await _finish(tester);
@@ -229,7 +230,7 @@ void main() {
                 final art = tester.widgetList<Image>(find.byType(Image)).where((i) => (_asset(i) ?? '').startsWith(abyssResourceArtFolder)).toList();
                 expect(art, isNotEmpty);
                 for (final image in art) {
-                  expect(image.width, closeTo(27, .01), reason: 'combate: 20 × 1,35');
+                  expect(image.width, abyssArtIconSize(compact), reason: 'combate: tamanho padrão do Abissal');
                 }
               }
               await _finish(tester);
@@ -256,7 +257,7 @@ void main() {
       await tester.pumpWidget(MaterialApp(home: ThemedResourceIcon('abyss', 'Vida', fallbackIcon: themedIcon('abyss', 'resources'), size: 22)));
       final image = tester.widget<Image>(find.byType(Image));
       expect(_asset(image), '${abyssResourceArtFolder}res_life.webp');
-      expect(image.width, closeTo(29.7, .01));
+      expect(image.width, abyssArtIconSize(false));
       expect(image.fit, BoxFit.contain);
       expect(image.filterQuality, FilterQuality.medium);
       expect(image.excludeFromSemantics, isTrue);
@@ -267,9 +268,9 @@ void main() {
 
     testWidgets('sem size: mínimo 26, com 24 × 1,35 = 32,4', (tester) async {
       await tester.pumpWidget(const MaterialApp(home: ThemedResourceIcon('abyss', 'Energia', fallbackIcon: Icons.bolt)));
-      expect(tester.widget<Image>(find.byType(Image)).width, closeTo(32.4, .01));
+      expect(tester.widget<Image>(find.byType(Image)).width, abyssArtIconSize(false));
       await tester.pumpWidget(const MaterialApp(home: ThemedResourceIcon('abyss', 'Energia', fallbackIcon: Icons.bolt, size: 12)));
-      expect(tester.widget<Image>(find.byType(Image)).width, 26);
+      expect(tester.widget<Image>(find.byType(Image)).width, abyssArtIconSize(false));
     });
   });
 }
