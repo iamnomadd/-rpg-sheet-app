@@ -8,6 +8,7 @@ import '../../services/cloud_service.dart';
 import 'skill_tree_screen.dart';
 import 'player_turn_banner.dart';
 import '../../services/rpg_file_service.dart';
+import '../../app/abyss_resource_art.dart';
 import '../../app/abyss_tab_art.dart';
 import '../../app/abyss_theme.dart';
 import '../../app/theme.dart';
@@ -532,7 +533,7 @@ class _GeneralTab extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Icon(secondary ? Icons.bolt : themedIcon(themeId, 'resources')),
+            ThemedResourceIcon(themeId, resourceName.isNotEmpty ? resourceName : title, fallbackIcon: secondary ? Icons.bolt : themedIcon(themeId, 'resources')),
             const SizedBox(width: 8),
             Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold))),
             if (resourceName.isNotEmpty) ...[
@@ -964,7 +965,7 @@ class _AttributesResourcesTab extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(name.toLowerCase() == 'vida'
+                      ThemedResourceIcon(themeId, name, fallbackIcon: name.toLowerCase() == 'vida'
                           ? themedIcon(themeId, 'resources')
                           : Icons.bolt),
                       const SizedBox(width: 8),
@@ -1558,7 +1559,7 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
     _applyResourceValues(widget.character, name, result);
     await _save();
   }
-  Widget _resource(String name){final current=widget.character.resourceValues[name]??0,max=widget.character.resourceMaxValues[name]??0,value=max<=0?0.0:(current/max).clamp(0.0,1.0);final themeId=context.watch<AppState>().themeId,secondary=name.toLowerCase()!='vida';return Card(child:Padding(padding:const EdgeInsets.fromLTRB(14,10,14,12),child:Column(children:[Row(children:[Icon(secondary?Icons.bolt:themedIcon(themeId,'resources'),size:22),const SizedBox(width:8),Expanded(child:Text(name,style:const TextStyle(fontWeight:FontWeight.w700))),IconButton(tooltip:'Diminuir',visualDensity:VisualDensity.compact,onPressed:()=>_changeResource(name,-1),icon:const Icon(Icons.remove)),Text('$current / $max',style:Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w600)),IconButton(tooltip:'Aumentar',visualDensity:VisualDensity.compact,onPressed:()=>_changeResource(name,1),icon:const Icon(Icons.add))]),const SizedBox(height:7),ResourceBarTapTarget(label:name,onTap:()=>_editResourceValue(name),child:_ThemedResourceBar(value:value,themeId:themeId,secondary:secondary))])));}
+  Widget _resource(String name){final current=widget.character.resourceValues[name]??0,max=widget.character.resourceMaxValues[name]??0,value=max<=0?0.0:(current/max).clamp(0.0,1.0);final themeId=context.watch<AppState>().themeId,secondary=name.toLowerCase()!='vida';return Card(child:Padding(padding:const EdgeInsets.fromLTRB(14,10,14,12),child:Column(children:[Row(children:[ThemedResourceIcon(themeId,name,fallbackIcon:secondary?Icons.bolt:themedIcon(themeId,'resources'),size:22),const SizedBox(width:8),Expanded(child:Text(name,style:const TextStyle(fontWeight:FontWeight.w700))),IconButton(tooltip:'Diminuir',visualDensity:VisualDensity.compact,onPressed:()=>_changeResource(name,-1),icon:const Icon(Icons.remove)),Text('$current / $max',style:Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w600)),IconButton(tooltip:'Aumentar',visualDensity:VisualDensity.compact,onPressed:()=>_changeResource(name,1),icon:const Icon(Icons.add))]),const SizedBox(height:7),ResourceBarTapTarget(label:name,onTap:()=>_editResourceValue(name),child:_ThemedResourceBar(value:value,themeId:themeId,secondary:secondary))])));}
 
   Future<void> _selectConditions() async {
     final initial = widget.character.conditions.toSet();
