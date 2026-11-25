@@ -108,7 +108,7 @@ void main() {
       expect(icon, isNot(contains('font-size')));
       expect(icon, isNot(contains('place-items')));
       // Título e texto de carregamento continuam.
-      expect(html, contains('<div class="rpg-splash-title">RPG Sheet</div>'));
+      expect(html, contains('<div class="rpg-splash-title">Grimório</div>'));
       expect(html, contains('Carregando suas aventuras…'));
     });
 

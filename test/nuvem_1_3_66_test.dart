@@ -236,7 +236,7 @@ void main() {
 
   group('B: mensagens de erro claras', () {
     test('appErrorMessage: só mensagens do próprio app', () {
-      expect(appErrorMessage(Exception('Há alterações mais recentes na nuvem. Sincronize novamente antes de enviar.')), 'Há alterações mais recentes na nuvem. Sincronize novamente antes de enviar.');
+      expect(appErrorMessage(const AppMessageException('Há alterações mais recentes na nuvem. Sincronize novamente antes de enviar.')), 'Há alterações mais recentes na nuvem. Sincronize novamente antes de enviar.');
       expect(appErrorMessage(const CloudRequestException('duplicate key value violates unique constraint', statusCode: 409)), isNull);
       expect(appErrorMessage(const FormatException('Unexpected character')), isNull);
       expect(appErrorMessage(StateError('Bad state')), isNull);
@@ -252,7 +252,7 @@ void main() {
         ],
         'lib/screens/settings/import_export_screen.dart': [
           'Não foi possível concluir. Tente de novo.',
-          'Arquivo inválido. Escolha um arquivo .rpg exportado pelo RPG Sheet.',
+          'Arquivo inválido. Escolha um arquivo .rpg exportado pelo Grimório.',
           'Não foi possível restaurar. Confira se o arquivo é um backup .rpg válido.',
         ],
         'lib/screens/character/character_screen.dart': [

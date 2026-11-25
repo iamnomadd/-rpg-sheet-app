@@ -446,7 +446,7 @@ const _templates = <_SystemTemplate>[
   ),
   _SystemTemplate(
     name: 'Sistema Padrão',
-    description: 'Modelo genérico e flexível do RPG Sheet.',
+    description: 'Modelo genérico e flexível do Grimório.',
     icon: Icons.public,
     attributes: ['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR'],
     skills: [],

@@ -44,7 +44,7 @@ class _AccessGateState extends State<AccessGate>{
     try{
       final session=await CloudService.signIn(_email.text,_password.text);
       final ok=await CloudService.hasAppAccess(session);
-      if(!ok)throw Exception('Esta conta ainda não possui acesso ao RPG Sheet.');
+      if(!ok)throw Exception('Esta conta ainda não possui acesso ao Grimório.');
       if(mounted)setState(()=>_allowed=true);
     }catch(e){if(mounted)setState(()=>_error=e.toString().replaceFirst('Exception: ',''));}
     if(mounted)setState(()=>_loading=false);
@@ -63,7 +63,7 @@ class _AccessGateState extends State<AccessGate>{
         session=await CloudService.protectAnonymousWithEmail(session,email:_email.text,password:_password.text);
       }
       final hasAccess = await CloudService.hasAppAccess(session);
-      if (!hasAccess) throw Exception('Esta conta ainda não possui acesso ao RPG Sheet.');
+      if (!hasAccess) throw Exception('Esta conta ainda não possui acesso ao Grimório.');
       if(mounted)setState(()=>_allowed=true);
     }catch(e){if(mounted)setState(()=>_error=e.toString().replaceFirst('Exception: ',''));}
     if(mounted)setState(()=>_loading=false);
@@ -77,7 +77,7 @@ class _AccessGateState extends State<AccessGate>{
       child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
         Icon(Icons.auto_awesome_mosaic_outlined,size:58,color:Theme.of(context).colorScheme.primary),
         const SizedBox(height:18),
-        Text('RPG Sheet',textAlign:TextAlign.center,style:Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight:FontWeight.w800)),
+        Text('Grimório',textAlign:TextAlign.center,style:Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight:FontWeight.w800)),
         const SizedBox(height:6),
         Text(_login?'Entre para acessar suas fichas.':'Crie seu acesso usando um convite.',textAlign:TextAlign.center),
         const SizedBox(height:24),

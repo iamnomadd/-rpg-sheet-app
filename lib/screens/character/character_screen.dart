@@ -27,6 +27,7 @@ import 'custom_sprite.dart';
 import 'custom_sprite_sheet.dart';
 import '../campaigns/initiative_tools.dart';
 import '../../widgets/card_spacing.dart';
+import '../../widgets/dispose_on_removed.dart';
 import '../../widgets/text_growth.dart';
 
 
@@ -1959,27 +1960,6 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
   }
 }
 
-/// Chama [onRemoved] quando sai da árvore (ex.: o diálogo terminou de fechar).
-class _OnRemoved extends StatefulWidget {
-  final VoidCallback onRemoved;
-  final Widget child;
-  const _OnRemoved({required this.onRemoved, required this.child});
-
-  @override
-  State<_OnRemoved> createState() => _OnRemovedState();
-}
-
-class _OnRemovedState extends State<_OnRemoved> {
-  @override
-  void dispose() {
-    widget.onRemoved();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
-}
-
 class _CharacterItemsTab extends StatefulWidget {
   final Character character;
   final List<String> items;
@@ -2066,7 +2046,7 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
       context: context,
       // Os campos são descartados só quando o diálogo sai da árvore (depois da
       // animação de saída), e não logo que ele fecha.
-      builder: (dialogContext) => _OnRemoved(
+      builder: (dialogContext) => DisposeOnRemoved(
         onRemoved: () {
           name.dispose(); description.dispose(); damage.dispose(); turns.dispose(); quantity.dispose(); ammo.dispose(); ammoMax.dispose(); cost.dispose(); effectValue.dispose();
         },

@@ -36,7 +36,7 @@ class RpgFileService {
     final bytes=Uint8List.fromList(utf8.encode(encoder.convert(json)));
     await Share.shareXFiles(
       [XFile.fromData(bytes,mimeType:'application/json',name:fileName)],
-      text:'Arquivo RPG Sheet: $fileName',
+      text:'Arquivo do Grimório: $fileName',
     );
   }
 
@@ -64,7 +64,7 @@ class RpgFileService {
     RpgSystem system,
   ) async {
     final buffer = StringBuffer()
-      ..writeln('RPG Sheet • ${character.name}')
+      ..writeln('Grimório • ${character.name}')
       ..writeln('Sistema: ${system.name}')
       ..writeln('Nível: ${character.level}');
 
@@ -160,7 +160,7 @@ class RpgFileService {
         .toList();
 
     final buffer = StringBuffer()
-      ..writeln('RPG Sheet • ${campaign.name}');
+      ..writeln('Grimório • ${campaign.name}');
     if (campaign.description.isNotEmpty) buffer.writeln(campaign.description);
     if (visibleCharacters.isNotEmpty) buffer.writeln('\nPersonagens: ${visibleCharacters.join(', ')}');
     final npcNames = <String>[...campaign.npcs, ...campaign.npcSheets.map((e) { final raw=e['sheet']; return raw is Map ? '${raw['name'] ?? e['name'] ?? 'NPC'}' : '${e['name'] ?? 'NPC'}'; })];
@@ -199,7 +199,7 @@ class RpgFileService {
     if (json == null) return null;
     _validateEnvelope(json);
     if (json['type'] != 'backup') {
-      throw const FormatException('Escolha um arquivo de backup do RPG Sheet.');
+      throw const FormatException('Escolha um arquivo de backup do Grimório.');
     }
     return Map<String, dynamic>.from(json['data'] ?? {});
   }
@@ -214,7 +214,7 @@ class RpgFileService {
 
   static void _validateEnvelope(Map<String, dynamic> json) {
     if (json['format'] != format) {
-      throw const FormatException('Este arquivo não pertence ao RPG Sheet.');
+      throw const FormatException('Este arquivo não pertence ao Grimório.');
     }
     final version = json['formatVersion'];
     if (version is! int || !supportedFormatVersions.contains(version)) {

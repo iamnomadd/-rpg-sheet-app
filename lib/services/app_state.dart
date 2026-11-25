@@ -28,6 +28,11 @@ class AppState extends ChangeNotifier {
   bool masterToolsEnabled = false;
   bool autoSync = true;
   DateTime? lastLocalChangeUtc;
+
+  /// Ligada pelo "Apagar todos os dados": enquanto estiver ligada e a nuvem
+  /// tiver dados, a sincronização só traz a nuvem de volta (aparelho vazio) e
+  /// nunca substitui o backup sem confirmação (chave 'cloud_restore_pending').
+  bool cloudRestorePending = false;
   DateTime? lastSyncUtc;
   String syncStatus = 'Aguardando';
   bool _applyingCloud = false;
@@ -39,7 +44,7 @@ class AppState extends ChangeNotifier {
         RpgSystem(
           id: 'generic',
           name: 'Sistema Padrão',
-          description: 'Ficha genérica e flexível do RPG Sheet.',
+          description: 'Ficha genérica e flexível do Grimório.',
           attributes: ['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR'],
           skills: [],
           resources: ['Vida', 'Energia'],
@@ -114,6 +119,7 @@ class AppState extends ChangeNotifier {
     masterToolsEnabled = prefs.getBool('master_tools_enabled') ?? false;
     autoSync = prefs.getBool('auto_sync') ?? true;
     lastLocalChangeUtc = DateTime.tryParse(prefs.getString('last_local_change_utc') ?? '')?.toUtc();
+    cloudRestorePending = prefs.getBool('cloud_restore_pending') ?? false;
     lastSyncUtc = DateTime.tryParse(prefs.getString('last_sync_utc') ?? '')?.toUtc();
 
     characters = _safeDecodeList(charactersJson)
@@ -242,6 +248,19 @@ class AppState extends ChangeNotifier {
     return counts.characters > 0 || counts.campaigns > 0;
   }
 
+  /// Liga/desliga a marca de "aparelho apagado, nuvem a restaurar" e grava.
+  Future<void> setCloudRestorePending(bool value) async {
+    cloudRestorePending = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('cloud_restore_pending', value);
+  }
+
+  /// O backup tem pelo menos uma ficha ou campanha.
+  static bool backupHasData(Map<String, dynamic>? payload) {
+    final counts = backupCounts(payload);
+    return counts.characters > 0 || counts.campaigns > 0;
+  }
+
   Future<String> syncNow({bool silent = false}) async {
     if (_syncing) return syncStatus;
     if (!CloudService.configured) {
@@ -258,7 +277,34 @@ class AppState extends ChangeNotifier {
       final cloud = await CloudService.downloadSnapshot(session);
       final localTime = lastLocalChangeUtc;
       final cloudTime = cloud?.updatedAt;
-      if (cloud == null) {
+      // Depois do "Apagar todos os dados": com a nuvem cheia, só traz a nuvem
+      // de volta (aparelho vazio) ou não faz nada (aparelho já alterado).
+      var restoreHandled = false;
+      if (cloudRestorePending) {
+        if (cloud == null || !backupHasData(cloud.payload)) {
+          await setCloudRestorePending(false);
+        } else if (revisionAtStart != _localRevision) {
+          restoreHandled = true;
+          syncStatus = 'Alterações locais preservadas';
+        } else if (isLocalEmpty) {
+          restoreHandled = true;
+          _applyingCloud = true;
+          try {
+            await replaceFromBackup(cloud.payload);
+            lastLocalChangeUtc = cloudTime ?? lastLocalChangeUtc;
+          } finally {
+            _applyingCloud = false;
+          }
+          await setCloudRestorePending(false);
+          syncStatus = 'Atualizado pela nuvem';
+        } else {
+          restoreHandled = true;
+          syncStatus = 'Este aparelho foi apagado. Use Restaurar da nuvem ou Forçar envio.';
+        }
+      }
+      if (restoreHandled) {
+        // Já resolvido acima (sem enviar nada).
+      } else if (cloud == null) {
         await CloudService.uploadBackup(session, cloudPayload());
         syncStatus = 'Enviado para a nuvem';
       } else if (cloudTime != null && (localTime == null || cloudTime.isAfter(localTime.add(const Duration(seconds: 2))))) {
@@ -887,6 +933,10 @@ class AppState extends ChangeNotifier {
     _localRevision++;
     lastLocalChangeUtc = null;
     await prefs.remove('last_local_change_utc');
+    // Até a nuvem voltar (ou a pessoa confirmar um envio), nada substitui o
+    // backup da nuvem.
+    cloudRestorePending = true;
+    await prefs.setBool('cloud_restore_pending', true);
     await save(markLocalChange: false);
     notifyListeners();
   }

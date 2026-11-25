@@ -6,6 +6,8 @@ import 'package:supabase/supabase.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../utils/error_message.dart';
+
 class CloudRequestException implements Exception {
   final int? statusCode;
   final String message;
@@ -145,12 +147,12 @@ class CloudService {
       }
       return decoded;
     } on TimeoutException {
-      throw Exception('A nuvem demorou para responder. Verifique a conexão e tente novamente.');
+      throw AppMessageException('A nuvem demorou para responder. Verifique a conexão e tente novamente.');
     } on http.ClientException {
-      throw Exception('Não foi possível acessar a nuvem. Verifique a conexão e tente novamente.');
+      throw AppMessageException('Não foi possível acessar a nuvem. Verifique a conexão e tente novamente.');
     } catch(e) {
       if(e is Exception) rethrow;
-      throw Exception('Não foi possível acessar a nuvem. Verifique a conexão e tente novamente.');
+      throw AppMessageException('Não foi possível acessar a nuvem. Verifique a conexão e tente novamente.');
     }
   }
 
@@ -165,7 +167,7 @@ class CloudService {
     final token = data['access_token']?.toString() ?? '';
     final userId = user['id']?.toString() ?? '';
     if (token.isEmpty || userId.isEmpty) {
-      throw Exception('Não foi possível iniciar a sessão da nuvem.');
+      throw AppMessageException('Não foi possível iniciar a sessão da nuvem.');
     }
     return CloudSession(
       accessToken: token,
@@ -177,7 +179,7 @@ class CloudService {
   }
 
   static Future<CloudSession> signInAnonymously() async {
-    if (!configured) throw Exception('Supabase ainda não configurado neste site.');
+    if (!configured) throw AppMessageException('Supabase ainda não configurado neste site.');
     final data = await _request(
       'POST',
       Uri.parse('$supabaseUrl/auth/v1/signup'),
@@ -223,7 +225,7 @@ class CloudService {
       // leaving the app trapped with a permanently unusable session.
       if (e.isUnauthorized) {
         await signOut();
-        throw Exception('Sua sessão expirou. Entre novamente.');
+        throw AppMessageException('Sua sessão expirou. Entre novamente.');
       }
       // Network failures keep the stored session intact so offline/unstable
       // connections never log the player out accidentally.
@@ -278,7 +280,7 @@ class CloudService {
   }
 
   static Future<CloudSession> signIn(String email, String password) async {
-    if (!configured) throw Exception('Supabase ainda não configurado neste site.');
+    if (!configured) throw AppMessageException('Supabase ainda não configurado neste site.');
     final data = await _request(
       'POST',
       Uri.parse('$supabaseUrl/auth/v1/token?grant_type=password'),
@@ -310,10 +312,10 @@ class CloudService {
   }) async {
     if (!current.isAnonymous) return current;
     if (email.trim().isEmpty || !email.contains('@')) {
-      throw Exception('Informe um e-mail válido.');
+      throw AppMessageException('Informe um e-mail válido.');
     }
     if (password.length < 6) {
-      throw Exception('A senha precisa ter pelo menos 6 caracteres.');
+      throw AppMessageException('A senha precisa ter pelo menos 6 caracteres.');
     }
 
     final data = await _request(
@@ -385,12 +387,12 @@ class CloudService {
 
 
   static Future<void> uploadBackup(CloudSession session, Map<String, dynamic> payload, {DateTime? expectedCloudUpdatedAt}) async {
-    if (!configured) throw Exception('Supabase ainda não configurado neste site.');
+    if (!configured) throw AppMessageException('Supabase ainda não configurado neste site.');
     if (expectedCloudUpdatedAt != null) {
       final latest = await downloadSnapshot(session);
       final latestTime = latest?.updatedAt;
       if (latestTime != null && latestTime.isAfter(expectedCloudUpdatedAt.add(const Duration(milliseconds: 500)))) {
-        throw Exception('Há alterações mais recentes na nuvem. Sincronize novamente antes de enviar.');
+        throw AppMessageException('Há alterações mais recentes na nuvem. Sincronize novamente antes de enviar.');
       }
     }
     await _request(
@@ -409,7 +411,7 @@ class CloudService {
   }
 
   static Future<CloudSnapshot?> downloadSnapshot(CloudSession session) async {
-    if (!configured) throw Exception('Supabase ainda não configurado.');
+    if (!configured) throw AppMessageException('Supabase ainda não configurado.');
     final uri=Uri.parse('$supabaseUrl/rest/v1/rpg_cloud_backups?user_id=eq.${Uri.encodeComponent(session.userId)}&select=payload,updated_at&limit=1');
     final decoded=await _rawRequest('GET',uri,headers:{'Authorization':'Bearer ${session.accessToken}'});
     if(decoded is! List || decoded.isEmpty) return null;
