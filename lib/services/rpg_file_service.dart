@@ -412,6 +412,7 @@ class RpgFileService {
       conditions: List<String>.from(original.conditions),
       actionOrder: List<String>.from(original.actionOrder),
       hiddenActionGroups: List<String>.from(original.hiddenActionGroups),
+      hiddenGeneralCards: List<String>.from(original.hiddenGeneralCards),
       customSpriteImages: Map<String, String>.from(original.customSpriteImages),
       customSpriteEnabled: original.customSpriteEnabled,
     );

@@ -32,6 +32,11 @@ class Character {
   List<String> conditions;
   List<String> actionOrder;
   List<String> hiddenActionGroups;
+
+  /// Cards do Em Cena escondidos no Personalizar. Ficha nova ou antiga sem a
+  /// chave começa com ['skillTree'] (o card Árvore começa desligado; os outros
+  /// continuam visíveis).
+  List<String> hiddenGeneralCards;
   String shareCode;
   /// Imagens próprias do personagem 2D: pose ('normal', 'agony', 'critical',
   /// 'incapacitated') → data URI. Vazio = usa o personagem do tema.
@@ -73,6 +78,7 @@ class Character {
     List<String>? conditions,
     List<String>? actionOrder,
     List<String>? hiddenActionGroups,
+    List<String>? hiddenGeneralCards,
     this.shareCode = '',
     Map<String, String>? customSpriteImages,
     this.customSpriteEnabled = false,
@@ -94,7 +100,8 @@ class Character {
         sheetTabOrder = sheetTabOrder ?? ['general', 'attributesResources', 'actions', 'skillTree', 'abilities', 'skills', 'inventory', 'sections'],
         conditions = conditions ?? [],
         actionOrder = actionOrder ?? ['weapons', 'spells', 'abilities', 'consumables'],
-        hiddenActionGroups = hiddenActionGroups ?? [];
+        hiddenActionGroups = hiddenActionGroups ?? [],
+        hiddenGeneralCards = hiddenGeneralCards ?? ['skillTree'];
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -130,6 +137,7 @@ class Character {
         'conditions': conditions,
         'actionOrder': actionOrder,
         'hiddenActionGroups': hiddenActionGroups,
+        'hiddenGeneralCards': hiddenGeneralCards,
         'shareCode': shareCode,
         'customSpriteImages': customSpriteImages,
         'customSpriteEnabled': customSpriteEnabled,
@@ -199,6 +207,7 @@ class Character {
       conditions: (json['conditions'] as List?)?.map((e) => e.toString()).toList() ?? [],
       actionOrder: (json['actionOrder'] as List?)?.map((e) => e.toString()).toList() ?? ['weapons', 'spells', 'abilities', 'consumables'],
       hiddenActionGroups: (json['hiddenActionGroups'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      hiddenGeneralCards: (json['hiddenGeneralCards'] as List?)?.map((e) => e.toString()).toList() ?? ['skillTree'],
       shareCode: json['shareCode']?.toString() ?? '',
       customSpriteImages: _parseCustomSpriteImages(json['customSpriteImages']),
       customSpriteEnabled: json['customSpriteEnabled'] == true,
