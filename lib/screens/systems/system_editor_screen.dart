@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -30,6 +32,14 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
   final Map<String, String> _resourceRenames = {};
   final Map<String, String> _sectionRenames = {};
 
+  /// "Foto" do sistema como o _save grava; comparada ao sair (alterações não
+  /// salvas). Depois de salvar, passa a ser o estado salvo.
+  late String _savedSnapshot;
+
+  /// Erro no campo "Nome do sistema".
+  String? _nameError;
+  final _nameFieldKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -41,6 +51,44 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
     sections = [...widget.system.sections];
     dice = [...widget.system.dice];
     skillAttributes = {...widget.system.skillAttributes};
+    _savedSnapshot = _snapshot();
+  }
+
+  /// O sistema no formato que o _save grava.
+  RpgSystem _currentSystem() => RpgSystem(
+        id: widget.system.id,
+        name: name.text.trim(),
+        description: description.text.trim(),
+        attributes: attributes,
+        skills: skills,
+        resources: resources,
+        sections: sections,
+        dice: dice,
+        skillAttributes: pruneSkillAttributes(skills: skills, attributes: attributes, links: skillAttributes),
+      );
+
+  String _snapshot() => jsonEncode(_currentSystem().toJson());
+
+  bool get _hasUnsavedChanges => _snapshot() != _savedSnapshot;
+
+  /// Sair do editor: sem alterações, sai direto; com alterações, pergunta.
+  Future<void> _handlePop() async {
+    if (!_hasUnsavedChanges) {
+      Navigator.pop(context);
+      return;
+    }
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Descartar alterações?'),
+        content: const Text('As mudanças neste sistema ainda não foram salvas.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Continuar editando')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Sair sem salvar')),
+        ],
+      ),
+    );
+    if (discard == true && mounted) Navigator.pop(context);
   }
 
   @override
@@ -59,37 +107,62 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
     return false;
   }
 
+  /// Pede um nome. Valida antes de fechar (vazio → "Dê um nome."; outros
+  /// erros vêm de [validate]); o erro aparece no campo e some ao digitar.
   Future<String?> _askText({
     required String title,
     required String label,
     String initial = '',
     String action = 'Salvar',
+    String? Function(String value)? validate,
   }) async {
     final controller = TextEditingController(text: initial);
+    String? error;
     final value = await showDialog<String>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(labelText: label),
-          textCapitalization: TextCapitalization.sentences,
-          onSubmitted: (text) => Navigator.pop(context, text.trim()),
+      // O campo é liberado só quando o diálogo sai da árvore (depois da
+      // animação de saída).
+      builder: (dialogContext) => _DisposeOnRemoved(
+        onRemoved: controller.dispose,
+        child: StatefulBuilder(
+          builder: (_, setDialogState) {
+            void submit() {
+              final text = controller.text.trim();
+              final problem = text.isEmpty ? 'Dê um nome.' : validate?.call(text);
+              if (problem != null) {
+                setDialogState(() => error = problem);
+                return;
+              }
+              Navigator.pop(dialogContext, text);
+            }
+
+            return AlertDialog(
+              title: Text(title),
+              content: TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: InputDecoration(labelText: label, errorText: error, errorMaxLines: 3),
+                textCapitalization: TextCapitalization.sentences,
+                onChanged: (_) {
+                  if (error != null) setDialogState(() => error = null);
+                },
+                onSubmitted: (_) => submit(),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: submit,
+                  child: Text(action),
+                ),
+              ],
+            );
+          },
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: Text(action),
-          ),
-        ],
       ),
     );
-    controller.dispose();
     return value;
   }
 
@@ -98,16 +171,9 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
       title: title,
       label: hint,
       action: 'Adicionar',
+      validate: (v) => _alreadyExists(list, v) ? '"$v" já existe nesta categoria.' : null,
     );
     if (value == null || value.isEmpty) return;
-
-    if (_alreadyExists(list, value)) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('"$value" já existe nesta categoria.')),
-      );
-      return;
-    }
 
     setState(() => list.add(value));
   }
@@ -124,16 +190,9 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
       title: title,
       label: hint,
       initial: oldValue,
+      validate: (v) => _alreadyExists(list, v, ignoreIndex: index) ? '"$v" já existe nesta categoria.' : null,
     );
     if (value == null || value.isEmpty || value == oldValue) return;
-
-    if (_alreadyExists(list, value, ignoreIndex: index)) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('"$value" já existe nesta categoria.')),
-      );
-      return;
-    }
 
     String originalValue = oldValue;
     for (final entry in renameMap.entries) {
@@ -300,23 +359,13 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
   Future<void> _save() async {
     final cleanName = name.text.trim();
     if (cleanName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Informe um nome para o sistema.')),
-      );
+      setState(() => _nameError = 'Informe um nome para o sistema.');
+      final field = _nameFieldKey.currentContext;
+      if (field != null) Scrollable.ensureVisible(field, duration: const Duration(milliseconds: 250));
       return;
     }
 
-    final updated = RpgSystem(
-      id: widget.system.id,
-      name: cleanName,
-      description: description.text.trim(),
-      attributes: attributes,
-      skills: skills,
-      resources: resources,
-      sections: sections,
-      dice: dice,
-      skillAttributes: pruneSkillAttributes(skills: skills, attributes: attributes, links: skillAttributes),
-    );
+    final updated = _currentSystem();
 
     await context.read<AppState>().updateSystem(
           updated,
@@ -325,6 +374,7 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
           resourceRenames: _resourceRenames,
           sectionRenames: _sectionRenames,
         );
+    _savedSnapshot = _snapshot();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Sistema salvo. Fichas vinculadas foram atualizadas.')),
@@ -337,7 +387,14 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
   Widget build(BuildContext context) {
     final totalItems = attributes.length + skills.length + resources.length + sections.length;
 
-    return Scaffold(
+    return PopScope(
+      // A saída (seta, botão/gesto voltar) passa por _handlePop, que pergunta
+      // se houver alterações não salvas.
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _handlePop();
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Text(widget.system.id == 'generic' ? 'Sistema Padrão' : 'Editar sistema'),
         actions: [
@@ -384,11 +441,16 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
           ),
           const SizedBox(height: 14),
           TextField(textCapitalization: TextCapitalization.sentences, 
+            key: _nameFieldKey,
             controller: name,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Nome do sistema',
-              prefixIcon: Icon(Icons.auto_awesome),
+              prefixIcon: const Icon(Icons.auto_awesome),
+              errorText: _nameError,
             ),
+            onChanged: (_) {
+              if (_nameError != null) setState(() => _nameError = null);
+            },
           ),
           const SizedBox(height: 12),
           TextField(textCapitalization: TextCapitalization.sentences, 
@@ -494,8 +556,30 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
           ),
         ],
       ),
+    ),
     );
   }
+}
+
+/// Chama [onRemoved] quando sai da árvore (o diálogo terminou de fechar).
+class _DisposeOnRemoved extends StatefulWidget {
+  final VoidCallback onRemoved;
+  final Widget child;
+  const _DisposeOnRemoved({required this.onRemoved, required this.child});
+
+  @override
+  State<_DisposeOnRemoved> createState() => _DisposeOnRemovedState();
+}
+
+class _DisposeOnRemovedState extends State<_DisposeOnRemoved> {
+  @override
+  void dispose() {
+    widget.onRemoved();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class _BuilderHint extends StatelessWidget {

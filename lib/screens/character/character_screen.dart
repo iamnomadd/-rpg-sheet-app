@@ -282,7 +282,8 @@ class _CharacterScreenState extends State<CharacterScreen> {
         actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Fechar'))],
       ));
     } catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível consultar solicitações: $e')));
+      debugPrint('Consultar solicitações falhou: $e');
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível consultar as solicitações. Verifique a conexão.')));
     }
   }
 
@@ -335,9 +336,10 @@ class _CharacterScreenState extends State<CharacterScreen> {
                   await RpgFileService.shareCharacterSummary(c, system);
                 }
               } catch (e) {
+                debugPrint('Compartilhar ficha falhou: $e');
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Não foi possível compartilhar: $e')),
+                  const SnackBar(content: Text('Não foi possível compartilhar a ficha. Verifique a conexão.')),
                 );
               }
             },

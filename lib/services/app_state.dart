@@ -161,12 +161,16 @@ class AppState extends ChangeNotifier {
     // holding the first usable screen behind network/auth latency.
     if (autoSync) {
       Future<void>.delayed(const Duration(milliseconds:900),(){
-        syncNow(silent:true);
+        // Confere de novo: o "Apagar todos os dados" pode ter desligado a
+        // sincronização automática nesse meio-tempo.
+        if (autoSync) syncNow(silent:true);
       });
     }
   }
 
-  Future<void> save() async {
+  /// Grava o estado local. Com [markLocalChange] false (só o "Apagar todos os
+  /// dados"), não marca uma alteração local nova nem agenda sincronização.
+  Future<void> save({bool markLocalChange = true}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       'characters',
@@ -188,7 +192,7 @@ class AppState extends ChangeNotifier {
     await prefs.setBool('reduce_animations', reduceAnimations);
     await prefs.setBool('master_tools_enabled', masterToolsEnabled);
     await prefs.setBool('auto_sync', autoSync);
-    if (!_applyingCloud) {
+    if (!_applyingCloud && markLocalChange) {
       _localRevision++;
       lastLocalChangeUtc = DateTime.now().toUtc();
       await prefs.setString('last_local_change_utc', lastLocalChangeUtc!.toIso8601String());
@@ -196,7 +200,7 @@ class AppState extends ChangeNotifier {
     if (lastSyncUtc != null) {
       await prefs.setString('last_sync_utc', lastSyncUtc!.toIso8601String());
     }
-    if (!_applyingCloud && autoSync && loaded) {
+    if (!_applyingCloud && markLocalChange && autoSync && loaded) {
       _autoSyncDebounce?.cancel();
       _autoSyncDebounce=Timer(const Duration(milliseconds:700),(){
         syncNow(silent:true);
@@ -221,6 +225,22 @@ class AppState extends ChangeNotifier {
         },
         'localChangedAt': lastLocalChangeUtc?.toIso8601String(),
       };
+
+  /// Aparelho sem fichas e sem campanhas.
+  bool get isLocalEmpty => characters.isEmpty && campaigns.isEmpty;
+
+  /// Quantas fichas e campanhas há num backup da nuvem.
+  static ({int characters, int campaigns}) backupCounts(Map<String, dynamic>? payload) {
+    int count(Object? value) => value is List ? value.length : 0;
+    return (characters: count(payload?['characters']), campaigns: count(payload?['campaigns']));
+  }
+
+  /// O envio substituiria um backup da nuvem com dados por um aparelho vazio.
+  bool wouldOverwriteCloudWithEmpty(Map<String, dynamic>? cloudPayload) {
+    if (!isLocalEmpty || cloudPayload == null) return false;
+    final counts = backupCounts(cloudPayload);
+    return counts.characters > 0 || counts.campaigns > 0;
+  }
 
   Future<String> syncNow({bool silent = false}) async {
     if (_syncing) return syncStatus;
@@ -257,12 +277,18 @@ class AppState extends ChangeNotifier {
           syncStatus = 'Atualizado pela nuvem';
         }
       } else if (localTime != null && (cloudTime == null || localTime.isAfter(cloudTime.add(const Duration(seconds: 2))))) {
-        await CloudService.uploadBackup(
-          session,
-          cloudPayload(),
-          expectedCloudUpdatedAt: cloudTime,
-        );
-        syncStatus = 'Alterações enviadas';
+        if (wouldOverwriteCloudWithEmpty(cloud.payload)) {
+          // Nunca envia automaticamente um aparelho vazio por cima de um
+          // backup com fichas ou campanhas.
+          syncStatus = 'Nada enviado: este aparelho está vazio';
+        } else {
+          await CloudService.uploadBackup(
+            session,
+            cloudPayload(),
+            expectedCloudUpdatedAt: cloudTime,
+          );
+          syncStatus = 'Alterações enviadas';
+        }
       } else {
         syncStatus = 'Tudo sincronizado';
       }
@@ -840,12 +866,28 @@ class AppState extends ChangeNotifier {
     return repairs;
   }
 
+  /// Apaga os dados SÓ deste aparelho. Não pode apagar o backup da nuvem:
+  /// 1. cancela a sincronização automática pendente;
+  /// 2. desliga a sincronização automática (e salva a preferência);
+  /// 3. apaga os dados locais;
+  /// 4. não marca o apagar como alteração local nova (lastLocalChangeUtc
+  ///    nulo), para uma sincronização futura trazer a nuvem de volta;
+  /// 5. salva sem disparar sincronização.
   Future<void> clearAll() async {
+    _autoSyncDebounce?.cancel();
+    _autoSyncDebounce = null;
+    final prefs = await SharedPreferences.getInstance();
+    autoSync = false;
+    await prefs.setBool('auto_sync', false);
     characters.clear();
     systems = [_builtInSystems().first];
     campaigns.clear();
     savedRolls.clear();
-    await save();
+    // Uma sincronização em andamento não aplica a nuvem por cima do apagar.
+    _localRevision++;
+    lastLocalChangeUtc = null;
+    await prefs.remove('last_local_change_utc');
+    await save(markLocalChange: false);
     notifyListeners();
   }
 }

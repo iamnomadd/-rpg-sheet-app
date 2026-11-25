@@ -219,8 +219,9 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Solicitação enviada ao jogador.')));
     } catch (e) {
+      debugPrint('Vincular ficha falhou: $e');
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível vincular: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível vincular a ficha. Confira o código e a conexão.')));
     }
   }
 
@@ -248,7 +249,8 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
       final stillExists=deleted ? null : await CloudService.linkRequestExists(session,requestId:requestId,campaignId:c.id,shareCode:code);
       if(!canRemoveLinkLocally(deleted:deleted,stillExists:stillExists)) throw Exception('o servidor ainda não permite desfazer vínculos. A atualização do banco (migration v150) precisa ser aplicada.');
     } catch(e) {
-      if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Não foi possível desvincular: $e')));
+      debugPrint('Desvincular falhou: $e');
+      if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Não foi possível desvincular. Verifique a conexão.')));
       return;
     }
     final initiativeChanged=removeRemoteLink(c,link);
@@ -278,7 +280,8 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
       final session=await CloudService.ensureSession();
       await CloudService.updateSharedCharacterPatch(session,'${link['shareCode']}',{'resourceValues':values,'conditions':newConditions});
     } catch(e) {
-      if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Não foi possível sincronizar: $e')));
+      debugPrint('Sincronizar vínculo falhou: $e');
+      if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Não foi possível sincronizar. Verifique a conexão.')));
     }
   }
 
@@ -329,7 +332,8 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
       if (initiativeChanged) await _syncCombatState(c);
       return true;
     } catch (e) {
-      if (!quiet && context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível atualizar vínculos: $e')));
+      debugPrint('Atualizar vínculos falhou: $e');
+      if (!quiet && context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível atualizar os vínculos. Verifique a conexão.')));
       return false;
     }
   }
@@ -900,9 +904,10 @@ class _CampaignDetailScreenState extends State<CampaignDetailScreen> {
         await RpgFileService.shareCampaignSummary(campaign, state);
       }
     } catch (e) {
+      debugPrint('Compartilhar campanha falhou: $e');
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Não foi possível compartilhar: $e')),
+        const SnackBar(content: Text('Não foi possível compartilhar. Tente de novo.')),
       );
     }
   }

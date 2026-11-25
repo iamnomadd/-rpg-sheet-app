@@ -23,9 +23,10 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     try {
       await action();
     } catch (e) {
+      debugPrint('Importar/exportar falhou: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Não foi possível concluir: $e')),
+          const SnackBar(content: Text('Não foi possível concluir. Tente de novo.')),
         );
       }
     } finally {
@@ -49,9 +50,10 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       };
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } catch (e) {
+      debugPrint('Importar arquivo falhou: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Arquivo inválido: $e')),
+          const SnackBar(content: Text('Arquivo inválido. Escolha um arquivo .rpg exportado pelo RPG Sheet.')),
         );
       }
     } finally {
@@ -146,9 +148,10 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
         );
       }
     } catch (e) {
+      debugPrint('Restaurar backup falhou: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Não foi possível restaurar: $e')),
+          const SnackBar(content: Text('Não foi possível restaurar. Confira se o arquivo é um backup .rpg válido.')),
         );
       }
     } finally {
