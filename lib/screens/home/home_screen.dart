@@ -240,7 +240,12 @@ class _CharacterCard extends StatelessWidget {
           'Nível ${character.level} • HP ${character.hp}/${character.maxHp}',
         ),
         isThreeLine: true,
-        trailing: const Icon(Icons.chevron_right),
+        trailing: IconButton(
+          visualDensity: VisualDensity.compact,
+          tooltip: 'Excluir ficha',
+          icon: const Icon(Icons.delete_outline),
+          onPressed: () => _confirmDelete(context, character),
+        ),
         onTap: () {
           Navigator.push(
             context,
@@ -249,7 +254,6 @@ class _CharacterCard extends StatelessWidget {
             ),
           );
         },
-        onLongPress: () => _confirmDelete(context, character),
       ),
     );
   }

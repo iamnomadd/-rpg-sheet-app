@@ -2213,12 +2213,14 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
     final newName = result['name'] as String;
     if (editing) {
       widget.items[index] = newName;
-      if (oldName != newName) {
+      // Ficha antiga com nomes repetidos: se outra linha ainda usa o nome
+      // antigo, os dados dele ficam (o item renomeado leva uma cópia).
+      if (oldName != newName && !widget.items.contains(oldName)) {
         widget.descriptions.remove(oldName);
         widget.details.remove(oldName);
         // Armas que usavam o item renomeado como estoque de munição passam a
-        // apontar para o nome novo (se nenhuma outra linha ainda usa o antigo).
-        if (!widget.isAbility && !widget.items.contains(oldName)) {
+        // apontar para o nome novo.
+        if (!widget.isAbility) {
           for (final d in widget.details.values) {
             if (d['ammoItem'] == oldName) d['ammoItem'] = newName;
           }
