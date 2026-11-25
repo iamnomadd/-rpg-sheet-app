@@ -129,7 +129,7 @@ void main() {
     final state = AppState();
     await tester.pumpWidget(ChangeNotifierProvider<AppState>.value(value: state, child: const MaterialApp(home: SettingsScreen())));
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Escolha entre ${appThemes.length} estilos visuais para o RPG Sheet.'), findsOneWidget);
+    expect(find.text('Escolha entre ${appThemes.length} estilos visuais para o Grimório.'), findsOneWidget);
     expect(appThemes.length, 11);
   });
 }

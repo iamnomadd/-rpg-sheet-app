@@ -189,8 +189,29 @@ class _SyncScreenState extends State<SyncScreen> with WidgetsBindingObserver {
             );
             if (confirm != true || !mounted) return;
           }
+        } else if (state.cloudRestorePending) {
+          // Aparelho apagado e depois alterado: também só com confirmação.
+          final cloud = await CloudService.downloadSnapshot(current);
+          if (!mounted) return;
+          if (AppState.backupHasData(cloud?.payload)) {
+            final counts = AppState.backupCounts(cloud!.payload);
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (dialogContext) => AlertDialog(
+                title: const Text('Substituir o backup da nuvem?'),
+                content: Text('Este aparelho foi apagado e depois alterado. Enviar agora vai substituir o backup da nuvem, que tem ${counts.characters} ficha(s) e ${counts.campaigns} campanha(s). Continuar?'),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
+                  FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Substituir')),
+                ],
+              ),
+            );
+            if (confirm != true || !mounted) return;
+          }
         }
         await CloudService.uploadBackup(current, state.cloudPayload());
+        // Enviado: a nuvem passa a ser este aparelho.
+        if (state.cloudRestorePending) await state.setCloudRestorePending(false);
         _message('Dados enviados para a nuvem.');
       });
 
@@ -216,7 +237,10 @@ class _SyncScreenState extends State<SyncScreen> with WidgetsBindingObserver {
           ),
         );
         if (confirm != true || !mounted) return;
-        await context.read<AppState>().replaceFromBackup(data);
+        final state = context.read<AppState>();
+        await state.replaceFromBackup(data);
+        // A nuvem voltou: fim da proteção do "Apagar todos os dados".
+        await state.setCloudRestorePending(false);
         _message('Dados restaurados da nuvem.');
       });
 

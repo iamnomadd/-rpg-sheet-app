@@ -92,7 +92,7 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
     final compact = context.select<AppState, bool>((s) => s.compactMode);
     final largeText = context.select<AppState, bool>((s) => s.largeText);
     return FlushOnBackground(child: MaterialApp(
-      title: 'RPG Sheet',
+      title: 'Grimório',
       debugShowCheckedModeBanner: false,
       theme: _themeCache.resolve(themeId, compact),
       builder: (context, child) {

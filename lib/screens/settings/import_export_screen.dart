@@ -53,7 +53,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       debugPrint('Importar arquivo falhou: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Arquivo inválido. Escolha um arquivo .rpg exportado pelo RPG Sheet.')),
+          const SnackBar(content: Text('Arquivo inválido. Escolha um arquivo .rpg exportado pelo Grimório.')),
         );
       }
     } finally {

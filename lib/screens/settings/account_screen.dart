@@ -62,7 +62,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   CircleAvatar(radius:26,child:Icon(_session?.isAnonymous==true?Icons.person_outline:Icons.person)),
                   const SizedBox(width:14),
                   Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-                    Text(_session==null?'Sem conta conectada':(_session!.isAnonymous?'Sessão temporária':'Conta RPG Sheet'),
+                    Text(_session==null?'Sem conta conectada':(_session!.isAnonymous?'Sessão temporária':'Conta Grimório'),
                       style:Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w700)),
                     const SizedBox(height:3),
                     Text(_session?.email.isNotEmpty==true?_session!.email:'Nenhum e-mail conectado',

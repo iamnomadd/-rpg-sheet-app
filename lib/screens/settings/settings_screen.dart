@@ -48,7 +48,7 @@ class SettingsScreen extends StatelessWidget {
                   ListTile(
                     leading: const Icon(Icons.palette_outlined),
                     title: const Text('Aparência e temas'),
-                    subtitle: Text('Escolha entre ${appThemes.length} estilos visuais para o RPG Sheet.'),
+                    subtitle: Text('Escolha entre ${appThemes.length} estilos visuais para o Grimório.'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThemeScreen())),
                   ),
@@ -107,7 +107,7 @@ class SettingsScreen extends StatelessWidget {
                       Card(child:ListTile(
                         leading:const Icon(Icons.confirmation_number_outlined),
                         title:const Text('Gerenciar convites'),
-                        subtitle:const Text('Crie, copie e revogue códigos de acesso ao RPG Sheet.'),
+                        subtitle:const Text('Crie, copie e revogue códigos de acesso ao Grimório.'),
                         trailing:const Icon(Icons.chevron_right),
                         onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>const InviteManagerScreen())),
                       )),

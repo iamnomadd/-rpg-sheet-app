@@ -7,6 +7,7 @@ import '../../app/abyss_theme.dart';
 import '../../models/rpg_system.dart';
 import '../../services/app_state.dart';
 import '../../widgets/card_spacing.dart';
+import '../../widgets/dispose_on_removed.dart';
 
 class SystemEditorScreen extends StatefulWidget {
   final RpgSystem system;
@@ -122,7 +123,7 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
       context: context,
       // O campo é liberado só quando o diálogo sai da árvore (depois da
       // animação de saída).
-      builder: (dialogContext) => _DisposeOnRemoved(
+      builder: (dialogContext) => DisposeOnRemoved(
         onRemoved: controller.dispose,
         child: StatefulBuilder(
           builder: (_, setDialogState) {
@@ -559,27 +560,6 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
     ),
     );
   }
-}
-
-/// Chama [onRemoved] quando sai da árvore (o diálogo terminou de fechar).
-class _DisposeOnRemoved extends StatefulWidget {
-  final VoidCallback onRemoved;
-  final Widget child;
-  const _DisposeOnRemoved({required this.onRemoved, required this.child});
-
-  @override
-  State<_DisposeOnRemoved> createState() => _DisposeOnRemovedState();
-}
-
-class _DisposeOnRemovedState extends State<_DisposeOnRemoved> {
-  @override
-  void dispose() {
-    widget.onRemoved();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
 }
 
 class _BuilderHint extends StatelessWidget {
