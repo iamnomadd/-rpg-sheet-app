@@ -1,7 +1,7 @@
 // Design do tema Abissal (id 'abyss') — desde a 1.3.62 é o design PADRÃO de
 // todos os temas: cada tema muda só a paleta ([AbyssPalette],
-// [abyssPaletteFor]). Para voltar ao design antigo nos outros temas, faça
-// [usesAbyssDesign] devolver `themeId == 'abyss'`. Os ornamentos são originais,
+// [abyssPaletteFor]); o design antigo dos outros temas foi removido na
+// 1.3.63. Os ornamentos são originais,
 // desenhados em código (Path/CustomPainter/ShapeBorder); sem imagens nem
 // fontes novas.
 import 'dart:math' as math;
@@ -32,10 +32,6 @@ abstract final class AbyssColors {
   static const track = Color(0xFF0A1015);
   static const smoke = Color(0xFF6B3FA0);
 }
-
-/// O design do Abissal é o padrão de todos os temas desde a 1.3.62; para
-/// voltar ao design antigo, devolva `themeId == 'abyss'`.
-bool usesAbyssDesign(String themeId) => true;
 
 /// Paleta do design do Abissal para um tema (os mesmos campos de
 /// [AbyssColors]). Fica no `ThemeData` como extensão; os widgets e pintores do
@@ -1071,15 +1067,12 @@ ThemeData buildAbyssAppTheme(ThemeData base, bool compact) {
 }
 
 /// Respiro interno dos cards do Abissal: 12 px nas laterais e 10 px em cima e
-/// embaixo (a moldura e os entalhes ocupam até ~6 px da borda). Nos outros
-/// temas devolve [current] sem mudança.
-EdgeInsetsGeometry abyssCardInset(String themeId, EdgeInsetsGeometry current) =>
-    usesAbyssDesign(themeId) ? const EdgeInsets.fromLTRB(12, 10, 12, 10) : current;
+/// embaixo (a moldura e os entalhes ocupam até ~6 px da borda).
+const abyssCardInset = EdgeInsets.fromLTRB(12, 10, 12, 10);
 
 /// Grade dos atributos: no Abissal a altura da célula acompanha o texto
 /// (escala de fonte) em vez da proporção fixa, para nada ser cortado.
-SliverGridDelegate abyssAttributeGridDelegate(BuildContext context, String themeId, SliverGridDelegate current) {
-  if (!usesAbyssDesign(themeId)) return current;
+SliverGridDelegate abyssAttributeGridDelegate(BuildContext context) {
   final theme = Theme.of(context).textTheme;
   final scaler = MediaQuery.textScalerOf(context);
   double lineHeight(TextStyle? style) => scaler.scale(style?.fontSize ?? 14) * (style?.height ?? 1.3);
@@ -1091,11 +1084,9 @@ SliverGridDelegate abyssAttributeGridDelegate(BuildContext context, String theme
   );
 }
 
-/// Altura de faixas horizontais de chips: no Abissal acompanha a escala do
-/// texto e o respiro do chip (nunca menor que [current]); nos outros temas
-/// devolve [current].
-double abyssChipBarHeight(BuildContext context, String themeId, double current) {
-  if (!usesAbyssDesign(themeId)) return current;
+/// Altura de faixas horizontais de chips: acompanha a escala do texto e o
+/// respiro do chip (nunca menor que [current]).
+double abyssChipBarHeight(BuildContext context, double current) {
   final label = MediaQuery.textScalerOf(context).scale(14) * 1.43;
   return math.max(current, label + 2 * 11 + 4);
 }

@@ -553,7 +553,7 @@ class _DiceEditorSection extends StatelessWidget {
     return Card(
       margin: cardSpacingMargin,
       child: Padding(
-        padding: abyssCardInset(context.watch<AppState>().themeId, const EdgeInsets.fromLTRB(16, 14, 10, 10)),
+        padding: abyssCardInset,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             const Icon(Icons.casino),

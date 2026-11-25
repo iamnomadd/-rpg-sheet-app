@@ -90,8 +90,6 @@ void main() {
     final ids = appThemes.map((t) => t.id).toList();
     expect(appThemes.map((t) => t.seed).toSet(), hasLength(ids.length));
     expect(ids.map((id) => buildTheme(id).colorScheme.primary).toSet(), hasLength(ids.length));
-    expect(ids.map((id) => themedResourceBarColors(id).first).toSet(), hasLength(ids.length));
-    expect(ids.map((id) => themedResourceTrackColor(id)).toSet(), hasLength(ids.length));
     expect(ids.map((id) => themedIcon(id, 'general')).toSet(), hasLength(ids.length));
     expect(ids.map((id) => themedMainIcon(id, 'characters')).toSet(), hasLength(ids.length));
   });

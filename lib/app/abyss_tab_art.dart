@@ -112,7 +112,7 @@ class ThemedSectionIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final fallback = Icon(fallbackIcon ?? themedIcon(themeId, role), size: size, color: color);
     final path = abyssSectionArt(role);
-    if (!usesAbyssDesign(themeId) || path == null) return fallback;
+    if (path == null) return fallback;
     return _artImage(path, abyssArtIconSize(context.watch<AppState?>()?.compactMode ?? false), fallback);
   }
 }

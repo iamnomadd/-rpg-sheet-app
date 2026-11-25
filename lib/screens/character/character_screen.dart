@@ -382,7 +382,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
                 delegate: _CharacterTabsHeader(
                   height: tabsHeight,
                   child: Material(
-                    color: usesAbyssDesign(state.themeId) ? AbyssPalette.of(context).bar : state.themeId == 'parchment' ? Theme.of(context).colorScheme.surface : Theme.of(context).scaffoldBackgroundColor,
+                    color: AbyssPalette.of(context).bar,
                     child: Container(
                       decoration: BoxDecoration(
                         border: Border(bottom: BorderSide(
@@ -395,7 +395,6 @@ class _CharacterScreenState extends State<CharacterScreen> {
                           scrollDirection: Axis.horizontal,
                           child: Row(children: order.asMap().entries.map((entry) {
                             final index = entry.key, id = entry.value, selected = tab == index;
-                            final colors = Theme.of(context).colorScheme;
                             return InkWell(
                               onTap: () {
                                 final previousTab = tab;
@@ -411,44 +410,13 @@ class _CharacterScreenState extends State<CharacterScreen> {
                                   );
                                 }
                               },
-                              child: usesAbyssDesign(state.themeId)
-                                  ? AbyssTabCell(
-                                      selected: selected,
-                                      reduceMotion: reduceMotion,
-                                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                                      icon: (color, selected) => themedCharacterTabIcon(state.themeId, id, size: 22, color: color, selected: selected),
-                                      label: _tabLabel(id),
-                                      labelStyle: Theme.of(context).textTheme.labelMedium,
-                                    )
-                                  : AnimatedContainer(
-                                duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 180),
+                              child: AbyssTabCell(
+                                selected: selected,
+                                reduceMotion: reduceMotion,
                                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                                decoration: BoxDecoration(
-                                  border: Border(bottom: BorderSide(
-                                    color: selected ? colors.primary : Colors.transparent,
-                                    width: selected ? 4 : 4,
-                                  )),
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    themedCharacterTabIcon(
-                                      state.themeId,
-                                      id,
-                                      size: 22,
-                                      color: selected ? colors.primary : colors.onSurfaceVariant,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      _tabLabel(id),
-                                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                        color: selected ? colors.primary : colors.onSurface,
-                                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                icon: (color, selected) => themedCharacterTabIcon(state.themeId, id, size: 22, color: color, selected: selected),
+                                label: _tabLabel(id),
+                                labelStyle: Theme.of(context).textTheme.labelMedium,
                               ),
                             );
                           }).toList()),
@@ -908,13 +876,7 @@ class _AttributesResourcesTab extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: system.attributes.length,
-            gridDelegate: abyssAttributeGridDelegate(context, themeId, TextGrowthGridDelegate(
-              crossAxisCount: 2,
-              childAspectRatio: 2.75,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              extraHeight: _attributeGridGrowth(context),
-            )),
+            gridDelegate: abyssAttributeGridDelegate(context),
             itemBuilder: (_, index) {
               final name = system.attributes[index];
               final value = character.attributes[name] ?? 0;
@@ -923,7 +885,7 @@ class _AttributesResourcesTab extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   onTap: () => onEditAttribute(character, name),
                   child: Padding(
-                    padding: abyssCardInset(themeId, const EdgeInsets.symmetric(horizontal: 10, vertical: 6)),
+                    padding: abyssCardInset,
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -1008,16 +970,6 @@ class _AttributesResourcesTab extends StatelessWidget {
   }
 }
 
-/// Altura a mais das células de atributo com texto maior: 0 com texto 1.0 (a
-/// grade fica igual à de proporção fixa); acima disso, o crescimento do nome e
-/// do valor + 1 px (a célula de proporção 2,75 já fica ~0,5 px curta em 1.0).
-double _attributeGridGrowth(BuildContext context) {
-  final theme = Theme.of(context).textTheme;
-  final growth = textGrowth(context, 'Ág', theme.bodyLarge?.copyWith(fontWeight: FontWeight.w700)) +
-      textGrowth(context, '0', theme.headlineSmall?.copyWith(fontWeight: FontWeight.w600));
-  return growth > 0 ? growth + 1 : 0;
-}
-
 class _ThemedResourceBar extends StatelessWidget {
   final double value;
   final String themeId;
@@ -1035,76 +987,8 @@ class _ThemedResourceBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (usesAbyssDesign(themeId)) return AbyssResourceBar(value: value, secondary: secondary, colors: abyssResourceBarColors(resourceName));
-    final fillColors = themedResourceBarColors(themeId, secondary: secondary);
-    final trackColor = themedResourceTrackColor(themeId);
-    final scheme = Theme.of(context).colorScheme;
-    final normalized = value.clamp(0.0, 1.0);
-
-    return Container(
-      height: 14,
-      decoration: BoxDecoration(
-        color: trackColor,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: scheme.outlineVariant.withOpacity(.45)),
-        boxShadow: [
-          BoxShadow(
-            color: scheme.primary.withOpacity(.08),
-            blurRadius: 10,
-            spreadRadius: 1,
-          ),
-        ],
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final fillWidth = constraints.maxWidth * normalized;
-          return Stack(
-            children: [
-              if (fillWidth > 0)
-                Align(
-                  alignment: Alignment.center,
-                  child: Container(
-                  width: fillWidth,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: fillColors),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-                ),
-              if (themeId == 'cyberpunk' && fillWidth > 18)
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: CustomPaint(
-                      painter: _CyberpunkBarPainter(progress: normalized),
-                    ),
-                  ),
-                ),
-            ],
-          );
-        },
-      ),
-    );
+    return AbyssResourceBar(value: value, secondary: secondary, colors: abyssResourceBarColors(resourceName));
   }
-}
-
-class _CyberpunkBarPainter extends CustomPainter {
-  final double progress;
-  const _CyberpunkBarPainter({required this.progress});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final activeWidth = size.width * progress;
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(.14)
-      ..strokeWidth = 1;
-    const segment = 16.0;
-    for (double x = segment; x < activeWidth; x += segment) {
-      canvas.drawLine(Offset(x, 2), Offset(x, size.height - 2), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _CyberpunkBarPainter oldDelegate) => oldDelegate.progress != progress;
 }
 
 class _SkillsTab extends StatelessWidget {
@@ -1812,19 +1696,17 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
         return Card(
           margin: EdgeInsets.only(bottom: compact ? 5 : 8),
           child: Padding(
-            padding: abyssCardInset(themeId, EdgeInsets.fromLTRB(compact ? 9 : 11, compact ? 7 : 9, compact ? 7 : 9, compact ? 7 : 9)),
+            padding: abyssCardInset,
             child: Row(children: [
               // Abissal: ilustração da ação; nos outros temas, o mesmo ícone de antes.
               ActionIconSlot(
                 themeId: themeId,
-                artPath: !usesAbyssDesign(themeId)
-                    ? null
-                    : ActionArtResolver.resolve(
-                        kind: switch (id) { 'weapons' => ActionArtKind.weapon, 'consumables' => ActionArtKind.item, 'spells' => ActionArtKind.spell, _ => ActionArtKind.ability },
-                        name: name,
-                        description: (id == 'weapons' || id == 'consumables' ? c.inventoryDescriptions[name] : c.abilityDescriptions[name]) ?? '',
-                        category: switch (id) { 'consumables' => 'Consumível', 'spells' => 'Magia', _ => d['category']?.toString() ?? '' },
-                      ),
+                artPath: ActionArtResolver.resolve(
+                  kind: switch (id) { 'weapons' => ActionArtKind.weapon, 'consumables' => ActionArtKind.item, 'spells' => ActionArtKind.spell, _ => ActionArtKind.ability },
+                  name: name,
+                  description: (id == 'weapons' || id == 'consumables' ? c.inventoryDescriptions[name] : c.abilityDescriptions[name]) ?? '',
+                  category: switch (id) { 'consumables' => 'Consumível', 'spells' => 'Magia', _ => d['category']?.toString() ?? '' },
+                ),
                 size: artSize,
                 fallback: Icon(
                   id == 'spells'
@@ -1889,10 +1771,8 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
       if (content.isNotEmpty) content.add(SizedBox(height: compact ? 10 : 14));
       final conditionsTitle = Text('Condições ativas', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700));
       final conditionsButton = TextButton.icon(onPressed: _selectConditions, icon: const Icon(Icons.flag_outlined, size: 18), label: const Text('Alterar'));
-      // Abissal: com texto grande, o botão desce de linha em vez de passar da moldura.
-      content.add(usesAbyssDesign(context.watch<AppState>().themeId)
-          ? Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, children: [conditionsTitle, conditionsButton])
-          : Row(children: [Expanded(child: conditionsTitle), conditionsButton]));
+      // Com texto grande, o botão desce de linha em vez de passar da moldura.
+      content.add(Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, children: [conditionsTitle, conditionsButton]));
       content.add(c.conditions.isEmpty
           ? Text('Nenhuma condição ativa.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant))
           : Wrap(spacing: 7, runSpacing: 7, children: c.conditions.map(_conditionChip).toList()));
@@ -2224,7 +2104,7 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
         ),
         const SizedBox(height: 10),
         SizedBox(
-          height: abyssChipBarHeight(context, themeId, 38),
+          height: abyssChipBarHeight(context, 38),
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: (widget.isAbility ? abilityFilters : inventoryFilters).length,
@@ -2313,14 +2193,12 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
                     // Abissal: ilustração no lugar do quadrado cinza com ícone.
                     ActionIconSlot(
                       themeId: themeId,
-                      artPath: !usesAbyssDesign(themeId)
-                          ? null
-                          : ActionArtResolver.resolve(
-                              kind: widget.isAbility ? ActionArtKind.ability : ActionArtKind.item,
-                              name: item,
-                              description: widget.descriptions[item] ?? '',
-                              category: category,
-                            ),
+                      artPath: ActionArtResolver.resolve(
+                        kind: widget.isAbility ? ActionArtKind.ability : ActionArtKind.item,
+                        name: item,
+                        description: widget.descriptions[item] ?? '',
+                        category: category,
+                      ),
                       size: actionArtSize(compact),
                       fallback: Container(
                         width: compact ? 36 : 42,

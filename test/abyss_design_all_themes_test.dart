@@ -54,13 +54,6 @@ void _expectFramedCards(WidgetTester tester, String themeId, String where) {
 }
 
 void main() {
-  test('usesAbyssDesign é verdadeiro em todos os temas (e em id desconhecido)', () {
-    for (final preset in appThemes) {
-      expect(usesAbyssDesign(preset.id), isTrue, reason: preset.id);
-    }
-    expect(usesAbyssDesign('tema-que-nao-existe'), isTrue);
-  });
-
   test("o tema 'abyss' se chama Abissal, sem 'experimental', e ids/ordem/padrão não mudam", () {
     final preset = themePreset('abyss');
     expect(preset.name, 'Abissal');

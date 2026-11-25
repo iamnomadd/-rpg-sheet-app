@@ -98,25 +98,7 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
       builder: (context, child) {
         final media = MediaQuery.of(context);
         final content = child ?? const SizedBox.shrink();
-        final themedContent = usesAbyssDesign(themeId)
-            ? AbyssBackground(child: content)
-            : themeId == 'parchment'
-            ? DecoratedBox(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0xFF050A12),
-                      Color(0xFF080F18),
-                      Color(0xFF111820),
-                    ],
-                    stops: [0, .52, 1],
-                  ),
-                ),
-                child: content,
-              )
-            : content;
+        final themedContent = AbyssBackground(child: content);
         final userScale = largeText ? 1.15 : (compact ? 0.90 : 1.0);
         final systemScale = media.textScaler.scale(1.0);
         final combinedScale = (systemScale * userScale).clamp(0.85, 2.0).toDouble();
@@ -151,39 +133,7 @@ class AppThemeCache {
   }
 }
 
-ThemeData buildAppTheme(String themeId, bool compact) {
-  if (usesAbyssDesign(themeId)) return buildAbyssAppTheme(buildTheme(themeId), compact);
-  final baseTheme = buildTheme(themeId);
-  return baseTheme.copyWith(
-    visualDensity: compact
-        ? const VisualDensity(horizontal: -4, vertical: -4)
-        : const VisualDensity(horizontal: -3, vertical: -3),
-    cardTheme: baseTheme.cardTheme.copyWith(margin: EdgeInsets.zero),
-    inputDecorationTheme: baseTheme.inputDecorationTheme.copyWith(
-      contentPadding: EdgeInsets.symmetric(horizontal: compact ? 8 : 10, vertical: compact ? 7 : 10),
-      isDense: true,
-      constraints: BoxConstraints(minHeight: compact ? 42 : 48),
-      labelStyle: baseTheme.inputDecorationTheme.labelStyle?.copyWith(fontSize: compact ? 11 : 11.5),
-      floatingLabelStyle: baseTheme.inputDecorationTheme.labelStyle?.copyWith(fontSize: compact ? 11 : 11.5),
-    ),
-    listTileTheme: ListTileThemeData(
-      dense: true,
-      minVerticalPadding: compact ? 0 : 2,
-      minLeadingWidth: compact ? 30 : 34,
-      contentPadding: EdgeInsets.symmetric(horizontal: compact ? 8 : 10),
-    ),
-    filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(
-      padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12, vertical: compact ? 6 : 8),
-      minimumSize: Size(44, compact ? 34 : 38),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    )),
-    outlinedButtonTheme: OutlinedButtonThemeData(style: OutlinedButton.styleFrom(
-      padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12, vertical: compact ? 6 : 8),
-      minimumSize: Size(44, compact ? 34 : 38),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    )),
-  );
-}
+ThemeData buildAppTheme(String themeId, bool compact) => buildAbyssAppTheme(buildTheme(themeId), compact);
 
 typedef MainTab = ({String role, String label});
 
@@ -242,16 +192,11 @@ class MainTabsShell extends StatelessWidget {
           top: false,
           child: Container(
             height: 78,
-            decoration: usesAbyssDesign(themeId) ? AbyssNavBarDecoration(palette: AbyssPalette.of(context)) : BoxDecoration(
-              border: Border(top: BorderSide(
-                color: Theme.of(context).colorScheme.outlineVariant.withOpacity(.32),
-              )),
-            ),
+            decoration: AbyssNavBarDecoration(palette: AbyssPalette.of(context)),
             child: ValueListenableBuilder<int>(
               valueListenable: index,
               builder: (context, current, _) {
                 final safeIndex = current >= pages.length ? pages.length - 1 : current;
-                final scheme = Theme.of(context).colorScheme;
                 return Row(
                   children: List.generate(destinations.length, (value) {
                     final item = destinations[value];
@@ -268,44 +213,14 @@ class MainTabsShell extends StatelessWidget {
                             controller.animateToPage(value, duration: duration, curve: Curves.easeInOutCubic);
                           }
                         },
-                        child: usesAbyssDesign(themeId)
-                            ? AbyssTabCell(
-                                selected: selected,
-                                reduceMotion: reduceMotion,
-                                fill: true,
-                                margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
-                                icon: (color, _) => Icon(themedMainIcon(themeId, item.role), size: 24, color: color),
-                                label: item.label,
-                                labelStyle: Theme.of(context).textTheme.labelSmall,
-                              )
-                            : AnimatedContainer(
-                          duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 180),
-                          decoration: BoxDecoration(
-                            border: Border(bottom: BorderSide(
-                              color: selected ? scheme.primary : Colors.transparent,
-                              width: 4,
-                            )),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                themedMainIcon(themeId, item.role),
-                                size: 24,
-                                color: selected ? scheme.primary : scheme.onSurfaceVariant,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                item.label,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: selected ? scheme.primary : scheme.onSurface,
-                                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
+                        child: AbyssTabCell(
+                          selected: selected,
+                          reduceMotion: reduceMotion,
+                          fill: true,
+                          margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
+                          icon: (color, _) => Icon(themedMainIcon(themeId, item.role), size: 24, color: color),
+                          label: item.label,
+                          labelStyle: Theme.of(context).textTheme.labelSmall,
                         ),
                       ),
                     );
