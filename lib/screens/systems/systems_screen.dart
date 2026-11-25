@@ -137,9 +137,10 @@ class _SystemsScreenState extends State<SystemsScreen> {
         SnackBar(content: Text('Sistema "${imported.name}" importado.')),
       );
     } catch (e) {
+      debugPrint('Importar sistema falhou: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Não foi possível importar: $e')),
+          const SnackBar(content: Text('Não foi possível importar o sistema. Confira se o arquivo .rpg é válido.')),
         );
       }
     } finally {
@@ -153,9 +154,10 @@ class _SystemsScreenState extends State<SystemsScreen> {
     try {
       await RpgFileService.exportSystem(system);
     } catch (e) {
+      debugPrint('Exportar sistema falhou: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Não foi possível exportar: $e')),
+          const SnackBar(content: Text('Não foi possível exportar o sistema. Tente de novo.')),
         );
       }
     } finally {

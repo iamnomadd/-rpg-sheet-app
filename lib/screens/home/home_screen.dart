@@ -15,6 +15,7 @@ class HomeScreen extends StatelessWidget {
     final nameController = TextEditingController();
     String? selectedSystemId =
         state.systems.isNotEmpty ? state.systems.first.id : null;
+    String? nameError;
 
     final result = await showDialog<_NewCharacterData>(
       context: context,
@@ -27,10 +28,14 @@ class HomeScreen extends StatelessWidget {
               TextField(textCapitalization: TextCapitalization.sentences, 
                 controller: nameController,
                 autofocus: true,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Nome do personagem',
-                  prefixIcon: Icon(Icons.person_outline),
+                  prefixIcon: const Icon(Icons.person_outline),
+                  errorText: nameError,
                 ),
+                onChanged: (_) {
+                  if (nameError != null) setDialogState(() => nameError = null);
+                },
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
@@ -71,7 +76,11 @@ class HomeScreen extends StatelessWidget {
             FilledButton(
               onPressed: () {
                 final name = nameController.text.trim();
-                if (name.isEmpty || selectedSystemId == null) return;
+                if (name.isEmpty) {
+                  setDialogState(() => nameError = 'Dê um nome.');
+                  return;
+                }
+                if (selectedSystemId == null) return;
 
                 Navigator.pop(
                   dialogContext,

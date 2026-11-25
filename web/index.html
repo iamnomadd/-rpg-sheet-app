@@ -25,8 +25,10 @@
     .rpg-splash-icon{width:68px;height:68px;margin:0 auto 18px;border-radius:20px;overflow:hidden;box-shadow:0 12px 34px #0006}
     .rpg-splash-title{font-size:24px;font-weight:800;letter-spacing:.2px}
     .rpg-splash-status{margin-top:8px;color:#aaa4b2;font-size:14px}
-    .rpg-loader{width:34px;height:34px;margin:22px auto 0;border:3px solid #302d35;border-top-color:#aaa0c4;border-radius:50%;animation:rpg-spin .8s linear infinite}
+    .rpg-loader{display:block;width:56px;height:56px;margin:22px auto 0;border:0;border-radius:0;animation:rpg-spin 2.5s linear infinite,rpg-glow 1.6s ease-in-out infinite alternate}
     @keyframes rpg-spin{to{transform:rotate(360deg)}}
+    @keyframes rpg-glow{from{filter:drop-shadow(0 0 2px #9B4FE066)}to{filter:drop-shadow(0 0 10px #9B4FE0)}}
+    @media (prefers-reduced-motion: reduce){.rpg-loader{animation:rpg-glow 1.6s ease-in-out infinite alternate}}
   </style>
 </head>
 <body>
@@ -35,7 +37,7 @@
       <div class="rpg-splash-icon"><img src="icons/Icon-192.png" alt="" width="68" height="68"></div>
       <div class="rpg-splash-title">RPG Sheet</div>
       <div class="rpg-splash-status" id="rpg-splash-status">Carregando suas aventuras…</div>
-      <div class="rpg-loader"></div>
+      <img class="rpg-loader" src="icons/loader.png" alt="" width="56" height="56">
     </div>
   </div>
   <script>

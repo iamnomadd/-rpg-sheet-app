@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../services/cloud_service.dart';
+import '../../utils/error_message.dart';
 
 class InviteManagerScreen extends StatefulWidget {
   const InviteManagerScreen({super.key});
@@ -54,7 +55,11 @@ class _InviteManagerScreenState extends State<InviteManagerScreen> {
       await Clipboard.setData(ClipboardData(text:code));
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Convite $code criado e copiado.')));
       await _load();
-    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Erro: ${e.toString().replaceFirst('Exception: ','')}')));}
+    }catch(e){
+      debugPrint('Criar convite falhou: $e');
+      final appMessage=appErrorMessage(e);
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(appMessage==null?genericErrorMessage:'Erro: $appMessage')));
+    }
   }
 
   Future<void> _revoke(Map<String,dynamic> item) async {

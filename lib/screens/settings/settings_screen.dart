@@ -191,18 +191,54 @@ class SettingsScreen extends StatelessWidget {
   Future<void> _clear(BuildContext context) async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Apagar todos os dados?'),
-        content: const Text('Esta ação remove fichas, sistemas personalizados e campanhas deste dispositivo. Faça um backup antes se quiser preservar os dados.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Apagar')),
-        ],
-      ),
+      builder: (_) => const _ClearAllDialog(),
     );
     if (result == true && context.mounted) {
       await context.read<AppState>().clearAll();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dados locais apagados.')));
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dados apagados deste aparelho. Sincronização automática desligada.')));
     }
   }
+}
+
+/// Confirmação do "Apagar todos os dados locais": só libera o botão depois de
+/// digitar APAGAR.
+class _ClearAllDialog extends StatefulWidget {
+  const _ClearAllDialog();
+
+  @override
+  State<_ClearAllDialog> createState() => _ClearAllDialogState();
+}
+
+class _ClearAllDialogState extends State<_ClearAllDialog> {
+  final _confirm = TextEditingController();
+
+  @override
+  void dispose() {
+    _confirm.dispose();
+    super.dispose();
+  }
+
+  bool get _ok => _confirm.text.trim().toUpperCase() == 'APAGAR';
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        title: const Text('Apagar todos os dados deste aparelho?'),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const Text('Fichas, sistemas personalizados e campanhas serão apagados SÓ deste aparelho. A sincronização automática será desligada para não apagar o seu backup na nuvem. Para trazer os dados de volta, use Restaurar da nuvem em Dados e sincronização.'),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _confirm,
+              autocorrect: false,
+              decoration: const InputDecoration(labelText: 'Digite APAGAR para confirmar'),
+              onChanged: (_) => setState(() {}),
+            ),
+          ]),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: _ok ? () => Navigator.pop(context, true) : null, child: const Text('Apagar')),
+        ],
+      );
 }

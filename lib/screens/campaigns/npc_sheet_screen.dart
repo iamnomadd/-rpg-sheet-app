@@ -691,14 +691,40 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
     final raw=details[oldName] ?? <String,dynamic>{}; final name=TextEditingController(text:oldName);final damage=TextEditingController(text:'${raw['damage'] ?? ''}');final desc=TextEditingController(text:descriptions[oldName] ?? '');
     // Valida antes de fechar: nome vazio ou repetido na mesma lista.
     String? nameError;
-    final ok=await showDialog<bool>(context:context,builder:(d)=>StatefulBuilder(builder:(_,setD)=>AlertDialog(title:Text(oldName.isEmpty?'Nova ação':'Editar ação'),content:Column(mainAxisSize:MainAxisSize.min,children:[TextField(controller:name,decoration:InputDecoration(labelText:'Nome',errorText:nameError,errorMaxLines:3),onChanged:(_){if(nameError!=null)setD(()=>nameError=null);}),TextField(controller:damage,decoration:const InputDecoration(labelText:'Dano (ex.: 1d8+3)')),TextField(controller:desc,minLines:2,maxLines:4,decoration:const InputDecoration(labelText:'Descrição'))]),actions:[TextButton(onPressed:()=>Navigator.pop(d,false),child:const Text('Cancelar')),FilledButton(onPressed:(){final n=name.text.trim();if(n.isEmpty){setD(()=>nameError='Dê um nome.');return;}final own=oldName.isNotEmpty&&_normName(n)==_normName(oldName);if(!own&&items.any((i)=>_normName(i)==_normName(n))){setD(()=>nameError='Já existe um item com esse nome. Use outro nome.');return;}Navigator.pop(d,true);},child:const Text('Salvar'))])));
-    final n=name.text.trim();if(ok!=true||n.isEmpty)return;if(oldName.isNotEmpty&&oldName!=n){items.remove(oldName);details.remove(oldName);descriptions.remove(oldName);}if(!items.contains(n))items.add(n);details[n]={...raw,'damage':damage.text.trim()};descriptions[n]=desc.text.trim();await _save(campaign,npc,sheet);
+    final ok=await showDialog<bool>(context:context,builder:(d)=>_DisposeOnRemoved(onRemoved:(){name.dispose();damage.dispose();desc.dispose();},child:StatefulBuilder(builder:(_,setD)=>AlertDialog(title:Text(oldName.isEmpty?'Nova ação':'Editar ação'),content:Column(mainAxisSize:MainAxisSize.min,children:[TextField(controller:name,decoration:InputDecoration(labelText:'Nome',errorText:nameError,errorMaxLines:3),onChanged:(_){if(nameError!=null)setD(()=>nameError=null);}),TextField(controller:damage,decoration:const InputDecoration(labelText:'Dano (ex.: 1d8+3)')),TextField(controller:desc,minLines:2,maxLines:4,decoration:const InputDecoration(labelText:'Descrição'))]),actions:[TextButton(onPressed:()=>Navigator.pop(d,false),child:const Text('Cancelar')),FilledButton(onPressed:(){final n=name.text.trim();if(n.isEmpty){setD(()=>nameError='Dê um nome.');return;}final own=oldName.isNotEmpty&&_normName(n)==_normName(oldName);if(!own&&items.any((i)=>_normName(i)==_normName(n))){setD(()=>nameError='Já existe um item com esse nome. Use outro nome.');return;}Navigator.pop(d,true);},child:const Text('Salvar'))]))));
+    // Lidos antes de o diálogo sair da árvore (os campos são liberados depois).
+    final n=name.text.trim();final damageText=damage.text.trim();final descText=desc.text.trim();
+    if(ok!=true||n.isEmpty)return;if(oldName.isNotEmpty&&oldName!=n){items.remove(oldName);details.remove(oldName);descriptions.remove(oldName);}if(!items.contains(n))items.add(n);details[n]={...raw,'damage':damageText};descriptions[n]=descText;await _save(campaign,npc,sheet);
   }
 
   Future<void> _addSimpleItem(Campaign campaign, Map<String,dynamic> npc, Character sheet,String title,List<String> items,Map<String,String> descriptions) async => _editSimpleItem(campaign,npc,sheet,'',items,descriptions);
   Future<void> _editSimpleItem(Campaign campaign, Map<String,dynamic> npc, Character sheet,String oldName,List<String> items,Map<String,String> descriptions) async {
     // Valida antes de fechar: nome vazio ou repetido na mesma lista.
     String? nameError;
-    final name=TextEditingController(text:oldName);final desc=TextEditingController(text:descriptions[oldName]??'');final ok=await showDialog<bool>(context:context,builder:(d)=>StatefulBuilder(builder:(_,setD)=>AlertDialog(title:Text(oldName.isEmpty?'Adicionar':'Editar'),content:Column(mainAxisSize:MainAxisSize.min,children:[TextField(controller:name,decoration:InputDecoration(labelText:'Nome',errorText:nameError,errorMaxLines:3),onChanged:(_){if(nameError!=null)setD(()=>nameError=null);}),TextField(controller:desc,minLines:2,maxLines:4,decoration:const InputDecoration(labelText:'Descrição'))]),actions:[TextButton(onPressed:()=>Navigator.pop(d,false),child:const Text('Cancelar')),FilledButton(onPressed:(){final n=name.text.trim();if(n.isEmpty){setD(()=>nameError='Dê um nome.');return;}final own=oldName.isNotEmpty&&_normName(n)==_normName(oldName);if(!own&&items.any((i)=>_normName(i)==_normName(n))){setD(()=>nameError='Já existe um item com esse nome. Use outro nome.');return;}Navigator.pop(d,true);},child:const Text('Salvar'))])));final n=name.text.trim();if(ok!=true||n.isEmpty)return;if(oldName.isNotEmpty&&oldName!=n){items.remove(oldName);descriptions.remove(oldName);}if(!items.contains(n))items.add(n);descriptions[n]=desc.text.trim();await _save(campaign,npc,sheet);
+    final name=TextEditingController(text:oldName);final desc=TextEditingController(text:descriptions[oldName]??'');final ok=await showDialog<bool>(context:context,builder:(d)=>_DisposeOnRemoved(onRemoved:(){name.dispose();desc.dispose();},child:StatefulBuilder(builder:(_,setD)=>AlertDialog(title:Text(oldName.isEmpty?'Adicionar':'Editar'),content:Column(mainAxisSize:MainAxisSize.min,children:[TextField(controller:name,decoration:InputDecoration(labelText:'Nome',errorText:nameError,errorMaxLines:3),onChanged:(_){if(nameError!=null)setD(()=>nameError=null);}),TextField(controller:desc,minLines:2,maxLines:4,decoration:const InputDecoration(labelText:'Descrição'))]),actions:[TextButton(onPressed:()=>Navigator.pop(d,false),child:const Text('Cancelar')),FilledButton(onPressed:(){final n=name.text.trim();if(n.isEmpty){setD(()=>nameError='Dê um nome.');return;}final own=oldName.isNotEmpty&&_normName(n)==_normName(oldName);if(!own&&items.any((i)=>_normName(i)==_normName(n))){setD(()=>nameError='Já existe um item com esse nome. Use outro nome.');return;}Navigator.pop(d,true);},child:const Text('Salvar'))]))));
+    // Lidos antes de o diálogo sair da árvore (os campos são liberados depois).
+    final n=name.text.trim();final descText=desc.text.trim();
+    if(ok!=true||n.isEmpty)return;if(oldName.isNotEmpty&&oldName!=n){items.remove(oldName);descriptions.remove(oldName);}if(!items.contains(n))items.add(n);descriptions[n]=descText;await _save(campaign,npc,sheet);
   }
+}
+
+/// Chama [onRemoved] quando sai da árvore (o diálogo terminou de fechar).
+class _DisposeOnRemoved extends StatefulWidget {
+  final VoidCallback onRemoved;
+  final Widget child;
+  const _DisposeOnRemoved({required this.onRemoved, required this.child});
+
+  @override
+  State<_DisposeOnRemoved> createState() => _DisposeOnRemovedState();
+}
+
+class _DisposeOnRemovedState extends State<_DisposeOnRemoved> {
+  @override
+  void dispose() {
+    widget.onRemoved();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

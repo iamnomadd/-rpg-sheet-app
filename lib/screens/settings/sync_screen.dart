@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../services/app_state.dart';
 import '../../services/cloud_service.dart';
 import '../../services/rpg_file_service.dart';
+import '../../utils/error_message.dart';
 import 'import_export_screen.dart';
 
 class SyncScreen extends StatefulWidget {
@@ -69,7 +70,8 @@ class _SyncScreenState extends State<SyncScreen> with WidgetsBindingObserver {
     try {
       await action();
     } catch (e) {
-      _message(e.toString().replaceFirst('Exception: ', ''));
+      debugPrint('Sincronização falhou: $e');
+      _message(appErrorMessage(e) ?? genericErrorMessage);
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -167,7 +169,28 @@ class _SyncScreenState extends State<SyncScreen> with WidgetsBindingObserver {
         final current = await CloudService.ensureSession();
         if (!mounted) return;
         setState(() => session = current);
-        await CloudService.uploadBackup(current, context.read<AppState>().cloudPayload());
+        final state = context.read<AppState>();
+        // Aparelho vazio por cima de um backup com dados: só com confirmação.
+        if (state.isLocalEmpty) {
+          final cloud = await CloudService.downloadSnapshot(current);
+          if (!mounted) return;
+          if (state.wouldOverwriteCloudWithEmpty(cloud?.payload)) {
+            final counts = AppState.backupCounts(cloud!.payload);
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (dialogContext) => AlertDialog(
+                title: const Text('Substituir o backup da nuvem?'),
+                content: Text('Este aparelho está vazio. Enviar agora vai substituir o backup da nuvem, que tem ${counts.characters} ficha(s) e ${counts.campaigns} campanha(s). Continuar?'),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
+                  FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Substituir')),
+                ],
+              ),
+            );
+            if (confirm != true || !mounted) return;
+          }
+        }
+        await CloudService.uploadBackup(current, state.cloudPayload());
         _message('Dados enviados para a nuvem.');
       });
 
