@@ -315,8 +315,16 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
         // Coluna do texto: cartão − padding (16) − ícone (24) − espaço (8) − cadeado (40).
         final width = math.max(1.0, layout.nodeWidth - 88);
         final state = node['unlocked'] == true ? 'Desbloqueada' : 'Disponível';
+        final label = level == null ? state : 'Nível $level • $state';
         growth = textGrowth(context, name, const TextStyle(fontWeight: FontWeight.w700), maxWidth: width, maxLines: 2) +
-            textGrowth(context, level == null ? state : 'Nível $level • $state', labelSmall, maxWidth: width);
+            textGrowth(context, label, labelSmall, maxWidth: width);
+        // Cartão normal estreito: o texto pode quebrar em mais linhas mesmo
+        // com texto 1.0; a altura cresce o que faltar para caber.
+        final scaler = MediaQuery.textScalerOf(context);
+        final needed = measuredTextHeight(context, name, const TextStyle(fontWeight: FontWeight.w700), scaler: scaler, maxWidth: width, maxLines: 2) +
+            2 +
+            measuredTextHeight(context, label, labelSmall, scaler: scaler, maxWidth: width);
+        growth = math.max(growth, (needed - _normalCardTextHeight).ceilToDouble());
       }
       extra = math.max(extra, growth);
     }
@@ -536,6 +544,9 @@ const skillTreeCardMaxWidth = 154.0;
 const skillTreeCompactBelow = 120.0;
 const skillTreeCardHeight = 92.0;
 const skillTreeCompactCardHeight = 108.0;
+/// Altura útil da coluna de texto do cartão normal: [skillTreeCardHeight]
+/// menos o padding vertical (8 + 7).
+const _normalCardTextHeight = skillTreeCardHeight - 15;
 const _treePaddingX = 16.0;
 const _treePaddingY = 24.0;
 const _treeGapX = 10.0;

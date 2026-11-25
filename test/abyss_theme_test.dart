@@ -58,9 +58,6 @@ void main() {
     for (final role in _mainRoles) {
       expect(themedMainIcon('abyss', role), isNot(Icons.circle), reason: role);
     }
-    expect(themedResourceBarColors('abyss'), AbyssColors.life);
-    expect(themedResourceBarColors('abyss', secondary: true), AbyssColors.energy);
-    expect(themedResourceTrackColor('abyss'), AbyssColors.track);
     expect(themedNavigationIndicatorShape('abyss', 20), isA<AbyssFrameBorder>());
   });
 

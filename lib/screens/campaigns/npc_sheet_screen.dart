@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../app/abyss_theme.dart' show usesAbyssDesign;
 import '../../app/condition_presets.dart';
 import '../../models/campaign.dart';
 import '../../models/character.dart';
@@ -410,7 +409,7 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
       ...weaponNames.map((name) { final d = sheet.inventoryDetails[name] ?? {}; return Card(margin: cardSpacingMargin, child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
         leading: ActionIconSlot(
           themeId: themeId,
-          artPath: usesAbyssDesign(themeId) ? ActionArtResolver.resolve(kind: ActionArtKind.weapon, name: name, description: sheet.inventoryDescriptions[name] ?? '') : null,
+          artPath: ActionArtResolver.resolve(kind: ActionArtKind.weapon, name: name, description: sheet.inventoryDescriptions[name] ?? ''),
           size: artSize,
           fallback: const Icon(Icons.gps_fixed),
         ),
@@ -425,9 +424,7 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
       ...sheet.abilities.map((name) { final d = sheet.abilityDetails[name] ?? {}; final isSpell = d['category'] == 'Magia'; return Card(margin: cardSpacingMargin, child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
         leading: ActionIconSlot(
           themeId: themeId,
-          artPath: usesAbyssDesign(themeId)
-              ? ActionArtResolver.resolve(kind: isSpell ? ActionArtKind.spell : ActionArtKind.ability, name: name, description: sheet.abilityDescriptions[name] ?? '', category: d['category']?.toString() ?? '')
-              : null,
+          artPath: ActionArtResolver.resolve(kind: isSpell ? ActionArtKind.spell : ActionArtKind.ability, name: name, description: sheet.abilityDescriptions[name] ?? '', category: d['category']?.toString() ?? ''),
           size: artSize,
           fallback: Icon(
             isSpell ? SpellIconResolver.resolve(name, description: sheet.abilityDescriptions[name] ?? '') : Icons.auto_awesome,

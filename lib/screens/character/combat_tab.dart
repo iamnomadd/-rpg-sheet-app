@@ -344,7 +344,7 @@ class _CombatTabState extends State<CombatTab> with SingleTickerProviderStateMix
     final themeId = context.watch<AppState>().themeId;
     final artSize = actionArtSize(context.watch<AppState>().compactMode);
     String? art(ActionArtKind kind, String name, {String description = '', String category = ''}) =>
-        usesAbyssDesign(themeId) ? ActionArtResolver.resolve(kind: kind, name: name, description: description, category: category) : null;
+        ActionArtResolver.resolve(kind: kind, name: name, description: description, category: category);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -356,10 +356,7 @@ class _CombatTabState extends State<CombatTab> with SingleTickerProviderStateMix
             return Card(
               margin: cardSpacingMargin,
               child: ListTile(
-                // Abissal: arte do consumível; nos outros temas a linha segue sem ícone.
-                leading: usesAbyssDesign(themeId)
-                    ? ActionIconSlot(themeId: themeId, artPath: art(ActionArtKind.item, item, category: 'Consumível'), size: artSize, fallback: const SizedBox.shrink())
-                    : null,
+                leading: ActionIconSlot(themeId: themeId, artPath: art(ActionArtKind.item, item, category: 'Consumível'), size: artSize, fallback: const SizedBox.shrink()),
                 title: Text(item),
                 subtitle: Text('Quantidade: $quantity'),
                 trailing: FilledButton.tonalIcon(
@@ -550,26 +547,6 @@ class _CombatResourceBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (usesAbyssDesign(themeId)) return AbyssResourceBar(value: value, secondary: secondary, colors: abyssResourceBarColors(resourceName));
-    final colors = themedResourceBarColors(themeId, secondary: secondary);
-    final widthFactor = value.clamp(0.0, 1.0);
-    return Container(
-      height: 14,
-      decoration: BoxDecoration(
-        color: themedResourceTrackColor(themeId),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withOpacity(.4)),
-      ),
-      child: FractionallySizedBox(
-        alignment: Alignment.center,
-        widthFactor: widthFactor,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(colors: colors),
-            borderRadius: BorderRadius.circular(999),
-          ),
-        ),
-      ),
-    );
+    return AbyssResourceBar(value: value, secondary: secondary, colors: abyssResourceBarColors(resourceName));
   }
 }

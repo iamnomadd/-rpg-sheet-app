@@ -1,7 +1,7 @@
 // Design do tema Abissal (id 'abyss') — desde a 1.3.62 é o design PADRÃO de
 // todos os temas: cada tema muda só a paleta ([AbyssPalette],
-// [abyssPaletteFor]). Para voltar ao design antigo nos outros temas, faça
-// [usesAbyssDesign] devolver `themeId == 'abyss'`. Os ornamentos são originais,
+// [abyssPaletteFor]); o design antigo dos outros temas foi removido na
+// 1.3.63. Os ornamentos são originais,
 // desenhados em código (Path/CustomPainter/ShapeBorder); sem imagens nem
 // fontes novas.
 import 'dart:math' as math;
@@ -32,10 +32,6 @@ abstract final class AbyssColors {
   static const track = Color(0xFF0A1015);
   static const smoke = Color(0xFF6B3FA0);
 }
-
-/// O design do Abissal é o padrão de todos os temas desde a 1.3.62; para
-/// voltar ao design antigo, devolva `themeId == 'abyss'`.
-bool usesAbyssDesign(String themeId) => true;
 
 /// Paleta do design do Abissal para um tema (os mesmos campos de
 /// [AbyssColors]). Fica no `ThemeData` como extensão; os widgets e pintores do
@@ -243,10 +239,10 @@ final Map<String, AbyssPalette> abyssPalettes = {
   'parchment': _palette(gold: 0xFFB08A4B, goldLight: 0xFFE3C68A, goldDim: 0xFF4F3E22, cream: 0xFFF1E6C8, creamMuted: 0xFFB5AE9A, bgTop: 0xFF050A12, bgMiddle: 0xFF0A1220, bgBottom: 0xFF0E1826, bar: 0xFF04080E, card: 0xFF151A20, raised: 0xFF1B222A, track: 0xFF070C12, smoke: 0xFF2E4A66),
   'medieval': _palette(gold: 0xFFD9A441, goldLight: 0xFFF0CD82, goldDim: 0xFF5E4620, cream: 0xFFF2E8D2, creamMuted: 0xFFB8AC92, bgTop: 0xFF0F0E0B, bgMiddle: 0xFF15130F, bgBottom: 0xFF1A1813, bar: 0xFF0B0A08, card: 0xFF1C1912, raised: 0xFF241F17, track: 0xFF0D0C09, smoke: 0xFF5A4630),
   'arcane': _palette(gold: 0xFF9C6CFF, goldLight: 0xFFCDB3FF, goldDim: 0xFF43307A, cream: 0xFFEEE6FF, creamMuted: 0xFFACA3C2, bgTop: 0xFF0E0B14, bgMiddle: 0xFF130F1B, bgBottom: 0xFF181322, bar: 0xFF0A0810, card: 0xFF1A1523, raised: 0xFF221C2D, track: 0xFF0C0A11, smoke: 0xFF6B3FA0),
-  'vampire': _palette(gold: 0xFFD4231A, goldLight: 0xFFFF5C5C, goldDim: 0xFF4A0A06, cream: 0xFFF2E6E6, creamMuted: 0xFFB3A3A3, bgTop: 0xFF000000, bgMiddle: 0xFF07070A, bgBottom: 0xFF0C0C10, bar: 0xFF000000, card: 0xFF1A1A1D, raised: 0xFF222226, track: 0xFF08080A, smoke: 0xFF5A0A10),
+  'vampire': _palette(gold: 0xFFE84941, goldLight: 0xFFFF5C5C, goldDim: 0xFF4A0A06, cream: 0xFFF2E6E6, creamMuted: 0xFFB3A3A3, bgTop: 0xFF000000, bgMiddle: 0xFF07070A, bgBottom: 0xFF0C0C10, bar: 0xFF000000, card: 0xFF1A1A1D, raised: 0xFF222226, track: 0xFF08080A, smoke: 0xFF5A0A10),
   'forest': _palette(gold: 0xFFB97945, goldLight: 0xFFE0AE80, goldDim: 0xFF4F3320, cream: 0xFFF0E4D6, creamMuted: 0xFFB3A594, bgTop: 0xFF0F0B08, bgMiddle: 0xFF15100C, bgBottom: 0xFF1A1410, bar: 0xFF0B0806, card: 0xFF1B1511, raised: 0xFF231C16, track: 0xFF0D0A07, smoke: 0xFF4A3A22),
   'ocean': _palette(gold: 0xFFDDE6F0, goldLight: 0xFFF5F9FC, goldDim: 0xFF4A5560, cream: 0xFFF2F5F8, creamMuted: 0xFFA9B2BC, bgTop: 0xFF0C0E11, bgMiddle: 0xFF111418, bgBottom: 0xFF161A1F, bar: 0xFF090B0D, card: 0xFF171A1D, raised: 0xFF1E2226, track: 0xFF0B0D0F, smoke: 0xFF5A6B80),
-  'cyberpunk': _palette(gold: 0xFF1755FF, goldLight: 0xFF6E93FF, goldDim: 0xFF0E2A70, cream: 0xFFE6ECFF, creamMuted: 0xFF9EA8C2, bgTop: 0xFF08090E, bgMiddle: 0xFF0C0E15, bgBottom: 0xFF10131C, bar: 0xFF06070B, card: 0xFF12141B, raised: 0xFF191C25, track: 0xFF090A0F, smoke: 0xFF1A3A8F),
+  'cyberpunk': _palette(gold: 0xFF4174FF, goldLight: 0xFF6E93FF, goldDim: 0xFF0E2A70, cream: 0xFFE6ECFF, creamMuted: 0xFF9EA8C2, bgTop: 0xFF08090E, bgMiddle: 0xFF0C0E15, bgBottom: 0xFF10131C, bar: 0xFF06070B, card: 0xFF12141B, raised: 0xFF191C25, track: 0xFF090A0F, smoke: 0xFF1A3A8F),
   'infernal': _palette(gold: 0xFFFD0F04, goldLight: 0xFFFF7A4D, goldDim: 0xFF5E1008, cream: 0xFFF5E6DE, creamMuted: 0xFFB8A39A, bgTop: 0xFF100605, bgMiddle: 0xFF160907, bgBottom: 0xFF1C0C09, bar: 0xFF0C0504, card: 0xFF1D0D0A, raised: 0xFF26120E, track: 0xFF0E0605, smoke: 0xFF7A1A0A),
   'ice': _palette(gold: 0xFF62D8F2, goldLight: 0xFFB3EEFA, goldDim: 0xFF1E5260, cream: 0xFFE8F7FB, creamMuted: 0xFF9FB6BD, bgTop: 0xFF071014, bgMiddle: 0xFF0B171C, bgBottom: 0xFF0F1D23, bar: 0xFF050C0F, card: 0xFF0E1B20, raised: 0xFF142429, track: 0xFF081115, smoke: 0xFF2A6A80),
 };
@@ -1071,15 +1067,12 @@ ThemeData buildAbyssAppTheme(ThemeData base, bool compact) {
 }
 
 /// Respiro interno dos cards do Abissal: 12 px nas laterais e 10 px em cima e
-/// embaixo (a moldura e os entalhes ocupam até ~6 px da borda). Nos outros
-/// temas devolve [current] sem mudança.
-EdgeInsetsGeometry abyssCardInset(String themeId, EdgeInsetsGeometry current) =>
-    usesAbyssDesign(themeId) ? const EdgeInsets.fromLTRB(12, 10, 12, 10) : current;
+/// embaixo (a moldura e os entalhes ocupam até ~6 px da borda).
+const abyssCardInset = EdgeInsets.fromLTRB(12, 10, 12, 10);
 
 /// Grade dos atributos: no Abissal a altura da célula acompanha o texto
 /// (escala de fonte) em vez da proporção fixa, para nada ser cortado.
-SliverGridDelegate abyssAttributeGridDelegate(BuildContext context, String themeId, SliverGridDelegate current) {
-  if (!usesAbyssDesign(themeId)) return current;
+SliverGridDelegate abyssAttributeGridDelegate(BuildContext context) {
   final theme = Theme.of(context).textTheme;
   final scaler = MediaQuery.textScalerOf(context);
   double lineHeight(TextStyle? style) => scaler.scale(style?.fontSize ?? 14) * (style?.height ?? 1.3);
@@ -1091,11 +1084,9 @@ SliverGridDelegate abyssAttributeGridDelegate(BuildContext context, String theme
   );
 }
 
-/// Altura de faixas horizontais de chips: no Abissal acompanha a escala do
-/// texto e o respiro do chip (nunca menor que [current]); nos outros temas
-/// devolve [current].
-double abyssChipBarHeight(BuildContext context, String themeId, double current) {
-  if (!usesAbyssDesign(themeId)) return current;
+/// Altura de faixas horizontais de chips: acompanha a escala do texto e o
+/// respiro do chip (nunca menor que [current]).
+double abyssChipBarHeight(BuildContext context, double current) {
   final label = MediaQuery.textScalerOf(context).scale(14) * 1.43;
   return math.max(current, label + 2 * 11 + 4);
 }

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -211,23 +213,17 @@ class _CharacterScreenState extends State<CharacterScreen> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _reorderGeneral(Character c, int oldIndex, int newIndex) async {
-    const validIds = ['sessionOverview', 'combatCharacter', 'health', 'energy', 'conditions', 'quickActions', 'attributes', 'abilities', 'inventory'];
-    final order = <String>[];
-    for (final id in c.generalOrder) {
-      if (validIds.contains(id) && !order.contains(id)) order.add(id);
-    }
-    for (final id in validIds) {
-      if (!order.contains(id)) order.add(id);
-    }
-    if (newIndex > oldIndex) newIndex -= 1;
-    final item = order.removeAt(oldIndex);
-    order.insert(newIndex, item);
-    c.generalOrder = order;
+  /// Salva a ordem e os cards escondidos do Em Cena (Personalizar).
+  Future<void> _saveGeneralLayout(Character c, List<String> order, List<String> hidden) async {
+    c.generalOrder = List<String>.from(order);
+    c.hiddenGeneralCards = List<String>.from(hidden);
     await context.read<AppState>().updateCharacter(c);
     if (mounted) setState(() {});
   }
 
+  /// Âncoras do Em Cena (cards e cabeçalhos dos grupos), para as pílulas do
+  /// card Sessão rolarem até o lugar certo.
+  final _emCenaAnchors = _EmCenaAnchors();
 
   static const _defaultTabOrder = ['general', 'attributesResources', 'abilities', 'skills', 'inventory', 'skillTree', 'sections'];
 
@@ -255,7 +251,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
   };
 
   Widget _tabPage(String id, Character c, RpgSystem system) => switch (id) {
-    'general' => _GeneralTab(character: c, system: system, onReorder: _reorderGeneral, onChangeResource: _changeResource, onEditResource: _editResource),
+    'general' => _GeneralTab(character: c, system: system, anchors: _emCenaAnchors, onSaveLayout: _saveGeneralLayout, onChangeResource: _changeResource, onEditResource: _editResource),
     'attributesResources' => _AttributesResourcesTab(character: c, system: system, onEditAttribute: _editAttribute, onChangeResource: _changeResource, onEditResource: _editResource),
     'abilities' => _CharacterItemsTab(character: c, items: c.abilities, descriptions: c.abilityDescriptions, details: c.abilityDetails, title: 'Habilidades', singular: 'habilidade', hint: 'Nome da habilidade', iconRole: 'abilities', isAbility: true),
     'skillTree' => SkillTreeScreen(characterId: c.id, embedded: true),
@@ -374,6 +370,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
           if (tab >= order.length) tab = 0;
           // 72 com texto 1.0; com texto maior, cresce o mesmo que o rótulo.
           final tabsHeight = 72 + textGrowth(context, 'Ág', Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800));
+          _emCenaAnchors.pinnedHeight = tabsHeight;
           return NestedScrollView(
             headerSliverBuilder: (context, innerBoxIsScrolled) => [
               SliverToBoxAdapter(child: _Header(character: c, system: system)),
@@ -382,7 +379,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
                 delegate: _CharacterTabsHeader(
                   height: tabsHeight,
                   child: Material(
-                    color: usesAbyssDesign(state.themeId) ? AbyssPalette.of(context).bar : state.themeId == 'parchment' ? Theme.of(context).colorScheme.surface : Theme.of(context).scaffoldBackgroundColor,
+                    color: AbyssPalette.of(context).bar,
                     child: Container(
                       decoration: BoxDecoration(
                         border: Border(bottom: BorderSide(
@@ -395,7 +392,6 @@ class _CharacterScreenState extends State<CharacterScreen> {
                           scrollDirection: Axis.horizontal,
                           child: Row(children: order.asMap().entries.map((entry) {
                             final index = entry.key, id = entry.value, selected = tab == index;
-                            final colors = Theme.of(context).colorScheme;
                             return InkWell(
                               onTap: () {
                                 final previousTab = tab;
@@ -411,44 +407,13 @@ class _CharacterScreenState extends State<CharacterScreen> {
                                   );
                                 }
                               },
-                              child: usesAbyssDesign(state.themeId)
-                                  ? AbyssTabCell(
-                                      selected: selected,
-                                      reduceMotion: reduceMotion,
-                                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                                      icon: (color, selected) => themedCharacterTabIcon(state.themeId, id, size: 22, color: color, selected: selected),
-                                      label: _tabLabel(id),
-                                      labelStyle: Theme.of(context).textTheme.labelMedium,
-                                    )
-                                  : AnimatedContainer(
-                                duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 180),
+                              child: AbyssTabCell(
+                                selected: selected,
+                                reduceMotion: reduceMotion,
                                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                                decoration: BoxDecoration(
-                                  border: Border(bottom: BorderSide(
-                                    color: selected ? colors.primary : Colors.transparent,
-                                    width: selected ? 4 : 4,
-                                  )),
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    themedCharacterTabIcon(
-                                      state.themeId,
-                                      id,
-                                      size: 22,
-                                      color: selected ? colors.primary : colors.onSurfaceVariant,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      _tabLabel(id),
-                                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                        color: selected ? colors.primary : colors.onSurface,
-                                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                icon: (color, selected) => themedCharacterTabIcon(state.themeId, id, size: 22, color: color, selected: selected),
+                                label: _tabLabel(id),
+                                labelStyle: Theme.of(context).textTheme.labelMedium,
                               ),
                             );
                           }).toList()),
@@ -491,17 +456,132 @@ class _CharacterTabsHeader extends SliverPersistentHeaderDelegate {
 }
 
 
+/// Cards do Em Cena, na ordem padrão ('skillTree' entra no fim).
+const _generalCardIds = ['sessionOverview', 'combatCharacter', 'health', 'energy', 'conditions', 'quickActions', 'attributes', 'abilities', 'inventory', 'skillTree'];
+
+/// Nomes dos cards no Personalizar do Em Cena.
+const _generalCardLabels = {
+  'sessionOverview': 'Sessão',
+  'combatCharacter': 'Personagem 2D',
+  'health': 'Vida',
+  'energy': 'Energia',
+  'conditions': 'Condições',
+  'quickActions': 'Ações',
+  'attributes': 'Atributos',
+  'skillTree': 'Árvore de Habilidades',
+  'abilities': 'Habilidades fixadas',
+  'inventory': 'Itens fixados',
+};
+
+/// Ordem salva do Em Cena (só ids válidos, sem repetir) + os que faltam no fim.
+List<String> _normalizedGeneralOrder(Character c) {
+  final order = <String>[];
+  for (final id in c.generalOrder) {
+    if (_generalCardIds.contains(id) && !order.contains(id)) order.add(id);
+  }
+  for (final id in _generalCardIds) {
+    if (!order.contains(id)) order.add(id);
+  }
+  return order;
+}
+
+/// Âncoras (GlobalKey) dos cards do Em Cena e dos cabeçalhos dentro deles.
+class _EmCenaAnchors {
+  /// Altura da barra de abas fixada da ficha: o conteúdo do Em Cena rola por
+  /// baixo dela, então o alvo para logo abaixo.
+  double pinnedHeight = 0;
+
+  final _cards = <String, GlobalKey>{};
+  final _sections = <String, GlobalKey>{};
+
+  GlobalKey card(String id) => _cards.putIfAbsent(id, () => GlobalKey(debugLabel: 'em-cena-card-$id'));
+
+  /// Cabeçalho de um grupo das Ações ('weapons', 'spells', 'consumables',
+  /// 'abilities') ou o título "Condições ativas" ('conditions').
+  GlobalKey section(String id) => _sections.putIfAbsent(id, () => GlobalKey(debugLabel: 'em-cena-section-$id'));
+}
+
+/// Folha "Personalizar": lista arrastável com um SwitchListTile por item e o
+/// botão Salvar. Devolve {'order': [...], 'hidden': [...]} ou null.
+Future<Map<String, dynamic>?> _showCustomizeSheet(
+  BuildContext context, {
+  required String title,
+  required String subtitle,
+  required List<String> order,
+  required Set<String> hidden,
+  required Map<String, String> labels,
+  double height = 420,
+}) {
+  final items = List<String>.from(order);
+  final off = <String>{...hidden};
+  return showModalBottomSheet<Map<String, dynamic>>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setSheet) => SafeArea(
+        child: SizedBox(
+          height: height,
+          child: Column(
+            children: [
+              ListTile(
+                title: Text(title),
+                subtitle: Text(subtitle),
+              ),
+              Expanded(
+                child: ReorderableListView(
+                  onReorder: (oldIndex, newIndex) {
+                    setSheet(() {
+                      if (newIndex > oldIndex) newIndex--;
+                      final item = items.removeAt(oldIndex);
+                      items.insert(newIndex, item);
+                    });
+                  },
+                  children: [
+                    for (final item in items)
+                      SwitchListTile(
+                        key: ValueKey(item),
+                        value: !off.contains(item),
+                        onChanged: (visible) => setSheet(() {
+                          if (visible) { off.remove(item); } else { off.add(item); }
+                        }),
+                        title: Text(labels[item] ?? item),
+                        secondary: const Icon(Icons.drag_handle),
+                      ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => Navigator.pop(ctx, {'order': items, 'hidden': off.toList()}),
+                    child: const Text('Salvar'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 class _GeneralTab extends StatelessWidget {
   final Character character;
   final RpgSystem system;
-  final Future<void> Function(Character, int, int) onReorder;
+  final _EmCenaAnchors anchors;
+  final Future<void> Function(Character, List<String> order, List<String> hidden) onSaveLayout;
   final Future<void> Function(Character, String, int) onChangeResource;
   final Future<void> Function(Character, String) onEditResource;
 
   const _GeneralTab({
     required this.character,
     required this.system,
-    required this.onReorder,
+    required this.anchors,
+    required this.onSaveLayout,
     required this.onChangeResource,
     required this.onEditResource,
   });
@@ -577,7 +657,12 @@ class _GeneralTab extends StatelessWidget {
   }
 
   Widget _verticalSummaryItems(BuildContext context, List<String> names, Map<String, Map<String, dynamic>> details, {required bool ability}) {
-    if (names.isEmpty) return Text(ability ? 'Nenhuma habilidade.' : 'Nenhum item.');
+    if (names.isEmpty) {
+      return Text(
+        ability ? 'Toque na ★ em Habilidades para fixar aqui.' : 'Toque na ★ no Inventário para fixar itens aqui.',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+      );
+    }
     final compact = context.watch<AppState>().compactMode;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -610,10 +695,10 @@ class _GeneralTab extends StatelessWidget {
   }
 
 
-  Widget _sessionPill(BuildContext context, IconData icon, String label, {bool warning = false, bool positive = false}) {
+  Widget _sessionPill(BuildContext context, IconData icon, String label, {bool warning = false, bool positive = false, VoidCallback? onTap}) {
     final scheme = Theme.of(context).colorScheme;
     final color = warning ? scheme.error : positive ? scheme.tertiary : scheme.primary;
-    return Container(
+    final pill = Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
         color: color.withOpacity(.08),
@@ -626,6 +711,55 @@ class _GeneralTab extends StatelessWidget {
         Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
       ]),
     );
+    if (onTap == null) return pill;
+    // Tocável: mesmo formato da pílula; parada, o visual não muda.
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(borderRadius: BorderRadius.circular(10), onTap: onTap, child: pill),
+    );
+  }
+
+  /// Pílula do Sessão → rola o Em Cena até o cabeçalho do grupo (dentro do
+  /// card Ações) ou até "Condições ativas" (card Condições).
+  void _goToSection(BuildContext context, String section) {
+    final isCondition = section == 'conditions';
+    final cardId = isCondition ? 'conditions' : 'quickActions';
+    final hiddenCard = character.hiddenGeneralCards.contains(cardId);
+    final hiddenGroup = !isCondition && character.hiddenActionGroups.contains(section);
+    if (hiddenCard || hiddenGroup) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Esse grupo está oculto. Ative em Personalizar.')));
+      return;
+    }
+    final state = context.read<AppState>();
+    final reduceMotion = state.reduceAnimations || MediaQuery.maybeOf(context)?.disableAnimations == true;
+    _scrollTo(section, cardId, reduceMotion);
+  }
+
+  /// Rola até o cabeçalho (ou, sem itens no grupo, até o card), deixando-o
+  /// no topo da área rolável. No NestedScrollView a primeira rolagem pode só
+  /// recolher o cabeçalho da ficha, então repete até o alvo assentar (no
+  /// máximo 3 vezes).
+  Future<void> _scrollTo(String section, String cardId, bool reduceMotion) async {
+    for (var i = 0; i < 3; i++) {
+      final target = anchors.section(section).currentContext ?? anchors.card(cardId).currentContext;
+      if (target == null || !target.mounted) return;
+      final scrollable = Scrollable.maybeOf(target);
+      final box = target.findRenderObject();
+      final viewport = scrollable?.context.findRenderObject();
+      if (scrollable == null || box is! RenderBox || viewport is! RenderBox) return;
+      final position = scrollable.position;
+      final top = box.localToGlobal(Offset.zero, ancestor: viewport).dy;
+      final to = (position.pixels + top - anchors.pinnedHeight - 8).clamp(position.minScrollExtent, position.maxScrollExtent).toDouble();
+      if ((to - position.pixels).abs() < 1) return;
+      if (reduceMotion) {
+        position.jumpTo(to);
+      } else {
+        await position.animateTo(to, duration: const Duration(milliseconds: 320), curve: Curves.easeInOutCubic);
+      }
+      await WidgetsBinding.instance.endOfFrame;
+    }
   }
 
   Widget _summaryCard(BuildContext context, String id) {
@@ -650,11 +784,11 @@ class _GeneralTab extends StatelessWidget {
               ]),
               const SizedBox(height: 10),
               Wrap(spacing: 7, runSpacing: 7, children: [
-                _sessionPill(context, Icons.gps_fixed, '$weapons arma${weapons == 1 ? '' : 's'}'),
-                _sessionPill(context, Icons.auto_awesome_outlined, '$spells magia${spells == 1 ? '' : 's'}'),
-                _sessionPill(context, Icons.local_drink_outlined, '$consumables consumível${consumables == 1 ? '' : 'is'}'),
-                if (positive > 0) _sessionPill(context, Icons.add_circle_outline, '$positive positivo${positive == 1 ? '' : 's'}', positive: true),
-                if (negative > 0) _sessionPill(context, Icons.warning_amber_rounded, '$negative negativo${negative == 1 ? '' : 's'}', warning: true),
+                _sessionPill(context, Icons.gps_fixed, '$weapons arma${weapons == 1 ? '' : 's'}', onTap: () => _goToSection(context, 'weapons')),
+                _sessionPill(context, Icons.auto_awesome_outlined, '$spells magia${spells == 1 ? '' : 's'}', onTap: () => _goToSection(context, 'spells')),
+                _sessionPill(context, Icons.local_drink_outlined, '$consumables consumível${consumables == 1 ? '' : 'is'}', onTap: () => _goToSection(context, 'consumables')),
+                if (positive > 0) _sessionPill(context, Icons.add_circle_outline, '$positive positivo${positive == 1 ? '' : 's'}', positive: true, onTap: () => _goToSection(context, 'conditions')),
+                if (negative > 0) _sessionPill(context, Icons.warning_amber_rounded, '$negative negativo${negative == 1 ? '' : 's'}', warning: true, onTap: () => _goToSection(context, 'conditions')),
               ]),
             ]),
           ),
@@ -682,6 +816,7 @@ class _GeneralTab extends StatelessWidget {
               showResources: false,
               showConditions: true,
               showQuickActions: false,
+              anchors: anchors,
             ),
           ),
         );
@@ -694,6 +829,7 @@ class _GeneralTab extends StatelessWidget {
           showResources: false,
           showConditions: false,
           showQuickActions: true,
+          anchors: anchors,
         );
       case 'attributes':
         return Card(
@@ -776,7 +912,7 @@ class _GeneralTab extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [ThemedSectionIcon(themeId, 'inventory'), const SizedBox(width: 8), const Text('Inventário', style: TextStyle(fontWeight: FontWeight.bold)), const Spacer(), Text('${lines.length} item(ns)')]),
+              Row(children: [ThemedSectionIcon(themeId, 'inventory'), const SizedBox(width: 8), const Expanded(child: Text('Itens fixados', style: TextStyle(fontWeight: FontWeight.bold))), const SizedBox(width: 8), Text('${lines.length} fixado(s)')]),
               const SizedBox(height: 8),
               _verticalSummaryItems(context, lines, character.inventoryDetails, ability: false),
             ]),
@@ -789,7 +925,7 @@ class _GeneralTab extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [ThemedSectionIcon(themeId, 'abilities'), const SizedBox(width: 8), const Text('Habilidades', style: TextStyle(fontWeight: FontWeight.bold)), const Spacer(), Text('${lines.length}')]),
+              Row(children: [ThemedSectionIcon(themeId, 'abilities'), const SizedBox(width: 8), const Expanded(child: Text('Habilidades fixadas', style: TextStyle(fontWeight: FontWeight.bold))), const SizedBox(width: 8), Text('${lines.length} fixado(s)')]),
               const SizedBox(height: 8),
               _verticalSummaryItems(context, lines, character.abilityDetails, ability: true),
             ]),
@@ -800,36 +936,46 @@ class _GeneralTab extends StatelessWidget {
     }
   }
 
+  Future<void> _customize(BuildContext context) async {
+    final screen = MediaQuery.sizeOf(context).height;
+    final result = await _showCustomizeSheet(
+      context,
+      title: 'Personalizar Em Cena',
+      subtitle: 'Arraste os cards e escolha quais aparecem.',
+      order: _normalizedGeneralOrder(character),
+      hidden: {...character.hiddenGeneralCards},
+      labels: _generalCardLabels,
+      height: math.min(560.0, screen * .85),
+    );
+    if (result == null) return;
+    await onSaveLayout(character, List<String>.from(result['order']), List<String>.from(result['hidden']));
+  }
+
   @override
   Widget build(BuildContext context) {
-    final validIds = const ['sessionOverview', 'combatCharacter', 'health', 'energy', 'conditions', 'quickActions', 'attributes', 'abilities', 'inventory'];
-    final order = <String>[];
-    for (final id in character.generalOrder) {
-      if (validIds.contains(id) && !order.contains(id)) order.add(id);
-    }
-    for (final id in validIds) {
-      if (!order.contains(id)) order.add(id);
-    }
-
-    return ReorderableListView.builder(
+    final visible = _normalizedGeneralOrder(character).where((id) => !character.hiddenGeneralCards.contains(id)).toList();
+    return SingleChildScrollView(
+      key: const ValueKey('em-cena-scroll'),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      itemCount: order.length,
-      onReorder: (oldIndex, newIndex) => onReorder(character, oldIndex, newIndex),
-      buildDefaultDragHandles: false,
-      itemBuilder: (context, index) {
-        final id = order[index];
-        return Padding(
-          key: ValueKey('general-item-$id'),
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Row(children: [
-            Expanded(child: _summaryCard(context, id)),
-            ReorderableDragStartListener(
-              index: index,
-              child: const Padding(padding: EdgeInsets.only(left: 8), child: Icon(Icons.drag_handle)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+          IconButton(tooltip: 'Personalizar', visualDensity: VisualDensity.compact, onPressed: () => _customize(context), icon: const Icon(Icons.tune, size: 20)),
+        ]),
+        if (visible.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              'Nenhum card visível. Toque em Personalizar para escolher.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
-          ]),
-        );
-      },
+          ),
+        for (final id in visible)
+          Padding(
+            key: ValueKey('general-item-$id'),
+            padding: const EdgeInsets.only(bottom: 10),
+            child: KeyedSubtree(key: anchors.card(id), child: _summaryCard(context, id)),
+          ),
+      ]),
     );
   }
 }
@@ -908,13 +1054,7 @@ class _AttributesResourcesTab extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: system.attributes.length,
-            gridDelegate: abyssAttributeGridDelegate(context, themeId, TextGrowthGridDelegate(
-              crossAxisCount: 2,
-              childAspectRatio: 2.75,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              extraHeight: _attributeGridGrowth(context),
-            )),
+            gridDelegate: abyssAttributeGridDelegate(context),
             itemBuilder: (_, index) {
               final name = system.attributes[index];
               final value = character.attributes[name] ?? 0;
@@ -923,7 +1063,7 @@ class _AttributesResourcesTab extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   onTap: () => onEditAttribute(character, name),
                   child: Padding(
-                    padding: abyssCardInset(themeId, const EdgeInsets.symmetric(horizontal: 10, vertical: 6)),
+                    padding: abyssCardInset,
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -1008,16 +1148,6 @@ class _AttributesResourcesTab extends StatelessWidget {
   }
 }
 
-/// Altura a mais das células de atributo com texto maior: 0 com texto 1.0 (a
-/// grade fica igual à de proporção fixa); acima disso, o crescimento do nome e
-/// do valor + 1 px (a célula de proporção 2,75 já fica ~0,5 px curta em 1.0).
-double _attributeGridGrowth(BuildContext context) {
-  final theme = Theme.of(context).textTheme;
-  final growth = textGrowth(context, 'Ág', theme.bodyLarge?.copyWith(fontWeight: FontWeight.w700)) +
-      textGrowth(context, '0', theme.headlineSmall?.copyWith(fontWeight: FontWeight.w600));
-  return growth > 0 ? growth + 1 : 0;
-}
-
 class _ThemedResourceBar extends StatelessWidget {
   final double value;
   final String themeId;
@@ -1035,76 +1165,8 @@ class _ThemedResourceBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (usesAbyssDesign(themeId)) return AbyssResourceBar(value: value, secondary: secondary, colors: abyssResourceBarColors(resourceName));
-    final fillColors = themedResourceBarColors(themeId, secondary: secondary);
-    final trackColor = themedResourceTrackColor(themeId);
-    final scheme = Theme.of(context).colorScheme;
-    final normalized = value.clamp(0.0, 1.0);
-
-    return Container(
-      height: 14,
-      decoration: BoxDecoration(
-        color: trackColor,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: scheme.outlineVariant.withOpacity(.45)),
-        boxShadow: [
-          BoxShadow(
-            color: scheme.primary.withOpacity(.08),
-            blurRadius: 10,
-            spreadRadius: 1,
-          ),
-        ],
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final fillWidth = constraints.maxWidth * normalized;
-          return Stack(
-            children: [
-              if (fillWidth > 0)
-                Align(
-                  alignment: Alignment.center,
-                  child: Container(
-                  width: fillWidth,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: fillColors),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-                ),
-              if (themeId == 'cyberpunk' && fillWidth > 18)
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: CustomPaint(
-                      painter: _CyberpunkBarPainter(progress: normalized),
-                    ),
-                  ),
-                ),
-            ],
-          );
-        },
-      ),
-    );
+    return AbyssResourceBar(value: value, secondary: secondary, colors: abyssResourceBarColors(resourceName));
   }
-}
-
-class _CyberpunkBarPainter extends CustomPainter {
-  final double progress;
-  const _CyberpunkBarPainter({required this.progress});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final activeWidth = size.width * progress;
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(.14)
-      ..strokeWidth = 1;
-    const segment = 16.0;
-    for (double x = segment; x < activeWidth; x += segment) {
-      canvas.drawLine(Offset(x, 2), Offset(x, size.height - 2), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _CyberpunkBarPainter oldDelegate) => oldDelegate.progress != progress;
 }
 
 class _SkillsTab extends StatelessWidget {
@@ -1527,6 +1589,9 @@ class _ActionsTab extends StatefulWidget {
   final bool showConditions;
   final bool showQuickActions;
 
+  /// Âncoras do Em Cena para os cabeçalhos (pílulas do card Sessão).
+  final _EmCenaAnchors? anchors;
+
   const _ActionsTab({
     required this.character,
     required this.system,
@@ -1535,6 +1600,7 @@ class _ActionsTab extends StatefulWidget {
     this.showResources = true,
     this.showConditions = true,
     this.showQuickActions = true,
+    this.anchors,
   });
 
   @override State<_ActionsTab> createState() => _ActionsTabState();
@@ -1675,63 +1741,17 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
     );
   }
   Future<void> _customize() async {
-    var order = <String>[
+    final order = <String>[
       ...widget.character.actionOrder.where(_groups.contains),
       ..._groups.where((g) => !widget.character.actionOrder.contains(g)),
     ];
-    var hidden = <String>{...widget.character.hiddenActionGroups};
-    final result = await showModalBottomSheet<Map<String, dynamic>>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheet) => SafeArea(
-          child: SizedBox(
-            height: 420,
-            child: Column(
-              children: [
-                const ListTile(
-                  title: Text('Personalizar Ações'),
-                  subtitle: Text('Arraste os grupos e escolha quais aparecem.'),
-                ),
-                Expanded(
-                  child: ReorderableListView(
-                    onReorder: (oldIndex, newIndex) {
-                      setSheet(() {
-                        if (newIndex > oldIndex) newIndex--;
-                        final item = order.removeAt(oldIndex);
-                        order.insert(newIndex, item);
-                      });
-                    },
-                    children: [
-                      for (final group in order)
-                        SwitchListTile(
-                          key: ValueKey(group),
-                          value: !hidden.contains(group),
-                          onChanged: (visible) => setSheet(() {
-                            if (visible) { hidden.remove(group); } else { hidden.add(group); }
-                          }),
-                          title: Text(_labels[group]!),
-                          secondary: const Icon(Icons.drag_handle),
-                        ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: () => Navigator.pop(ctx, {'order': order, 'hidden': hidden.toList()}),
-                      child: const Text('Salvar'),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    final result = await _showCustomizeSheet(
+      context,
+      title: 'Personalizar Ações',
+      subtitle: 'Arraste os grupos e escolha quais aparecem.',
+      order: order,
+      hidden: {...widget.character.hiddenActionGroups},
+      labels: _labels,
     );
     if (result != null) {
       widget.character.actionOrder = List<String>.from(result['order']);
@@ -1744,7 +1764,12 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
     final c = widget.character;
     List<String> names = [];
     if (id == 'weapons') names = c.inventory.where((n) => c.inventoryDetails[n]?['category'] == 'Arma').toList();
-    if (id == 'consumables') names = c.inventory.where((n) => c.inventoryDetails[n]?['category'] == 'Consumível').toList();
+    if (id == 'consumables') {
+      // Zerados (Qtd. 0) vão para o fim do grupo, na mesma ordem entre si.
+      final all = c.inventory.where((n) => c.inventoryDetails[n]?['category'] == 'Consumível').toList();
+      bool empty(String n) => ((c.inventoryDetails[n]?['quantity'] as num?)?.toInt() ?? 1) <= 0;
+      names = [...all.where((n) => !empty(n)), ...all.where(empty)];
+    }
     if (id == 'spells') names = c.abilities.where((n) => c.abilityDetails[n]?['category'] == 'Magia').toList();
     if (id == 'abilities') {
       names = c.abilities.where((n) {
@@ -1766,6 +1791,7 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Padding(
+        key: widget.anchors?.section(id),
         padding: EdgeInsets.fromLTRB(2, compact ? 5 : 10, 2, 6),
         child: Row(children: [
           Icon(groupIcon, size: 18),
@@ -1809,22 +1835,20 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
           }
         }
 
-        return Card(
+        final row = Card(
           margin: EdgeInsets.only(bottom: compact ? 5 : 8),
           child: Padding(
-            padding: abyssCardInset(themeId, EdgeInsets.fromLTRB(compact ? 9 : 11, compact ? 7 : 9, compact ? 7 : 9, compact ? 7 : 9)),
+            padding: abyssCardInset,
             child: Row(children: [
               // Abissal: ilustração da ação; nos outros temas, o mesmo ícone de antes.
               ActionIconSlot(
                 themeId: themeId,
-                artPath: !usesAbyssDesign(themeId)
-                    ? null
-                    : ActionArtResolver.resolve(
-                        kind: switch (id) { 'weapons' => ActionArtKind.weapon, 'consumables' => ActionArtKind.item, 'spells' => ActionArtKind.spell, _ => ActionArtKind.ability },
-                        name: name,
-                        description: (id == 'weapons' || id == 'consumables' ? c.inventoryDescriptions[name] : c.abilityDescriptions[name]) ?? '',
-                        category: switch (id) { 'consumables' => 'Consumível', 'spells' => 'Magia', _ => d['category']?.toString() ?? '' },
-                      ),
+                artPath: ActionArtResolver.resolve(
+                  kind: switch (id) { 'weapons' => ActionArtKind.weapon, 'consumables' => ActionArtKind.item, 'spells' => ActionArtKind.spell, _ => ActionArtKind.ability },
+                  name: name,
+                  description: (id == 'weapons' || id == 'consumables' ? c.inventoryDescriptions[name] : c.abilityDescriptions[name]) ?? '',
+                  category: switch (id) { 'consumables' => 'Consumível', 'spells' => 'Magia', _ => d['category']?.toString() ?? '' },
+                ),
                 size: artSize,
                 fallback: Icon(
                   id == 'spells'
@@ -1862,6 +1886,8 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
             ]),
           ),
         );
+        // Consumível zerado: a linha inteira fica a 60%.
+        return id == 'consumables' && !enabled ? Opacity(key: ValueKey('zeroed-$name'), opacity: .6, child: row) : row;
       }),
     ]);
   }
@@ -1887,12 +1913,10 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
     }
     if (widget.showConditions) {
       if (content.isNotEmpty) content.add(SizedBox(height: compact ? 10 : 14));
-      final conditionsTitle = Text('Condições ativas', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700));
+      final conditionsTitle = Text('Condições ativas', key: widget.anchors?.section('conditions'), style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700));
       final conditionsButton = TextButton.icon(onPressed: _selectConditions, icon: const Icon(Icons.flag_outlined, size: 18), label: const Text('Alterar'));
-      // Abissal: com texto grande, o botão desce de linha em vez de passar da moldura.
-      content.add(usesAbyssDesign(context.watch<AppState>().themeId)
-          ? Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, children: [conditionsTitle, conditionsButton])
-          : Row(children: [Expanded(child: conditionsTitle), conditionsButton]));
+      // Com texto grande, o botão desce de linha em vez de passar da moldura.
+      content.add(Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, children: [conditionsTitle, conditionsButton]));
       content.add(c.conditions.isEmpty
           ? Text('Nenhuma condição ativa.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant))
           : Wrap(spacing: 7, runSpacing: 7, children: c.conditions.map(_conditionChip).toList()));
@@ -2224,7 +2248,7 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
         ),
         const SizedBox(height: 10),
         SizedBox(
-          height: abyssChipBarHeight(context, themeId, 38),
+          height: abyssChipBarHeight(context, 38),
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: (widget.isAbility ? abilityFilters : inventoryFilters).length,
@@ -2313,14 +2337,12 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
                     // Abissal: ilustração no lugar do quadrado cinza com ícone.
                     ActionIconSlot(
                       themeId: themeId,
-                      artPath: !usesAbyssDesign(themeId)
-                          ? null
-                          : ActionArtResolver.resolve(
-                              kind: widget.isAbility ? ActionArtKind.ability : ActionArtKind.item,
-                              name: item,
-                              description: widget.descriptions[item] ?? '',
-                              category: category,
-                            ),
+                      artPath: ActionArtResolver.resolve(
+                        kind: widget.isAbility ? ActionArtKind.ability : ActionArtKind.item,
+                        name: item,
+                        description: widget.descriptions[item] ?? '',
+                        category: category,
+                      ),
                       size: actionArtSize(compact),
                       fallback: Container(
                         width: compact ? 36 : 42,
