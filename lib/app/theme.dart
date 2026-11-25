@@ -175,10 +175,10 @@ ShapeBorder themedNavigationIndicatorShape(String themeId, double radius) {
   return RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius.clamp(10, 22)));
 }
 
-Widget themedCharacterTabIcon(String themeId, String role, {double size = 18, Color? color}) {
+Widget themedCharacterTabIcon(String themeId, String role, {double size = 18, Color? color, bool? selected}) {
   if (themeId == 'abyss') {
     final fallback = Icon(themedIcon(themeId, role), size: size, color: color ?? AbyssColors.gold);
-    return abyssCharacterTabArt(role, size: size, color: color, fallback: fallback) ?? fallback;
+    return abyssCharacterTabArt(role, size: size, color: color, selected: selected, fallback: fallback) ?? fallback;
   }
   if (themeId == 'cyberpunk') {
     final iconColor = color ?? const Color(0xFF1755FF);

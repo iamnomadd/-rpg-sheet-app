@@ -7,6 +7,7 @@ import '../../app/theme.dart';
 import '../../models/character.dart';
 import '../../services/app_state.dart';
 import '../../services/skill_tree_templates.dart';
+import '../../widgets/text_growth.dart';
 
 class SkillTreeScreen extends StatefulWidget {
   final String characterId;
@@ -277,12 +278,40 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
     );
   }
 
+  /// Maior crescimento de texto entre os cartões (nas larguras do cartão).
+  double _nodeTextGrowth(BuildContext context, Character character, SkillTreeLayout layout) {
+    final labelSmall = Theme.of(context).textTheme.labelSmall;
+    var extra = 0.0;
+    for (final node in character.skillTree) {
+      final name = node['name']?.toString() ?? 'Habilidade';
+      final level = (node['level'] as num?)?.toInt();
+      double growth;
+      if (layout.compact) {
+        final width = math.max(1.0, layout.nodeWidth - 10);
+        growth = textGrowth(context, name, const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, height: 1.15), maxWidth: width, maxLines: 3) +
+            (level == null ? 0 : textGrowth(context, 'Nv $level', labelSmall?.copyWith(fontSize: 10), maxWidth: width));
+      } else {
+        // Coluna do texto: cartão − padding (16) − ícone (24) − espaço (8) − cadeado (40).
+        final width = math.max(1.0, layout.nodeWidth - 88);
+        final state = node['unlocked'] == true ? 'Desbloqueada' : 'Disponível';
+        growth = textGrowth(context, name, const TextStyle(fontWeight: FontWeight.w700), maxWidth: width, maxLines: 2) +
+            textGrowth(context, level == null ? state : 'Nível $level • $state', labelSmall, maxWidth: width);
+      }
+      extra = math.max(extra, growth);
+    }
+    return extra;
+  }
+
   Widget _treeCanvas(Character character) {
     final state = context.watch<AppState>();
     final scheme = Theme.of(context).colorScheme;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final layout = computeSkillTreeLayout(character.skillTree, constraints.maxWidth);
+        final base = computeSkillTreeLayout(character.skillTree, constraints.maxWidth);
+        // 0 com texto 1.0 (a árvore fica igual); com texto maior, o cartão
+        // cresce o mesmo que o seu texto, para nada estourar.
+        final extra = _nodeTextGrowth(context, character, base);
+        final layout = extra > 0 ? computeSkillTreeLayout(character.skillTree, constraints.maxWidth, extraNodeHeight: extra) : base;
         final stateById = <String, _NodeState>{};
         for (final node in character.skillTree) {
           final id = node['id']?.toString() ?? '';
@@ -495,7 +524,7 @@ const _treeLevelGap = 52.0;
 /// máximo [skillTreeMaxColumns] cartões lado a lado; nós a mais de um mesmo
 /// nível descem para a linha seguinte (cada linha centralizada). A profundidade
 /// vem de `parentId` (ciclo ou pai inexistente contam como raiz).
-SkillTreeLayout computeSkillTreeLayout(List<Map<String, dynamic>> nodes, double viewportWidth) {
+SkillTreeLayout computeSkillTreeLayout(List<Map<String, dynamic>> nodes, double viewportWidth, {double extraNodeHeight = 0}) {
   final width = math.max(0.0, viewportWidth);
   final byId = <String, Map<String, dynamic>>{
     for (final node in nodes)
@@ -532,7 +561,8 @@ SkillTreeLayout computeSkillTreeLayout(List<Map<String, dynamic>> nodes, double 
   }
   final columns = math.min(skillTreeMaxColumns, math.min(maxCount, fit));
   final nodeWidth = math.min(skillTreeCardMaxWidth, (usable - (columns - 1) * _treeGapX) / columns).clamp(0.0, skillTreeCardMaxWidth).toDouble();
-  final nodeHeight = nodeWidth < skillTreeCompactBelow ? skillTreeCompactCardHeight : skillTreeCardHeight;
+  // Altura de sempre; com texto maior, [extraNodeHeight] acompanha o texto.
+  final nodeHeight = (nodeWidth < skillTreeCompactBelow ? skillTreeCompactCardHeight : skillTreeCardHeight) + math.max(0.0, extraNodeHeight);
 
   final positions = <String, Offset>{};
   var y = _treePaddingY;

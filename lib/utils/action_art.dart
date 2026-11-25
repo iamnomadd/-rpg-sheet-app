@@ -1,6 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
+import 'package:provider/provider.dart';
+
+import '../app/abyss_art_size.dart';
+import '../services/app_state.dart';
 
 /// Tipo de ação para escolher a ilustração.
 enum ActionArtKind { spell, ability, weapon, item }
@@ -81,7 +85,7 @@ class ActionArtResolver {
     'spell_fire': ['infern', 'abras', 'ardent', 'esquent', 'calor'],
     'spell_lightning': ['choc'],
     'spell_ice': ['granizo', 'gelad'],
-    'spell_poison': ['fetid', 'doenc', 'contag', 'pestil'],
+    'spell_poison': ['fetid', 'doenc', 'contag', 'pestil', 'acid'],
     'spell_heal': ['reviv', 'ressusc'],
     'spell_shield': ['protet', 'proteg', 'invulner'],
     'spell_death': ['mort', 'necrot'],
@@ -104,7 +108,7 @@ class ActionArtResolver {
     ('spell_summon', ['invoc', 'conjur', 'convoc', 'familiar']),
     ('spell_transform', ['transform', 'metamorf', 'polimorf', 'disfarc', 'encolh', 'agigant']),
     ('spell_flight', ['voo', 'voar', 'voand', 'flutu', 'levit', 'salto', 'pulo']),
-    ('spell_vision', ['visao', 'enxerg', 'olho', 'clarivid', 'detect', 'revel', 'adivinh', 'vidente']),
+    ('spell_vision', ['visao', 'enxerg', 'olho', 'clarivid', 'detect', 'revel', 'adivinh', 'vidente', 'visao no escuro']),
     ('spell_enchanted_weapon', ['arma magica', 'arma sagrada', 'arma espiritual', 'arma elemental', 'lamina']),
     ('spell_dispel', ['dissip', 'anul', 'contrafeit', 'neutraliz', 'banir', 'banim', 'purific', 'exorc', 'desfaz']),
     ('spell_cloud', ['nuvem', 'nevoa', 'neblina', 'fumaca', 'bruma', 'miasma']),
@@ -119,6 +123,18 @@ class ActionArtResolver {
           if (!weakNameTerms.any((weak) => weak.$2.contains(t))) t,
         ...?nameOnlyExtra[file],
       ]),
+  ];
+
+  /// Expressões (termos com espaço) das categorias novas: avaliadas ANTES dos
+  /// elementos ("Arma Sagrada" é arma encantada, não luz).
+  static final List<(String, List<String>)> _newSpellPhrases = [
+    for (final (file, terms) in newSpellTerms) (file, [for (final t in terms) if (t.contains(' ')) t]),
+  ];
+
+  /// Elementos no nome de HABILIDADES: sem o radical 'mort' ("Golpe Mortal"
+  /// não é magia de morte).
+  static final List<(String, List<String>)> _abilityTermsForName = [
+    for (final (file, terms) in _spellTermsForName) (file, [for (final t in terms) if (t != 'mort') t]),
   ];
 
   static const weaponTerms = <(String, List<String>)>[
@@ -181,7 +197,8 @@ class ActionArtResolver {
       case ActionArtKind.spell:
       case ActionArtKind.ability:
         if (category == 'Passiva') return 'ability_passive';
-        return _first(_spellTermsForName, name) ??
+        return _first(_newSpellPhrases, name) ??
+            _first(kind == ActionArtKind.ability ? _abilityTermsForName : _spellTermsForName, name) ??
             _first(newSpellTerms, name) ??
             _first(weakNameTerms, name) ??
             _first(_spellTermsForDescription, description) ??
@@ -257,7 +274,7 @@ class ActionArtResolver {
 }
 
 /// Tamanho da arte: 52 dp no modo normal e 44 dp no compacto.
-double actionArtSize(bool compact) => compact ? 44 : 52;
+double actionArtSize(bool compact) => abyssArtIconSize(compact);
 
 /// No tema Abissal, mostra a ilustração; nos outros temas (ou sem arte),
 /// devolve exatamente [fallback], sem envolver em nada.
@@ -265,15 +282,18 @@ class ActionIconSlot extends StatelessWidget {
   final String themeId;
   final String? artPath;
   final Widget fallback;
-  final double size;
 
-  const ActionIconSlot({super.key, required this.themeId, required this.artPath, required this.fallback, this.size = 52});
+  /// Lado da arte; se null, o tamanho padrão do Abissal ([abyssArtIconSize]).
+  final double? size;
+
+  const ActionIconSlot({super.key, required this.themeId, required this.artPath, required this.fallback, this.size});
 
   @override
   Widget build(BuildContext context) {
     final art = artPath;
     if (themeId != 'abyss' || art == null) return fallback;
     final ratio = MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0;
+    final size = this.size ?? abyssArtIconSize(context.watch<AppState?>()?.compactMode ?? false);
     return Image.asset(
       art,
       width: size,

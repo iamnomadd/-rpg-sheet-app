@@ -274,7 +274,7 @@ class MainTabsShell extends StatelessWidget {
                                 reduceMotion: reduceMotion,
                                 fill: true,
                                 margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
-                                icon: (color) => Icon(themedMainIcon(themeId, item.role), size: 24, color: color),
+                                icon: (color, _) => Icon(themedMainIcon(themeId, item.role), size: 24, color: color),
                                 label: item.label,
                                 labelStyle: Theme.of(context).textTheme.labelSmall,
                               )

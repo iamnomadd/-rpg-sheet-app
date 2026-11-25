@@ -25,6 +25,7 @@ import 'custom_sprite.dart';
 import 'custom_sprite_sheet.dart';
 import '../campaigns/initiative_tools.dart';
 import '../../widgets/card_spacing.dart';
+import '../../widgets/text_growth.dart';
 
 
 /// Aplica os valores da folha do recurso na ficha, com o máximo em [0, 999999]
@@ -371,15 +372,17 @@ class _CharacterScreenState extends State<CharacterScreen> {
         builder: (context) {
           final order = _normalizedTabOrder(c);
           if (tab >= order.length) tab = 0;
+          // 72 com texto 1.0; com texto maior, cresce o mesmo que o rótulo.
+          final tabsHeight = 72 + textGrowth(context, 'Ág', Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800));
           return NestedScrollView(
             headerSliverBuilder: (context, innerBoxIsScrolled) => [
               SliverToBoxAdapter(child: _Header(character: c, system: system)),
               SliverPersistentHeader(
                 pinned: true,
                 delegate: _CharacterTabsHeader(
-                  height: 72,
+                  height: tabsHeight,
                   child: Material(
-                    color: state.themeId == 'abyss' ? AbyssColors.bar : state.themeId == 'parchment' ? Theme.of(context).colorScheme.surface.withOpacity(.96) : Theme.of(context).scaffoldBackgroundColor,
+                    color: state.themeId == 'abyss' ? AbyssColors.bar : state.themeId == 'parchment' ? Theme.of(context).colorScheme.surface : Theme.of(context).scaffoldBackgroundColor,
                     child: Container(
                       decoration: BoxDecoration(
                         border: Border(bottom: BorderSide(
@@ -387,7 +390,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
                         )),
                       ),
                       child: SizedBox(
-                        height: 72,
+                        height: tabsHeight,
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Row(children: order.asMap().entries.map((entry) {
@@ -413,7 +416,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
                                       selected: selected,
                                       reduceMotion: reduceMotion,
                                       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                                      icon: (color) => themedCharacterTabIcon(state.themeId, id, size: 22, color: color),
+                                      icon: (color, selected) => themedCharacterTabIcon(state.themeId, id, size: 22, color: color, selected: selected),
                                       label: _tabLabel(id),
                                       labelStyle: Theme.of(context).textTheme.labelMedium,
                                     )
@@ -565,6 +568,7 @@ class _GeneralTab extends StatelessWidget {
                 value: progress,
                 themeId: themeId,
                 secondary: secondary,
+                resourceName: resourceName.isNotEmpty ? resourceName : title,
               ),
             ),
         ]),
@@ -639,7 +643,7 @@ class _GeneralTab extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                Icon(Icons.bolt_outlined, color: Theme.of(context).colorScheme.primary),
+                ThemedSectionIcon(themeId, 'session', fallbackIcon: Icons.bolt_outlined, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 8),
                 const Expanded(child: Text('Sessão', style: TextStyle(fontWeight: FontWeight.w800))),
                 Text('Nível ${character.level}', style: Theme.of(context).textTheme.labelLarge),
@@ -904,11 +908,12 @@ class _AttributesResourcesTab extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: system.attributes.length,
-            gridDelegate: abyssAttributeGridDelegate(context, themeId, const SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate: abyssAttributeGridDelegate(context, themeId, TextGrowthGridDelegate(
               crossAxisCount: 2,
               childAspectRatio: 2.75,
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
+              extraHeight: _attributeGridGrowth(context),
             )),
             itemBuilder: (_, index) {
               final name = system.attributes[index];
@@ -990,6 +995,7 @@ class _AttributesResourcesTab extends StatelessWidget {
                       value: progress,
                       themeId: themeId,
                       secondary: name.toLowerCase() != 'vida',
+                      resourceName: name,
                     ),
                   ),
                 ],
@@ -1002,20 +1008,34 @@ class _AttributesResourcesTab extends StatelessWidget {
   }
 }
 
+/// Altura a mais das células de atributo com texto maior: 0 com texto 1.0 (a
+/// grade fica igual à de proporção fixa); acima disso, o crescimento do nome e
+/// do valor + 1 px (a célula de proporção 2,75 já fica ~0,5 px curta em 1.0).
+double _attributeGridGrowth(BuildContext context) {
+  final theme = Theme.of(context).textTheme;
+  final growth = textGrowth(context, 'Ág', theme.bodyLarge?.copyWith(fontWeight: FontWeight.w700)) +
+      textGrowth(context, '0', theme.headlineSmall?.copyWith(fontWeight: FontWeight.w600));
+  return growth > 0 ? growth + 1 : 0;
+}
+
 class _ThemedResourceBar extends StatelessWidget {
   final double value;
   final String themeId;
   final bool secondary;
 
+  /// Nome do recurso (só para a cor da barra no Abissal).
+  final String resourceName;
+
   const _ThemedResourceBar({
     required this.value,
     required this.themeId,
     this.secondary = false,
+    this.resourceName = '',
   });
 
   @override
   Widget build(BuildContext context) {
-    if (themeId == 'abyss') return AbyssResourceBar(value: value, secondary: secondary);
+    if (themeId == 'abyss') return AbyssResourceBar(value: value, secondary: secondary, colors: abyssResourceBarColors(resourceName));
     final fillColors = themedResourceBarColors(themeId, secondary: secondary);
     final trackColor = themedResourceTrackColor(themeId);
     final scheme = Theme.of(context).colorScheme;
@@ -1147,14 +1167,26 @@ class _SectionsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(padding: const EdgeInsets.all(16), children: [
-      Row(children: [
-        Expanded(child: Text('Seções da ficha', style: Theme.of(context).textTheme.titleLarge)),
-        Chip(
-          visualDensity: VisualDensity.compact,
-          avatar: const Icon(Icons.tune, size: 15),
-          label: Text(system.name),
-        ),
-      ]),
+      // Texto 1.0: a linha de sempre. Texto maior: o chip desce de linha em vez
+      // de passar da tela.
+      if (MediaQuery.textScalerOf(context).scale(1) <= 1)
+        Row(children: [
+          Expanded(child: Text('Seções da ficha', style: Theme.of(context).textTheme.titleLarge)),
+          Chip(
+            visualDensity: VisualDensity.compact,
+            avatar: const Icon(Icons.tune, size: 15),
+            label: Text(system.name),
+          ),
+        ])
+      else
+        Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, spacing: 8, runSpacing: 6, children: [
+          Text('Seções da ficha', style: Theme.of(context).textTheme.titleLarge),
+          Chip(
+            visualDensity: VisualDensity.compact,
+            avatar: const Icon(Icons.tune, size: 15),
+            label: Text(system.name),
+          ),
+        ]),
       const SizedBox(height: 10),
       if (system.sections.isEmpty) const Text('Este sistema não possui seções configuradas.'),
       ...system.sections.map((section) => Card(
@@ -1373,8 +1405,7 @@ class _CombatCharacter2D extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
         child: Column(children: [
           Row(children: [
-            Text('Estado do personagem', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-            const Spacer(),
+            Expanded(child: Text('Estado do personagem', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700))),
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 250),
               child: Text(
@@ -1559,7 +1590,7 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
     _applyResourceValues(widget.character, name, result);
     await _save();
   }
-  Widget _resource(String name){final current=widget.character.resourceValues[name]??0,max=widget.character.resourceMaxValues[name]??0,value=max<=0?0.0:(current/max).clamp(0.0,1.0);final themeId=context.watch<AppState>().themeId,secondary=name.toLowerCase()!='vida';return Card(child:Padding(padding:const EdgeInsets.fromLTRB(14,10,14,12),child:Column(children:[Row(children:[ThemedResourceIcon(themeId,name,fallbackIcon:secondary?Icons.bolt:themedIcon(themeId,'resources'),size:22),const SizedBox(width:8),Expanded(child:Text(name,style:const TextStyle(fontWeight:FontWeight.w700))),IconButton(tooltip:'Diminuir',visualDensity:VisualDensity.compact,onPressed:()=>_changeResource(name,-1),icon:const Icon(Icons.remove)),Text('$current / $max',style:Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w600)),IconButton(tooltip:'Aumentar',visualDensity:VisualDensity.compact,onPressed:()=>_changeResource(name,1),icon:const Icon(Icons.add))]),const SizedBox(height:7),ResourceBarTapTarget(label:name,onTap:()=>_editResourceValue(name),child:_ThemedResourceBar(value:value,themeId:themeId,secondary:secondary))])));}
+  Widget _resource(String name){final current=widget.character.resourceValues[name]??0,max=widget.character.resourceMaxValues[name]??0,value=max<=0?0.0:(current/max).clamp(0.0,1.0);final themeId=context.watch<AppState>().themeId,secondary=name.toLowerCase()!='vida';return Card(child:Padding(padding:const EdgeInsets.fromLTRB(14,10,14,12),child:Column(children:[Row(children:[ThemedResourceIcon(themeId,name,fallbackIcon:secondary?Icons.bolt:themedIcon(themeId,'resources'),size:22),const SizedBox(width:8),Expanded(child:Text(name,style:const TextStyle(fontWeight:FontWeight.w700))),IconButton(tooltip:'Diminuir',visualDensity:VisualDensity.compact,onPressed:()=>_changeResource(name,-1),icon:const Icon(Icons.remove)),Text('$current / $max',style:Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w600)),IconButton(tooltip:'Aumentar',visualDensity:VisualDensity.compact,onPressed:()=>_changeResource(name,1),icon:const Icon(Icons.add))]),const SizedBox(height:7),ResourceBarTapTarget(label:name,onTap:()=>_editResourceValue(name),child:_ThemedResourceBar(value:value,themeId:themeId,secondary:secondary,resourceName:name))])));}
 
   Future<void> _selectConditions() async {
     final initial = widget.character.conditions.toSet();
@@ -1856,19 +1887,12 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
     }
     if (widget.showConditions) {
       if (content.isNotEmpty) content.add(SizedBox(height: compact ? 10 : 14));
+      final conditionsTitle = Text('Condições ativas', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700));
+      final conditionsButton = TextButton.icon(onPressed: _selectConditions, icon: const Icon(Icons.flag_outlined, size: 18), label: const Text('Alterar'));
       // Abissal: com texto grande, o botão desce de linha em vez de passar da moldura.
-      if (context.watch<AppState>().themeId == 'abyss') {
-        content.add(Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, children: [
-          Text('Condições ativas', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-          TextButton.icon(onPressed: _selectConditions, icon: const Icon(Icons.flag_outlined, size: 18), label: const Text('Alterar')),
-        ]));
-      } else {
-      content.add(Row(children: [
-        Text('Condições ativas', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-        const Spacer(),
-        TextButton.icon(onPressed: _selectConditions, icon: const Icon(Icons.flag_outlined, size: 18), label: const Text('Alterar')),
-      ]));
-      }
+      content.add(context.watch<AppState>().themeId == 'abyss'
+          ? Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, children: [conditionsTitle, conditionsButton])
+          : Row(children: [Expanded(child: conditionsTitle), conditionsButton]));
       content.add(c.conditions.isEmpty
           ? Text('Nenhuma condição ativa.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant))
           : Wrap(spacing: 7, runSpacing: 7, children: c.conditions.map(_conditionChip).toList()));

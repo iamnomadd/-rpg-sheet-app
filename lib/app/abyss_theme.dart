@@ -548,13 +548,17 @@ class AbyssResourceBar extends StatelessWidget {
   final double value;
   final bool secondary;
 
-  const AbyssResourceBar({super.key, required this.value, this.secondary = false});
+  /// Gradiente da barra (por palavra-chave do recurso); se null, a lógica de
+  /// sempre (secondary ? energia : vida).
+  final List<Color>? colors;
+
+  const AbyssResourceBar({super.key, required this.value, this.secondary = false, this.colors});
 
   @override
   Widget build(BuildContext context) => SizedBox(
         height: 14,
         width: double.infinity,
-        child: CustomPaint(painter: _AbyssBarPainter(value: value.clamp(0.0, 1.0), colors: secondary ? AbyssColors.energy : AbyssColors.life)),
+        child: CustomPaint(painter: _AbyssBarPainter(value: value.clamp(0.0, 1.0), colors: colors ?? (secondary ? AbyssColors.energy : AbyssColors.life))),
       );
 }
 
@@ -735,7 +739,7 @@ class AbyssTabCell extends StatelessWidget {
   final bool reduceMotion;
   final EdgeInsetsGeometry padding;
   final EdgeInsetsGeometry margin;
-  final Widget Function(Color color) icon;
+  final Widget Function(Color color, bool selected) icon;
   final String label;
   final TextStyle? labelStyle;
 
@@ -774,7 +778,7 @@ class AbyssTabCell extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
         children: [
-          icon(color),
+          icon(color, selected),
           const SizedBox(height: 4),
           Text(
             label,
