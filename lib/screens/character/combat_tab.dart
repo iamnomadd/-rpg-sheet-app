@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../../app/abyss_resource_art.dart';
 import '../../app/abyss_theme.dart';
 import '../../app/theme.dart';
 import '../../models/character.dart';
@@ -200,7 +201,7 @@ class _CombatTabState extends State<CombatTab> with SingleTickerProviderStateMix
           children: [
             Row(
               children: [
-                Icon(secondary ? Icons.bolt : themedIcon(themeId, 'resources'), size: 20),
+                ThemedResourceIcon(themeId, name, fallbackIcon: secondary ? Icons.bolt : themedIcon(themeId, 'resources'), size: 20),
                 const SizedBox(width: 7),
                 Expanded(child: Text(name, style: const TextStyle(fontWeight: FontWeight.w700))),
                 IconButton(
