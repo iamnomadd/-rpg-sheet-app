@@ -382,7 +382,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
                 delegate: _CharacterTabsHeader(
                   height: tabsHeight,
                   child: Material(
-                    color: state.themeId == 'abyss' ? AbyssColors.bar : state.themeId == 'parchment' ? Theme.of(context).colorScheme.surface : Theme.of(context).scaffoldBackgroundColor,
+                    color: usesAbyssDesign(state.themeId) ? AbyssPalette.of(context).bar : state.themeId == 'parchment' ? Theme.of(context).colorScheme.surface : Theme.of(context).scaffoldBackgroundColor,
                     child: Container(
                       decoration: BoxDecoration(
                         border: Border(bottom: BorderSide(
@@ -411,7 +411,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
                                   );
                                 }
                               },
-                              child: state.themeId == 'abyss'
+                              child: usesAbyssDesign(state.themeId)
                                   ? AbyssTabCell(
                                       selected: selected,
                                       reduceMotion: reduceMotion,
@@ -1035,7 +1035,7 @@ class _ThemedResourceBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (themeId == 'abyss') return AbyssResourceBar(value: value, secondary: secondary, colors: abyssResourceBarColors(resourceName));
+    if (usesAbyssDesign(themeId)) return AbyssResourceBar(value: value, secondary: secondary, colors: abyssResourceBarColors(resourceName));
     final fillColors = themedResourceBarColors(themeId, secondary: secondary);
     final trackColor = themedResourceTrackColor(themeId);
     final scheme = Theme.of(context).colorScheme;
@@ -1817,7 +1817,7 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
               // Abissal: ilustração da ação; nos outros temas, o mesmo ícone de antes.
               ActionIconSlot(
                 themeId: themeId,
-                artPath: themeId != 'abyss'
+                artPath: !usesAbyssDesign(themeId)
                     ? null
                     : ActionArtResolver.resolve(
                         kind: switch (id) { 'weapons' => ActionArtKind.weapon, 'consumables' => ActionArtKind.item, 'spells' => ActionArtKind.spell, _ => ActionArtKind.ability },
@@ -1890,7 +1890,7 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
       final conditionsTitle = Text('Condições ativas', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700));
       final conditionsButton = TextButton.icon(onPressed: _selectConditions, icon: const Icon(Icons.flag_outlined, size: 18), label: const Text('Alterar'));
       // Abissal: com texto grande, o botão desce de linha em vez de passar da moldura.
-      content.add(context.watch<AppState>().themeId == 'abyss'
+      content.add(usesAbyssDesign(context.watch<AppState>().themeId)
           ? Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, children: [conditionsTitle, conditionsButton])
           : Row(children: [Expanded(child: conditionsTitle), conditionsButton]));
       content.add(c.conditions.isEmpty
@@ -2313,7 +2313,7 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
                     // Abissal: ilustração no lugar do quadrado cinza com ícone.
                     ActionIconSlot(
                       themeId: themeId,
-                      artPath: themeId != 'abyss'
+                      artPath: !usesAbyssDesign(themeId)
                           ? null
                           : ActionArtResolver.resolve(
                               kind: widget.isAbility ? ActionArtKind.ability : ActionArtKind.item,

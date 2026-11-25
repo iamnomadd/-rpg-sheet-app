@@ -344,7 +344,7 @@ class _CombatTabState extends State<CombatTab> with SingleTickerProviderStateMix
     final themeId = context.watch<AppState>().themeId;
     final artSize = actionArtSize(context.watch<AppState>().compactMode);
     String? art(ActionArtKind kind, String name, {String description = '', String category = ''}) =>
-        themeId == 'abyss' ? ActionArtResolver.resolve(kind: kind, name: name, description: description, category: category) : null;
+        usesAbyssDesign(themeId) ? ActionArtResolver.resolve(kind: kind, name: name, description: description, category: category) : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -357,7 +357,7 @@ class _CombatTabState extends State<CombatTab> with SingleTickerProviderStateMix
               margin: cardSpacingMargin,
               child: ListTile(
                 // Abissal: arte do consumível; nos outros temas a linha segue sem ícone.
-                leading: themeId == 'abyss'
+                leading: usesAbyssDesign(themeId)
                     ? ActionIconSlot(themeId: themeId, artPath: art(ActionArtKind.item, item, category: 'Consumível'), size: artSize, fallback: const SizedBox.shrink())
                     : null,
                 title: Text(item),
@@ -550,7 +550,7 @@ class _CombatResourceBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (themeId == 'abyss') return AbyssResourceBar(value: value, secondary: secondary, colors: abyssResourceBarColors(resourceName));
+    if (usesAbyssDesign(themeId)) return AbyssResourceBar(value: value, secondary: secondary, colors: abyssResourceBarColors(resourceName));
     final colors = themedResourceBarColors(themeId, secondary: secondary);
     final widthFactor = value.clamp(0.0, 1.0);
     return Container(

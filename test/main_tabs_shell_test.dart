@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:rpg_sheet_app/app/abyss_theme.dart';
 import 'package:rpg_sheet_app/app/app.dart';
 import 'package:rpg_sheet_app/app/theme.dart';
 import 'package:rpg_sheet_app/core/feature_flags.dart';
@@ -71,20 +72,23 @@ void main() {
     testWidgets('tocar na barra troca destaque e página (Mestre ${masterTools ? 'ligado' : 'desligado'})', (tester) async {
       await state.setMasterToolsEnabled(masterTools);
       await pumpShell(tester);
-      final scheme = Theme.of(tester.element(find.byType(MainTabsShell))).colorScheme;
+      // Design do Abissal (padrão desde a 1.3.62): selecionada goldLight, as outras cream a 60%.
+      final palette = AbyssPalette.of(tester.element(find.byType(MainTabsShell)));
+      final selectedColor = palette.goldLight;
+      final unselectedColor = palette.cream.withValues(alpha: .6);
 
       expect(find.text('Mestre'), masterTools ? findsOneWidget : findsNothing);
       expect(find.text('Página Fichas'), findsOneWidget);
-      expect(iconColor(tester, 'Fichas'), scheme.primary);
-      expect(iconColor(tester, 'Sistemas'), scheme.onSurfaceVariant);
+      expect(iconColor(tester, 'Fichas'), selectedColor);
+      expect(iconColor(tester, 'Sistemas'), unselectedColor);
       final buildsBefore = pagesBuilds;
 
       await tester.tap(find.text('Sistemas'));
       await tester.pumpAndSettle();
       expect(find.text('Página Sistemas'), findsOneWidget);
       expect(index.value, 1);
-      expect(iconColor(tester, 'Sistemas'), scheme.primary);
-      expect(iconColor(tester, 'Fichas'), scheme.onSurfaceVariant);
+      expect(iconColor(tester, 'Sistemas'), selectedColor);
+      expect(iconColor(tester, 'Fichas'), unselectedColor);
       // Trocar de aba não reconstrói o shell nem a lista de páginas.
       expect(pagesBuilds, buildsBefore);
 
@@ -93,7 +97,7 @@ void main() {
       await tester.tap(find.text(lastLabel));
       await tester.pumpAndSettle();
       expect(find.text(lastPage), findsOneWidget);
-      expect(iconColor(tester, lastLabel), scheme.primary);
+      expect(iconColor(tester, lastLabel), selectedColor);
       expect(pagesBuilds, buildsBefore);
     });
   }
@@ -121,11 +125,11 @@ void main() {
   testWidgets('trocar de tema continua atualizando a barra', (tester) async {
     await pumpShell(tester);
     expect(iconData(tester, 'Fichas'), themedMainIcon('classic', 'characters'));
-    final classicPrimary = Theme.of(tester.element(find.byType(MainTabsShell))).colorScheme.primary;
+    final classicPrimary = AbyssPalette.of(tester.element(find.byType(MainTabsShell))).goldLight;
 
     await state.setTheme('parchment');
     await tester.pumpAndSettle();
-    final piratePrimary = Theme.of(tester.element(find.byType(MainTabsShell))).colorScheme.primary;
+    final piratePrimary = AbyssPalette.of(tester.element(find.byType(MainTabsShell))).goldLight;
     expect(iconData(tester, 'Fichas'), themedMainIcon('parchment', 'characters'));
     expect(iconColor(tester, 'Fichas'), piratePrimary);
     expect(piratePrimary, isNot(classicPrimary));

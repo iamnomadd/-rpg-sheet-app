@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -18,6 +19,11 @@ class SkillTreeScreen extends StatefulWidget {
   @override
   State<SkillTreeScreen> createState() => _SkillTreeScreenState();
 }
+
+/// Quantas vezes o crescimento de texto dos cartões da árvore foi calculado
+/// (só para testes do cache).
+@visibleForTesting
+int skillTreeTextGrowthComputations = 0;
 
 class _SkillTreeScreenState extends State<SkillTreeScreen> {
   Character? _character(AppState state) {
@@ -278,9 +284,24 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
     );
   }
 
+  // Cache do [_nodeTextGrowth]: só recalcula quando os cartões (nome, nível,
+  // estado), a largura do cartão ou a escala do texto (e o estilo) mudam.
+  List<Object?>? _growthKey;
+  double _growthValue = 0;
+
   /// Maior crescimento de texto entre os cartões (nas larguras do cartão).
   double _nodeTextGrowth(BuildContext context, Character character, SkillTreeLayout layout) {
     final labelSmall = Theme.of(context).textTheme.labelSmall;
+    final key = <Object?>[
+      layout.compact,
+      layout.nodeWidth,
+      MediaQuery.textScalerOf(context),
+      labelSmall,
+      for (final node in character.skillTree) ...[node['name']?.toString(), (node['level'] as num?)?.toInt(), node['unlocked'] == true],
+    ];
+    final cached = _growthKey;
+    if (cached != null && listEquals(cached, key)) return _growthValue;
+    skillTreeTextGrowthComputations++;
     var extra = 0.0;
     for (final node in character.skillTree) {
       final name = node['name']?.toString() ?? 'Habilidade';
@@ -299,7 +320,8 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
       }
       extra = math.max(extra, growth);
     }
-    return extra;
+    _growthKey = key;
+    return _growthValue = extra;
   }
 
   Widget _treeCanvas(Character character) {

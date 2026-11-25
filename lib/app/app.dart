@@ -98,7 +98,7 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
       builder: (context, child) {
         final media = MediaQuery.of(context);
         final content = child ?? const SizedBox.shrink();
-        final themedContent = themeId == 'abyss'
+        final themedContent = usesAbyssDesign(themeId)
             ? AbyssBackground(child: content)
             : themeId == 'parchment'
             ? DecoratedBox(
@@ -152,7 +152,7 @@ class AppThemeCache {
 }
 
 ThemeData buildAppTheme(String themeId, bool compact) {
-  if (themeId == 'abyss') return buildAbyssAppTheme(buildTheme(themeId), compact);
+  if (usesAbyssDesign(themeId)) return buildAbyssAppTheme(buildTheme(themeId), compact);
   final baseTheme = buildTheme(themeId);
   return baseTheme.copyWith(
     visualDensity: compact
@@ -242,7 +242,7 @@ class MainTabsShell extends StatelessWidget {
           top: false,
           child: Container(
             height: 78,
-            decoration: themeId == 'abyss' ? const AbyssNavBarDecoration() : BoxDecoration(
+            decoration: usesAbyssDesign(themeId) ? AbyssNavBarDecoration(palette: AbyssPalette.of(context)) : BoxDecoration(
               border: Border(top: BorderSide(
                 color: Theme.of(context).colorScheme.outlineVariant.withOpacity(.32),
               )),
@@ -268,7 +268,7 @@ class MainTabsShell extends StatelessWidget {
                             controller.animateToPage(value, duration: duration, curve: Curves.easeInOutCubic);
                           }
                         },
-                        child: themeId == 'abyss'
+                        child: usesAbyssDesign(themeId)
                             ? AbyssTabCell(
                                 selected: selected,
                                 reduceMotion: reduceMotion,

@@ -1,10 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
-import 'package:provider/provider.dart';
 
 import '../app/abyss_art_size.dart';
-import '../services/app_state.dart';
+import '../app/abyss_theme.dart' show usesAbyssDesign;
 
 /// Tipo de ação para escolher a ilustração.
 enum ActionArtKind { spell, ability, weapon, item }
@@ -276,24 +275,24 @@ class ActionArtResolver {
 /// Tamanho da arte: 52 dp no modo normal e 44 dp no compacto.
 double actionArtSize(bool compact) => abyssArtIconSize(compact);
 
-/// No tema Abissal, mostra a ilustração; nos outros temas (ou sem arte),
-/// devolve exatamente [fallback], sem envolver em nada.
+/// No design do Abissal (todos os temas desde a 1.3.62, [usesAbyssDesign]),
+/// mostra a ilustração; sem arte, devolve exatamente [fallback], sem envolver
+/// em nada.
 class ActionIconSlot extends StatelessWidget {
   final String themeId;
   final String? artPath;
   final Widget fallback;
 
-  /// Lado da arte; se null, o tamanho padrão do Abissal ([abyssArtIconSize]).
-  final double? size;
+  /// Lado da arte; os chamadores passam [actionArtSize] (compacto ou não).
+  final double size;
 
-  const ActionIconSlot({super.key, required this.themeId, required this.artPath, required this.fallback, this.size});
+  const ActionIconSlot({super.key, required this.themeId, required this.artPath, required this.fallback, required this.size});
 
   @override
   Widget build(BuildContext context) {
     final art = artPath;
-    if (themeId != 'abyss' || art == null) return fallback;
+    if (!usesAbyssDesign(themeId) || art == null) return fallback;
     final ratio = MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0;
-    final size = this.size ?? abyssArtIconSize(context.watch<AppState?>()?.compactMode ?? false);
     return Image.asset(
       art,
       width: size,

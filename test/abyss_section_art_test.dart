@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:rpg_sheet_app/app/abyss_art_size.dart';
 import 'package:rpg_sheet_app/app/abyss_tab_art.dart';
 import 'package:rpg_sheet_app/app/app.dart';
-import 'package:rpg_sheet_app/app/theme.dart';
 import 'package:rpg_sheet_app/models/character.dart';
 import 'package:rpg_sheet_app/models/rpg_system.dart';
 import 'package:rpg_sheet_app/screens/character/character_screen.dart';
@@ -133,22 +132,4 @@ void main() {
       });
     }
   });
-
-  for (final themeId in ['classic', 'parchment', 'vampire', 'cyberpunk', 'ice']) {
-    testWidgets('$themeId: Sessão com Icons.bolt_outlined primário e títulos com o Icon de hoje', (tester) async {
-      await _pump(tester, themeId);
-      final sessionRow = find.ancestor(of: find.text('Sessão'), matching: find.byType(Row)).first;
-      final sessionIcon = tester.widget<Icon>(find.descendant(of: sessionRow, matching: find.byType(Icon)).first);
-      expect(sessionIcon.icon, Icons.bolt_outlined);
-      expect(sessionIcon.color, Theme.of(tester.element(sessionRow)).colorScheme.primary);
-      final attributesRow = find.ancestor(of: find.text('Atributos').first, matching: find.byType(Row)).first;
-      final titleIcon = tester.widget<Icon>(find.descendant(of: attributesRow, matching: find.byType(Icon)).first);
-      expect(titleIcon.icon, themedIcon(themeId, 'attributes'));
-      expect(titleIcon.size, isNull);
-      expect(titleIcon.color, isNull);
-      expect(_images(tester, abyssSectionArtFolder), isEmpty);
-      expect(_images(tester, abyssTabArtFolder), isEmpty);
-      await _finish(tester);
-    });
-  }
 }

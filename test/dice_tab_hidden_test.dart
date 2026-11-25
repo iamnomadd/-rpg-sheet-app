@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:rpg_sheet_app/app/abyss_theme.dart';
 import 'package:rpg_sheet_app/app/app.dart';
 import 'package:rpg_sheet_app/core/feature_flags.dart';
 import 'package:rpg_sheet_app/screens/dice/dice_screen.dart';
@@ -105,7 +106,8 @@ void main() {
         expect(find.text('Página settings'), findsOneWidget);
         final column = find.ancestor(of: find.text('Config.'), matching: find.byType(Column)).first;
         final icon = tester.widget<Icon>(find.descendant(of: column, matching: find.byType(Icon)));
-        expect(icon.color, Theme.of(tester.element(find.byType(MainTabsShell))).colorScheme.primary);
+        // Design do Abissal (padrão desde a 1.3.62): a aba selecionada usa goldLight da paleta.
+        expect(icon.color, AbyssPalette.of(tester.element(find.byType(MainTabsShell))).goldLight);
       });
     }
   }

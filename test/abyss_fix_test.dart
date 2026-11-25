@@ -44,12 +44,13 @@ void main() {
       });
     }
 
-    test('os outros temas continuam com o tema de app de antes', () {
+    test('os outros temas usam o tema de app do Abissal (padrão desde a 1.3.62)', () {
+      final abyss = buildAppTheme('abyss', true);
       for (final preset in appThemes.where((t) => t.id != 'abyss')) {
         final theme = buildAppTheme(preset.id, true);
-        expect(theme.listTileTheme.minVerticalPadding, 0, reason: preset.id);
-        expect(theme.listTileTheme.contentPadding, const EdgeInsets.symmetric(horizontal: 8), reason: preset.id);
-        expect(theme.filledButtonTheme.style!.shape!.resolve({}), RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), reason: preset.id);
+        expect(theme.listTileTheme.minVerticalPadding, abyss.listTileTheme.minVerticalPadding, reason: preset.id);
+        expect(theme.listTileTheme.contentPadding, abyss.listTileTheme.contentPadding, reason: preset.id);
+        expect(theme.filledButtonTheme.style!.shape!.resolve({}), isA<AbyssFrameBorder>(), reason: preset.id);
       }
     });
   });

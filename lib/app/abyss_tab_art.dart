@@ -82,8 +82,8 @@ Widget _artImage(String path, double size, Widget fallback) => Image.asset(
 Widget? abyssCharacterTabArt(String role, {required double size, Color? color, bool? selected, required Widget fallback}) {
   final path = abyssTabArt(role);
   if (path == null) return null;
-  final isSelected = selected ?? (color == null || color == AbyssColors.goldLight);
   return Builder(builder: (context) {
+    final isSelected = selected ?? (color == null || color == AbyssPalette.of(context).goldLight);
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     final artSize = textScale <= abyssTabArtMaxTextScale ? size * abyssTabArtScale : size;
     return Opacity(
@@ -112,7 +112,7 @@ class ThemedSectionIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final fallback = Icon(fallbackIcon ?? themedIcon(themeId, role), size: size, color: color);
     final path = abyssSectionArt(role);
-    if (themeId != 'abyss' || path == null) return fallback;
+    if (!usesAbyssDesign(themeId) || path == null) return fallback;
     return _artImage(path, abyssArtIconSize(context.watch<AppState?>()?.compactMode ?? false), fallback);
   }
 }

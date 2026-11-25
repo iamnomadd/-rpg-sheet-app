@@ -139,7 +139,7 @@ void main() {
 
   group('(f) ActionIconSlot', () {
     const fallback = Icon(Icons.gps_fixed, key: ValueKey('fallback'));
-    Widget host(String themeId, String? path) => MaterialApp(home: Scaffold(body: Center(child: ActionIconSlot(themeId: themeId, artPath: path, fallback: fallback))));
+    Widget host(String themeId, String? path) => MaterialApp(home: Scaffold(body: Center(child: ActionIconSlot(themeId: themeId, artPath: path, size: actionArtSize(false), fallback: fallback))));
 
     testWidgets('Abissal com arte mostra a imagem decorativa no tamanho pedido', (tester) async {
       await tester.pumpWidget(host('abyss', ActionArtResolver.path('spell_fire')));
@@ -151,11 +151,12 @@ void main() {
       expect(find.byKey(const ValueKey('fallback')), findsNothing);
     });
 
+    // Design do Abissal em todos os temas desde a 1.3.62.
     for (final theme in ['parchment', 'vampire', 'classic', 'cyberpunk']) {
-      testWidgets('$theme devolve exatamente o fallback', (tester) async {
+      testWidgets('$theme também mostra a arte', (tester) async {
         await tester.pumpWidget(host(theme, ActionArtResolver.path('spell_fire')));
-        expect(find.byType(Image), findsNothing);
-        expect(tester.widget(find.byKey(const ValueKey('fallback'))), same(fallback));
+        expect(tester.widget<Image>(find.byType(Image)).width, 40);
+        expect(find.byKey(const ValueKey('fallback')), findsNothing);
       });
     }
 
@@ -242,12 +243,12 @@ void main() {
       });
     }
 
+    // Design do Abissal em todos os temas desde a 1.3.62.
     for (final theme in ['parchment', 'vampire', 'classic']) {
-      testWidgets('ficha no tema $theme não mostra nenhuma arte', (tester) async {
+      testWidgets('ficha no tema $theme também mostra as artes', (tester) async {
         await pump(tester, theme, const CharacterScreen(characterId: 'p1'));
         expect(tester.takeException(), isNull);
-        expect(artShown(tester), isEmpty);
-        expect(find.byIcon(Icons.local_fire_department_outlined), findsWidgets, reason: 'ícone Material de antes');
+        expect(artShown(tester), containsAll(['spell_fire', 'item_pistol', 'item_potion']));
         await finish(tester);
       });
     }
@@ -277,15 +278,15 @@ void main() {
       await finish(tester);
     });
 
-    testWidgets('aba de combate no Pirata segue sem arte', (tester) async {
+    // Design do Abissal em todos os temas desde a 1.3.62.
+    testWidgets('aba de combate no Pirata também mostra a arte', (tester) async {
       final state = await pump(tester, 'parchment', const SizedBox());
       await tester.pumpWidget(ChangeNotifierProvider<AppState>.value(
         value: state,
         child: MaterialApp(theme: buildAppTheme('parchment', false), home: Scaffold(body: CombatTab(character: state.characters.single, system: state.systems.first))),
       ));
       await tester.pump(const Duration(milliseconds: 300));
-      expect(artShown(tester), isEmpty);
-      expect(find.byIcon(Icons.gps_fixed), findsWidgets);
+      expect(artShown(tester), containsAll(['item_pistol']));
       await finish(tester);
     });
   });

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rpg_sheet_app/app/abyss_theme.dart';
 import 'package:rpg_sheet_app/app/theme.dart';
 
 void main() {
@@ -20,10 +21,11 @@ void main() {
     expect(preset.background, const Color(0xFF050A12));
     expect(preset.card, const Color(0xFF151A20));
     expect(theme.scaffoldBackgroundColor, Colors.transparent);
-    expect(theme.navigationBarTheme.indicatorShape, isA<RoundedRectangleBorder>());
-    expect(theme.cardTheme.shape, isA<RoundedRectangleBorder>());
+    // Design do Abissal (padrão desde a 1.3.62) com a paleta do Pirata.
+    expect(theme.navigationBarTheme.indicatorShape, isA<AbyssFrameBorder>());
+    expect(theme.cardTheme.shape, isA<AbyssFrameBorder>());
     expect(theme.colorScheme.primary, const Color(0xFFB08A4B));
     expect(theme.colorScheme.surface, const Color(0xFF151A20));
-    expect(theme.colorScheme.outline, const Color(0xFF8A6C3E));
+    expect(theme.colorScheme.outline, const Color(0xFFB08A4B));
   });
 }

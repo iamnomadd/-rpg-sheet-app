@@ -64,17 +64,22 @@ void main() {
     }
   });
 
-  test('os outros temas continuam com os botões de antes', () {
+  test('os outros temas têm os botões do Abissal (padrão desde a 1.3.62)', () {
     for (final preset in appThemes.where((t) => t.id != 'abyss')) {
       for (final compact in [false, true]) {
         final theme = buildAppTheme(preset.id, compact);
-        for (final style in [theme.filledButtonTheme.style!, theme.outlinedButtonTheme.style!]) {
-          expect(style.padding!.resolve({}), EdgeInsets.symmetric(horizontal: compact ? 10 : 12, vertical: compact ? 6 : 8), reason: preset.id);
-          expect(style.minimumSize!.resolve({}), Size(44, compact ? 34 : 38), reason: preset.id);
-          expect(style.shape!.resolve({}), RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), reason: preset.id);
-          expect(style.visualDensity, isNull, reason: preset.id);
+        final abyss = buildAppTheme('abyss', compact);
+        for (final (style, reference) in [
+          (theme.filledButtonTheme.style!, abyss.filledButtonTheme.style!),
+          (theme.outlinedButtonTheme.style!, abyss.outlinedButtonTheme.style!),
+          (theme.elevatedButtonTheme.style!, abyss.elevatedButtonTheme.style!),
+        ]) {
+          expect(style.padding!.resolve({}), reference.padding!.resolve({}), reason: preset.id);
+          expect(style.minimumSize!.resolve({}), reference.minimumSize!.resolve({}), reason: preset.id);
+          expect(style.shape!.resolve({}), isA<AbyssFrameBorder>(), reason: preset.id);
+          expect((style.shape!.resolve({})! as AbyssFrameBorder).chamfer, abyssButtonChamfer, reason: preset.id);
+          expect(style.visualDensity, reference.visualDensity, reason: preset.id);
         }
-        expect(theme.elevatedButtonTheme.style, buildTheme(preset.id).elevatedButtonTheme.style, reason: preset.id);
       }
     }
   });
