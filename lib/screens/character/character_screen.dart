@@ -786,7 +786,7 @@ class _GeneralTab extends StatelessWidget {
               Wrap(spacing: 7, runSpacing: 7, children: [
                 _sessionPill(context, Icons.gps_fixed, '$weapons arma${weapons == 1 ? '' : 's'}', onTap: () => _goToSection(context, 'weapons')),
                 _sessionPill(context, Icons.auto_awesome_outlined, '$spells magia${spells == 1 ? '' : 's'}', onTap: () => _goToSection(context, 'spells')),
-                _sessionPill(context, Icons.local_drink_outlined, '$consumables consumível${consumables == 1 ? '' : 'is'}', onTap: () => _goToSection(context, 'consumables')),
+                _sessionPill(context, Icons.local_drink_outlined, consumables == 1 ? '1 consumível' : '$consumables consumíveis', onTap: () => _goToSection(context, 'consumables')),
                 if (positive > 0) _sessionPill(context, Icons.add_circle_outline, '$positive positivo${positive == 1 ? '' : 's'}', positive: true, onTap: () => _goToSection(context, 'conditions')),
                 if (negative > 0) _sessionPill(context, Icons.warning_amber_rounded, '$negative negativo${negative == 1 ? '' : 's'}', warning: true, onTap: () => _goToSection(context, 'conditions')),
               ]),
@@ -1203,20 +1203,37 @@ class _SkillsTab extends StatelessWidget {
         const SizedBox(height: 8),
       ],
       if (system.skills.isEmpty) const Text('Este sistema não possui perícias configuradas.')
-      else ...system.skills.map((skill) => Card(margin: cardSpacingMargin, child: ListTile(
-        leading: const Icon(Icons.psychology),
-        title: Text(skill),
-        trailing: Checkbox(
-          value: character.skills.contains(skill),
-          onChanged: (_) => onToggle(character, skill),
-          semanticLabel: 'Treinada em $skill',
-        ),
-        onTap: () => _tapSkill(context, skill),
-        onLongPress: () => _rollFromSheet(context, skill),
-      ))),
-      const SizedBox(height: 16),
-      if (character.skills.isNotEmpty) Text('Perícias selecionadas: ${character.skills.join(', ')}', style: Theme.of(context).textTheme.bodySmall),
+      else ...[
+        // Treinadas (marcadas) e Outras, cada bloco na ordem do sistema.
+        for (final (title, trained) in [('Treinadas', true), ('Outras', false)])
+          if (system.skills.any((skill) => character.skills.contains(skill) == trained)) ...[
+            Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 6),
+              child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+            ),
+            ...system.skills.where((skill) => character.skills.contains(skill) == trained).map((skill) => _skillTile(context, skill)),
+          ],
+      ],
     ]);
+  }
+
+  Widget _skillTile(BuildContext context, String skill) {
+    final attribute = resolveSkillRoll(system, character, skill);
+    return Card(margin: cardSpacingMargin, child: ListTile(
+      leading: const Icon(Icons.psychology),
+      title: Text(skill),
+      subtitle: Text(
+        attribute == null ? 'Segure para escolher o atributo' : 'Rola com $attribute',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+      ),
+      trailing: Checkbox(
+        value: character.skills.contains(skill),
+        onChanged: (_) => onToggle(character, skill),
+        semanticLabel: 'Treinada em $skill',
+      ),
+      onTap: () => _tapSkill(context, skill),
+      onLongPress: () => _rollFromSheet(context, skill),
+    ));
   }
 }
 
@@ -1940,6 +1957,27 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
   }
 }
 
+/// Chama [onRemoved] quando sai da árvore (ex.: o diálogo terminou de fechar).
+class _OnRemoved extends StatefulWidget {
+  final VoidCallback onRemoved;
+  final Widget child;
+  const _OnRemoved({required this.onRemoved, required this.child});
+
+  @override
+  State<_OnRemoved> createState() => _OnRemovedState();
+}
+
+class _OnRemovedState extends State<_OnRemoved> {
+  @override
+  void dispose() {
+    widget.onRemoved();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
 class _CharacterItemsTab extends StatefulWidget {
   final Character character;
   final List<String> items;
@@ -2018,10 +2056,19 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
     String category = old['category']?.toString() ?? (widget.isAbility ? 'Habilidade' : 'Outro');
     if (!_categories.contains(category)) category = widget.isAbility ? 'Habilidade' : 'Outro';
     String durationType = old['durationType']?.toString() ?? 'instant';
+    // Erro mostrado no campo de nome (vazio ou repetido).
+    String? nameError;
+    String norm(String value) => value.trim().toLowerCase();
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
+      // Os campos são descartados só quando o diálogo sai da árvore (depois da
+      // animação de saída), e não logo que ele fecha.
+      builder: (dialogContext) => _OnRemoved(
+        onRemoved: () {
+          name.dispose(); description.dispose(); damage.dispose(); turns.dispose(); quantity.dispose(); ammo.dispose(); ammoMax.dispose(); cost.dispose(); effectValue.dispose();
+        },
+        child: StatefulBuilder(
         builder: (context, setDialogState) {
           final isPassive = widget.isAbility && category == 'Passiva';
           final isActiveAbility = widget.isAbility && !isPassive;
@@ -2032,7 +2079,13 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
             title: Text(editing ? 'Editar ${widget.singular}' : 'Adicionar ${widget.singular}'),
             content: SingleChildScrollView(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                TextField(controller: name, textCapitalization: TextCapitalization.sentences, autofocus: !editing, decoration: InputDecoration(labelText: widget.hint)),
+                TextField(
+                  controller: name,
+                  textCapitalization: TextCapitalization.sentences,
+                  autofocus: !editing,
+                  decoration: InputDecoration(labelText: widget.hint, errorText: nameError, errorMaxLines: 3),
+                  onChanged: (_) { if (nameError != null) setDialogState(() => nameError = null); },
+                ),
                 const SizedBox(height: 12),
                 DropdownMenu<String>(
                   initialSelection: category,
@@ -2042,8 +2095,6 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
                   dropdownMenuEntries: _categories.map((e) => DropdownMenuEntry(value: e, label: e)).toList(),
                   onSelected: (v) { if (v != null) setDialogState(() => category = v); },
                 ),
-                const SizedBox(height: 12),
-                TextField(controller: description, textCapitalization: TextCapitalization.sentences, minLines: 3, maxLines: 6, decoration: const InputDecoration(labelText: 'Descrição', hintText: 'Detalhes, efeitos, observações...')),
                 if (isWeapon || isActiveAbility) ...[
                   const SizedBox(height: 12),
                   TextField(controller: damage, textCapitalization: TextCapitalization.sentences, decoration: const InputDecoration(labelText: 'Dano', hintText: 'Ex.: 1d8, 2d6+3 ou 5')),
@@ -2108,6 +2159,9 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
                     TextField(controller: turns, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Quantidade de turnos')),
                   ],
                 ],
+                // Descrição: sempre o último campo.
+                const SizedBox(height: 12),
+                TextField(controller: description, textCapitalization: TextCapitalization.sentences, minLines: 3, maxLines: 6, decoration: const InputDecoration(labelText: 'Descrição', hintText: 'Detalhes, efeitos, observações...')),
               ]),
             ),
             actions: [
@@ -2115,7 +2169,21 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
               FilledButton(
                 onPressed: () {
                   final n = name.text.trim();
-                  if (n.isEmpty) return;
+                  if (n.isEmpty) {
+                    setDialogState(() => nameError = 'Dê um nome.');
+                    return;
+                  }
+                  // Outro item da mesma lista com o mesmo nome (sem diferença de
+                  // maiúsculas/minúsculas e espaços nas pontas). Manter o
+                  // próprio nome ao editar continua permitido.
+                  final keepsOwnName = editing && norm(n) == norm(oldName);
+                  final duplicate = !keepsOwnName && widget.items.asMap().entries.any((e) => e.key != index && norm(e.value) == norm(n));
+                  if (duplicate) {
+                    setDialogState(() => nameError = widget.isAbility
+                        ? 'Já existe uma habilidade com esse nome. Use outro nome.'
+                        : 'Já existe um item com esse nome. Aumente a quantidade ou use outro nome.');
+                    return;
+                  }
                   Navigator.pop(dialogContext, {
                     'name': n,
                     'description': description.text.trim(),
@@ -2139,8 +2207,8 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
           );
         },
       ),
+      ),
     );
-    name.dispose(); description.dispose(); damage.dispose(); turns.dispose(); quantity.dispose(); ammo.dispose(); ammoMax.dispose(); cost.dispose(); effectValue.dispose();
     if (result == null) return;
     final newName = result['name'] as String;
     if (editing) {
@@ -2148,6 +2216,13 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
       if (oldName != newName) {
         widget.descriptions.remove(oldName);
         widget.details.remove(oldName);
+        // Armas que usavam o item renomeado como estoque de munição passam a
+        // apontar para o nome novo (se nenhuma outra linha ainda usa o antigo).
+        if (!widget.isAbility && !widget.items.contains(oldName)) {
+          for (final d in widget.details.values) {
+            if (d['ammoItem'] == oldName) d['ammoItem'] = newName;
+          }
+        }
       }
     } else {
       widget.items.add(newName);
@@ -2168,8 +2243,17 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
     );
     if (!confirmed || !mounted) return;
     widget.items.removeAt(index);
-    widget.descriptions.remove(removed);
-    widget.details.remove(removed);
+    // Ficha antiga com nomes repetidos: enquanto outra linha tiver o mesmo
+    // nome, a descrição e os detalhes (e o vínculo de munição) ficam.
+    if (!widget.items.contains(removed)) {
+      widget.descriptions.remove(removed);
+      widget.details.remove(removed);
+      if (!widget.isAbility) {
+        for (final d in widget.details.values) {
+          if (d['ammoItem'] == removed) d['ammoItem'] = '';
+        }
+      }
+    }
     await context.read<AppState>().updateCharacter(widget.character);
     if (mounted) setState(() {});
   }
@@ -2385,7 +2469,7 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
                     ],
                     IconButton(
                       visualDensity: VisualDensity.compact,
-                      tooltip: detail['showInScene'] == true ? 'Remover de Em Cena' : 'Em Cena',
+                      tooltip: detail['showInScene'] == true ? 'Desafixar do Em Cena' : 'Fixar no Em Cena',
                       onPressed: () => _toggleInScene(item),
                       icon: Icon(
                         detail['showInScene'] == true ? Icons.star : Icons.star_border,
@@ -2393,16 +2477,11 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
                         color: detail['showInScene'] == true ? scheme.primary : scheme.onSurfaceVariant,
                       ),
                     ),
-                    PopupMenuButton<String>(
-                      tooltip: 'Opções',
-                      onSelected: (v) {
-                        if (v == 'edit') _openEditor(index: entry.key);
-                        if (v == 'delete') _delete(entry.key);
-                      },
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(value: 'edit', child: Text('Editar')),
-                        PopupMenuItem(value: 'delete', child: Text('Excluir')),
-                      ],
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      tooltip: 'Excluir',
+                      onPressed: () => _delete(entry.key),
+                      icon: const Icon(Icons.delete_outline, size: 20),
                     ),
                   ]),
                 ),

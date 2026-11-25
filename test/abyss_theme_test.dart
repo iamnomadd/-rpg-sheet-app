@@ -58,14 +58,14 @@ void main() {
     for (final role in _mainRoles) {
       expect(themedMainIcon('abyss', role), isNot(Icons.circle), reason: role);
     }
-    expect(themedNavigationIndicatorShape('abyss', 20), isA<AbyssFrameBorder>());
+    expect(themedNavigationIndicatorShape('abyss'), isA<AbyssFrameBorder>());
   });
 
   test('(e) os demais temas montam sem exceção com as molduras do Abissal (padrão desde a 1.3.62)', () {
     for (final preset in appThemes.where((t) => t.id != 'abyss')) {
       final theme = buildTheme(preset.id);
       expect(theme.cardTheme.shape, isA<AbyssFrameBorder>(), reason: preset.id);
-      expect(themedNavigationIndicatorShape(preset.id, 20), isA<AbyssFrameBorder>());
+      expect(themedNavigationIndicatorShape(preset.id), isA<AbyssFrameBorder>());
     }
   });
 

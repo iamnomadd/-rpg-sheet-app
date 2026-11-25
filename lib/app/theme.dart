@@ -116,9 +116,8 @@ IconData themedMainIcon(String themeId, String role) {
 }
 
 
-/// Indicador da navegação: a moldura do Abissal na paleta do tema ([radius]
-/// é ignorado e fica só pela assinatura).
-ShapeBorder themedNavigationIndicatorShape(String themeId, double radius) => abyssIndicatorShape(abyssPaletteFor(themeId));
+/// Indicador da navegação: a moldura do Abissal na paleta do tema.
+ShapeBorder themedNavigationIndicatorShape(String themeId) => abyssIndicatorShape(abyssPaletteFor(themeId));
 
 /// Ícone da aba da ficha: a arte do Abissal (ou o ícone de fallback do tema).
 Widget themedCharacterTabIcon(String themeId, String role, {double size = 18, Color? color, bool? selected}) {
