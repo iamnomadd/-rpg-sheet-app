@@ -14,6 +14,7 @@ import '../../services/app_state.dart';
 import '../../services/local_image_provider.dart';
 import '../../utils/action_art.dart';
 import '../../utils/spell_icon.dart';
+import '../../widgets/card_spacing.dart';
 
 class CombatTab extends StatefulWidget {
   final Character character;
@@ -220,7 +221,7 @@ class _CombatTabState extends State<CombatTab> with SingleTickerProviderStateMix
               ],
             ),
             const SizedBox(height: 6),
-            _CombatResourceBar(value: progress, themeId: themeId, secondary: secondary),
+            _CombatResourceBar(value: progress, themeId: themeId, secondary: secondary, resourceName: name),
           ],
         ),
       ),
@@ -353,7 +354,7 @@ class _CombatTabState extends State<CombatTab> with SingleTickerProviderStateMix
             final detail = widget.character.inventoryDetails[item] ?? const <String, dynamic>{};
             final quantity = int.tryParse('${detail['quantity'] ?? 1}') ?? 1;
             return Card(
-              margin: const EdgeInsets.only(bottom: 8),
+              margin: cardSpacingMargin,
               child: ListTile(
                 // Abissal: arte do consumível; nos outros temas a linha segue sem ícone.
                 leading: themeId == 'abyss'
@@ -385,7 +386,7 @@ class _CombatTabState extends State<CombatTab> with SingleTickerProviderStateMix
                 : int.tryParse('${widget.character.inventoryDetails[ammoItem]?['quantity'] ?? 0}') ?? 0;
             final canReload = usesAmmo && ammoCurrent < ammoMax && (reserve == null || reserve > 0);
             return Card(
-              margin: const EdgeInsets.only(bottom: 8),
+              margin: cardSpacingMargin,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
                 child: Row(
@@ -437,7 +438,7 @@ class _CombatTabState extends State<CombatTab> with SingleTickerProviderStateMix
             if (resource.isEmpty) resource = _energyResourceName();
             final available = resource.isNotEmpty && (widget.character.resourceValues[resource] ?? 0) >= cost;
             return Card(
-              margin: const EdgeInsets.only(bottom: 8),
+              margin: cardSpacingMargin,
               child: ListTile(
                 leading: ActionIconSlot(
                   themeId: themeId,
@@ -542,11 +543,14 @@ class _CombatResourceBar extends StatelessWidget {
   final double value;
   final String themeId;
   final bool secondary;
-  const _CombatResourceBar({required this.value, required this.themeId, required this.secondary});
+
+  /// Nome do recurso (só para a cor da barra no Abissal).
+  final String resourceName;
+  const _CombatResourceBar({required this.value, required this.themeId, required this.secondary, this.resourceName = ''});
 
   @override
   Widget build(BuildContext context) {
-    if (themeId == 'abyss') return AbyssResourceBar(value: value, secondary: secondary);
+    if (themeId == 'abyss') return AbyssResourceBar(value: value, secondary: secondary, colors: abyssResourceBarColors(resourceName));
     final colors = themedResourceBarColors(themeId, secondary: secondary);
     final widthFactor = value.clamp(0.0, 1.0);
     return Container(

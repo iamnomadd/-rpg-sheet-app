@@ -190,7 +190,7 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
         if(resources.isNotEmpty)Padding(padding:const EdgeInsets.only(top:4),child:Text(resources.entries.map((e)=>'${e.key} ${e.value}/${max[e.key] ?? e.value}').take(3).join('  •  '),maxLines:2,overflow:TextOverflow.ellipsis)),
       ]),
       trailing:Row(mainAxisSize:MainAxisSize.min,children:[
-        Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(x['status']=='approved'?Icons.cloud_done_outlined:Icons.cloud_queue_outlined),if(conditions.isNotEmpty)Text('${conditions.length} status',style:Theme.of(context).textTheme.labelSmall)]),
+        FittedBox(fit:BoxFit.scaleDown,child:Column(mainAxisSize:MainAxisSize.min,mainAxisAlignment:MainAxisAlignment.center,children:[Icon(x['status']=='approved'?Icons.cloud_done_outlined:Icons.cloud_queue_outlined),if(conditions.isNotEmpty)Text('${conditions.length} status',style:Theme.of(context).textTheme.labelSmall)])),
         PopupMenuButton<String>(itemBuilder:(_)=>const [PopupMenuItem(value:'unlink',child:Text('Desvincular'))],onSelected:(v){if(v=='unlink')_unlinkRemote(context,c,x);}),
       ]),
       onTap:x['status']=='approved'?()=>_editRemoteCharacter(context,c,x):null,
@@ -623,11 +623,12 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                     padding: const EdgeInsets.fromLTRB(18, 4, 18, 8),
                     child: Row(
                       children: [
-                        Text(
-                          '${campaigns.length} de ${state.campaigns.length} campanha(s)',
-                          style: Theme.of(context).textTheme.bodySmall,
+                        Expanded(
+                          child: Text(
+                            '${campaigns.length} de ${state.campaigns.length} campanha(s)',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
                         ),
-                        const Spacer(),
                         Text(
                           _sortLabel(),
                           style: Theme.of(context).textTheme.labelMedium,
