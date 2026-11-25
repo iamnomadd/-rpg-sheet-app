@@ -159,6 +159,40 @@ class _ResourceQuickAdjustSheetState extends State<_ResourceQuickAdjustSheet> {
               children: [
                 Text(widget.name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 14),
+                // Dano/cura (gastar/recuperar) primeiro; os valores atual e
+                // máximo ficam abaixo.
+                TextField(
+                  controller: _amountController,
+                  // Foco inicial: o teclado numérico já abre para dano/cura.
+                  autofocus: true,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: _numberFormatters,
+                  decoration: InputDecoration(labelText: 'Quantidade', errorText: _amountError),
+                  onChanged: (_) {
+                    if (_amountError != null) setState(() => _amountError = null);
+                  },
+                ),
+                const SizedBox(height: 12),
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: Icon(labels.decreaseIcon),
+                      label: Text(labels.decrease),
+                      onPressed: () => _applyAmount(-1),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: Icon(labels.increaseIcon),
+                      label: Text(labels.increase),
+                      onPressed: () => _applyAmount(1),
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 14),
+                const Divider(),
+                const SizedBox(height: 8),
                 Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Expanded(
                     child: TextField(
@@ -186,36 +220,6 @@ class _ResourceQuickAdjustSheetState extends State<_ResourceQuickAdjustSheet> {
                 ]),
                 const SizedBox(height: 12),
                 FilledButton(onPressed: _saveValues, child: const Text('Salvar valores')),
-                const SizedBox(height: 14),
-                const Divider(),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _amountController,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: _numberFormatters,
-                  decoration: InputDecoration(labelText: 'Quantidade', errorText: _amountError),
-                  onChanged: (_) {
-                    if (_amountError != null) setState(() => _amountError = null);
-                  },
-                ),
-                const SizedBox(height: 12),
-                Row(children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: Icon(labels.decreaseIcon),
-                      label: Text(labels.decrease),
-                      onPressed: () => _applyAmount(-1),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: Icon(labels.increaseIcon),
-                      label: Text(labels.increase),
-                      onPressed: () => _applyAmount(1),
-                    ),
-                  ),
-                ]),
               ],
             ),
           ),
