@@ -15,13 +15,15 @@ import '../../widgets/dispose_on_removed.dart';
 class NpcSheetScreen extends StatefulWidget {
   final String campaignId;
   final String npcId;
-  const NpcSheetScreen({super.key, required this.campaignId, required this.npcId});
+  const NpcSheetScreen(
+      {super.key, required this.campaignId, required this.npcId});
 
   @override
   State<NpcSheetScreen> createState() => _NpcSheetScreenState();
 }
 
-class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProviderStateMixin {
+class _NpcSheetScreenState extends State<NpcSheetScreen>
+    with SingleTickerProviderStateMixin {
   late final TabController _tabs;
 
   @override
@@ -52,7 +54,8 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
     return Character.fromJson(Map<String, dynamic>.from(raw));
   }
 
-  Future<void> _save(Campaign campaign, Map<String, dynamic> npc, Character sheet) async {
+  Future<void> _save(
+      Campaign campaign, Map<String, dynamic> npc, Character sheet) async {
     npc['name'] = sheet.name;
     npc['sheet'] = sheet.toJson();
     await context.read<AppState>().updateCampaign(campaign);
@@ -63,11 +66,19 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final campaign = _campaign(state);
-    if (campaign == null) return const Scaffold(body: Center(child: Text('Campanha não encontrada.')));
+    if (campaign == null) {
+      return const Scaffold(
+          body: Center(child: Text('Campanha não encontrada.')));
+    }
     final npc = _npc(campaign);
-    if (npc == null) return const Scaffold(body: Center(child: Text('NPC não encontrado.')));
+    if (npc == null) {
+      return const Scaffold(body: Center(child: Text('NPC não encontrado.')));
+    }
     final sheet = _sheet(npc);
-    if (sheet == null) return const Scaffold(body: Center(child: Text('Ficha do NPC inválida.')));
+    if (sheet == null) {
+      return const Scaffold(
+          body: Center(child: Text('Ficha do NPC inválida.')));
+    }
     final kind = '${npc['kind'] ?? 'NPC'}';
 
     return Scaffold(
@@ -96,61 +107,112 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
           _summary(campaign, npc, sheet),
           _status(campaign, npc, sheet),
           _actions(campaign, npc, sheet),
-          _stringList(campaign, npc, sheet, title: 'Habilidades', items: sheet.abilities, descriptions: sheet.abilityDescriptions),
-          _stringList(campaign, npc, sheet, title: 'Inventário', items: sheet.inventory, descriptions: sheet.inventoryDescriptions),
+          _stringList(campaign, npc, sheet,
+              title: 'Habilidades',
+              items: sheet.abilities,
+              descriptions: sheet.abilityDescriptions),
+          _stringList(campaign, npc, sheet,
+              title: 'Inventário',
+              items: sheet.inventory,
+              descriptions: sheet.inventoryDescriptions),
           _notes(campaign, npc, sheet),
         ],
       ),
     );
   }
 
-  Widget _summary(Campaign campaign, Map<String, dynamic> npc, Character sheet) {
+  Widget _summary(
+      Campaign campaign, Map<String, dynamic> npc, Character sheet) {
     final state = context.watch<AppState>();
     final matchingSystems = state.systems.where((s) => s.id == sheet.systemId);
-    final systemName = matchingSystems.isEmpty ? sheet.systemId : matchingSystems.first.name;
+    final systemName =
+        matchingSystems.isEmpty ? sheet.systemId : matchingSystems.first.name;
     final vida = readVida(sheet);
     final hp = vida.current;
     final maxHp = vida.max;
     final secondaryResources = npcSecondaryResourceNames(
-      systemResources: matchingSystems.isEmpty ? null : matchingSystems.first.resources,
+      systemResources:
+          matchingSystems.isEmpty ? null : matchingSystems.first.resources,
       values: sheet.resourceValues,
       maxValues: sheet.resourceMaxValues,
     );
-    final weapons = sheet.inventory.where((n) => sheet.inventoryDetails[n]?['category'] == 'Arma' || (sheet.inventoryDetails[n]?['damage']?.toString().trim().isNotEmpty ?? false)).toList();
-    final consumables = sheet.inventory.where((n) => sheet.inventoryDetails[n]?['category'] == 'Consumível').toList();
-    final spells = sheet.abilities.where((n) => sheet.abilityDetails[n]?['category'] == 'Magia').toList();
-    final positives = sheet.conditions.where((n) => conditionPresetFor(n)?.positive == true).length;
-    final negatives = sheet.conditions.where((n) => conditionPresetFor(n)?.positive != true).length;
+    final weapons = sheet.inventory
+        .where((n) =>
+            sheet.inventoryDetails[n]?['category'] == 'Arma' ||
+            (sheet.inventoryDetails[n]?['damage']
+                    ?.toString()
+                    .trim()
+                    .isNotEmpty ??
+                false))
+        .toList();
+    final consumables = sheet.inventory
+        .where((n) => sheet.inventoryDetails[n]?['category'] == 'Consumível')
+        .toList();
+    final spells = sheet.abilities
+        .where((n) => sheet.abilityDetails[n]?['category'] == 'Magia')
+        .toList();
+    final positives = sheet.conditions
+        .where((n) => conditionPresetFor(n)?.positive == true)
+        .length;
+    final negatives = sheet.conditions
+        .where((n) => conditionPresetFor(n)?.positive != true)
+        .length;
 
-    Widget resourceCard(String name, int value, int max, {required IconData icon}) => Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: name.isEmpty ? null : () => _editResource(campaign, npc, sheet, name),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Icon(icon),
-              const SizedBox(width: 8),
-              Expanded(child: Text(name.isEmpty ? 'Recurso' : name, style: const TextStyle(fontWeight: FontWeight.w800))),
-              Text('$value / $max', style: Theme.of(context).textTheme.titleMedium),
-            ]),
-            const SizedBox(height: 10),
-            LinearProgressIndicator(value: max <= 0 ? 0 : (value / max).clamp(0, 1).toDouble()),
-          ]),
-        ),
-      ),
-    );
+    Widget resourceCard(String name, int value, int max,
+            {required IconData icon}) =>
+        Card(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: name.isEmpty
+                ? null
+                : () => _editResource(campaign, npc, sheet, name),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      Icon(icon),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: Text(name.isEmpty ? 'Recurso' : name,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w800))),
+                      Text('$value / $max',
+                          style: Theme.of(context).textTheme.titleMedium),
+                    ]),
+                    const SizedBox(height: 10),
+                    LinearProgressIndicator(
+                        value: max <= 0
+                            ? 0
+                            : (value / max).clamp(0, 1).toDouble()),
+                  ]),
+            ),
+          ),
+        );
 
-    Widget sectionTitle(IconData icon, String text, {String? trailing}) => Row(children: [
-      Icon(icon, size: 20),
-      const SizedBox(width: 8),
-      Expanded(child: Text(text, style: const TextStyle(fontWeight: FontWeight.w800))),
-      if (trailing != null) Text(trailing, style: Theme.of(context).textTheme.labelLarge),
-    ]);
+    Widget sectionTitle(IconData icon, String text, {String? trailing}) =>
+        Row(children: [
+          Icon(icon, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+              child: Text(text,
+                  style: const TextStyle(fontWeight: FontWeight.w800))),
+          if (trailing != null)
+            Text(trailing, style: Theme.of(context).textTheme.labelLarge),
+        ]);
 
     final ordered = <String>[];
-    const defaults = ['sessionOverview', 'health', 'energy', 'conditions', 'attributes', 'quickActions', 'abilities', 'inventory'];
+    const defaults = [
+      'sessionOverview',
+      'health',
+      'energy',
+      'conditions',
+      'attributes',
+      'quickActions',
+      'abilities',
+      'inventory'
+    ];
     for (final id in sheet.generalOrder) {
       if (defaults.contains(id) && !ordered.contains(id)) ordered.add(id);
     }
@@ -164,34 +226,62 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
           return Card(
             child: Padding(
               padding: const EdgeInsets.all(14),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                sectionTitle(Icons.bolt_outlined, 'Sessão', trailing: 'Nível ${sheet.level}'),
-                const SizedBox(height: 10),
-                Wrap(spacing: 8, runSpacing: 8, children: [
-                  Chip(avatar: const Icon(Icons.gps_fixed, size: 16), label: Text('${weapons.length} arma${weapons.length == 1 ? '' : 's'}')),
-                  Chip(avatar: const Icon(Icons.auto_awesome_outlined, size: 16), label: Text('${spells.length} magia${spells.length == 1 ? '' : 's'}')),
-                  Chip(avatar: const Icon(Icons.local_drink_outlined, size: 16), label: Text('${consumables.length} consumível${consumables.length == 1 ? '' : 'is'}')),
-                  if (positives > 0) Chip(avatar: const Icon(Icons.add_circle_outline, size: 16), label: Text('$positives positivo${positives == 1 ? '' : 's'}')),
-                  if (negatives > 0) Chip(avatar: const Icon(Icons.warning_amber_rounded, size: 16), label: Text('$negatives negativo${negatives == 1 ? '' : 's'}')),
-                ]),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    sectionTitle(Icons.bolt_outlined, 'Sessão',
+                        trailing: 'Nível ${sheet.level}'),
+                    const SizedBox(height: 10),
+                    Wrap(spacing: 8, runSpacing: 8, children: [
+                      Chip(
+                          avatar: const Icon(Icons.gps_fixed, size: 16),
+                          label: Text(
+                              '${weapons.length} arma${weapons.length == 1 ? '' : 's'}')),
+                      Chip(
+                          avatar:
+                              const Icon(Icons.auto_awesome_outlined, size: 16),
+                          label: Text(
+                              '${spells.length} magia${spells.length == 1 ? '' : 's'}')),
+                      Chip(
+                          avatar:
+                              const Icon(Icons.local_drink_outlined, size: 16),
+                          label: Text(
+                              '${consumables.length} consumível${consumables.length == 1 ? '' : 'is'}')),
+                      if (positives > 0)
+                        Chip(
+                            avatar:
+                                const Icon(Icons.add_circle_outline, size: 16),
+                            label: Text(
+                                '$positives positivo${positives == 1 ? '' : 's'}')),
+                      if (negatives > 0)
+                        Chip(
+                            avatar: const Icon(Icons.warning_amber_rounded,
+                                size: 16),
+                            label: Text(
+                                '$negatives negativo${negatives == 1 ? '' : 's'}')),
+                    ]),
+                  ]),
             ),
           );
         case 'health':
           return resourceCard('Vida', hp, maxHp, icon: Icons.favorite_outline);
         case 'energy':
-          if (secondaryResources.isEmpty) return resourceCard('', 0, 0, icon: Icons.bolt_outlined);
-          return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            for (var i = 0; i < secondaryResources.length; i++) ...[
-              if (i > 0) const SizedBox(height: 10),
-              resourceCard(
-                secondaryResources[i],
-                sheet.resourceValues[secondaryResources[i]] ?? 0,
-                sheet.resourceMaxValues[secondaryResources[i]] ?? 0,
-                icon: Icons.bolt_outlined,
-              ),
-            ],
-          ]);
+          if (secondaryResources.isEmpty) {
+            return resourceCard('', 0, 0, icon: Icons.bolt_outlined);
+          }
+          return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < secondaryResources.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 10),
+                  resourceCard(
+                    secondaryResources[i],
+                    sheet.resourceValues[secondaryResources[i]] ?? 0,
+                    sheet.resourceMaxValues[secondaryResources[i]] ?? 0,
+                    icon: Icons.bolt_outlined,
+                  ),
+                ],
+              ]);
         case 'conditions':
           return Card(
             child: InkWell(
@@ -199,14 +289,24 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
               onTap: () => _tabs.animateTo(1),
               child: Padding(
                 padding: const EdgeInsets.all(14),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  sectionTitle(Icons.health_and_safety_outlined, 'Condições', trailing: '${sheet.conditions.length}'),
-                  const SizedBox(height: 10),
-                  if (sheet.conditions.isEmpty)
-                    const Text('Nenhuma condição ativa.')
-                  else
-                    Wrap(spacing: 7, runSpacing: 7, children: sheet.conditions.take(6).map((c) => Chip(label: Text(c))).toList()),
-                ]),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      sectionTitle(
+                          Icons.health_and_safety_outlined, 'Condições',
+                          trailing: '${sheet.conditions.length}'),
+                      const SizedBox(height: 10),
+                      if (sheet.conditions.isEmpty)
+                        const Text('Nenhuma condição ativa.')
+                      else
+                        Wrap(
+                            spacing: 7,
+                            runSpacing: 7,
+                            children: sheet.conditions
+                                .take(6)
+                                .map((c) => Chip(label: Text(c)))
+                                .toList()),
+                    ]),
               ),
             ),
           );
@@ -214,27 +314,34 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
           return Card(
             child: Padding(
               padding: const EdgeInsets.all(14),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                sectionTitle(Icons.hexagon_outlined, 'Atributos'),
-                const SizedBox(height: 10),
-                if (sheet.attributes.isEmpty)
-                  const Text('Nenhum atributo configurado.')
-                else
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: sheet.attributes.entries.map((e) => ActionChip(
-                      label: Text('${e.key}: ${e.value}'),
-                      onPressed: () => _editAttribute(campaign, npc, sheet, e.key),
-                    )).toList(),
-                  ),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    sectionTitle(Icons.hexagon_outlined, 'Atributos'),
+                    const SizedBox(height: 10),
+                    if (sheet.attributes.isEmpty)
+                      const Text('Nenhum atributo configurado.')
+                    else
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: sheet.attributes.entries
+                            .map((e) => ActionChip(
+                                  label: Text('${e.key}: ${e.value}'),
+                                  onPressed: () => _editAttribute(
+                                      campaign, npc, sheet, e.key),
+                                ))
+                            .toList(),
+                      ),
+                  ]),
             ),
           );
         case 'quickActions':
           final quick = <MapEntry<String, String>>[
-            ...weapons.take(3).map((name) => MapEntry(name, 'Dano ${sheet.inventoryDetails[name]?['damage'] ?? '—'}')),
-            ...sheet.abilities.take(3).map((name) => MapEntry(name, sheet.abilityDescriptions[name] ?? 'Habilidade')),
+            ...weapons.take(3).map((name) => MapEntry(name,
+                'Dano ${sheet.inventoryDetails[name]?['damage'] ?? '—'}')),
+            ...sheet.abilities.take(3).map((name) => MapEntry(
+                name, sheet.abilityDescriptions[name] ?? 'Habilidade')),
           ].take(5).toList();
           return Card(
             child: InkWell(
@@ -242,24 +349,34 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
               onTap: () => _tabs.animateTo(2),
               child: Padding(
                 padding: const EdgeInsets.all(14),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  sectionTitle(Icons.flash_on_outlined, 'Ações rápidas'),
-                  const SizedBox(height: 10),
-                  if (quick.isEmpty)
-                    const Text('Nenhuma ação cadastrada.')
-                  else
-                    ...quick.map((e) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(children: [
-                        const Icon(Icons.chevron_right, size: 18),
-                        const SizedBox(width: 4),
-                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(e.key, style: const TextStyle(fontWeight: FontWeight.w700)),
-                          Text(e.value, maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ])),
-                      ]),
-                    )),
-                ]),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      sectionTitle(Icons.flash_on_outlined, 'Ações rápidas'),
+                      const SizedBox(height: 10),
+                      if (quick.isEmpty)
+                        const Text('Nenhuma ação cadastrada.')
+                      else
+                        ...quick.map((e) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(children: [
+                                const Icon(Icons.chevron_right, size: 18),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                    child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                      Text(e.key,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w700)),
+                                      Text(e.value,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis),
+                                    ])),
+                              ]),
+                            )),
+                    ]),
               ),
             ),
           );
@@ -270,21 +387,31 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
               onTap: () => _tabs.animateTo(3),
               child: Padding(
                 padding: const EdgeInsets.all(14),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  sectionTitle(Icons.auto_awesome_outlined, 'Habilidades', trailing: '${sheet.abilities.length}'),
-                  const SizedBox(height: 10),
-                  if (sheet.abilities.isEmpty)
-                    const Text('Nenhuma habilidade.')
-                  else
-                    ...sheet.abilities.take(5).map((name) => Padding(
-                      padding: const EdgeInsets.only(bottom: 7),
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                        if ((sheet.abilityDescriptions[name] ?? '').isNotEmpty)
-                          Text(sheet.abilityDescriptions[name]!, maxLines: 2, overflow: TextOverflow.ellipsis),
-                      ]),
-                    )),
-                ]),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      sectionTitle(Icons.auto_awesome_outlined, 'Habilidades',
+                          trailing: '${sheet.abilities.length}'),
+                      const SizedBox(height: 10),
+                      if (sheet.abilities.isEmpty)
+                        const Text('Nenhuma habilidade.')
+                      else
+                        ...sheet.abilities.take(5).map((name) => Padding(
+                              padding: const EdgeInsets.only(bottom: 7),
+                              child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(name,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w700)),
+                                    if ((sheet.abilityDescriptions[name] ?? '')
+                                        .isNotEmpty)
+                                      Text(sheet.abilityDescriptions[name]!,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis),
+                                  ]),
+                            )),
+                    ]),
               ),
             ),
           );
@@ -295,25 +422,35 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
               onTap: () => _tabs.animateTo(4),
               child: Padding(
                 padding: const EdgeInsets.all(14),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  sectionTitle(Icons.inventory_2_outlined, 'Inventário', trailing: '${sheet.inventory.length} item(ns)'),
-                  const SizedBox(height: 10),
-                  if (sheet.inventory.isEmpty)
-                    const Text('Nenhum item.')
-                  else
-                    ...sheet.inventory.take(5).map((name) {
-                      final d = sheet.inventoryDetails[name] ?? const <String, dynamic>{};
-                      final category = d['category']?.toString() ?? 'Item';
-                      final damage = d['damage']?.toString().trim() ?? '';
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 7),
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                          Text(damage.isEmpty ? category : '$category • Dano $damage'),
-                        ]),
-                      );
-                    }),
-                ]),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      sectionTitle(Icons.inventory_2_outlined, 'Inventário',
+                          trailing: '${sheet.inventory.length} item(ns)'),
+                      const SizedBox(height: 10),
+                      if (sheet.inventory.isEmpty)
+                        const Text('Nenhum item.')
+                      else
+                        ...sheet.inventory.take(5).map((name) {
+                          final d = sheet.inventoryDetails[name] ??
+                              const <String, dynamic>{};
+                          final category = d['category']?.toString() ?? 'Item';
+                          final damage = d['damage']?.toString().trim() ?? '';
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 7),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(name,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w700)),
+                                  Text(damage.isEmpty
+                                      ? category
+                                      : '$category • Dano $damage'),
+                                ]),
+                          );
+                        }),
+                    ]),
               ),
             ),
           );
@@ -344,26 +481,46 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
             child: Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    CircleAvatar(radius: 27, child: Icon(_kindIcon('${npc['kind'] ?? 'NPC'}'))),
-                    const SizedBox(width: 14),
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(sheet.name, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 2),
-                      Text('${npc['kind'] ?? 'NPC'} • ${sheet.race.isEmpty ? 'Sem raça' : sheet.race} • ${sheet.className.isEmpty ? 'Sem classe' : sheet.className}'),
-                      const SizedBox(height: 2),
-                      Text('Nível ${sheet.level} • $systemName', style: Theme.of(context).textTheme.bodySmall),
-                    ])),
-                    IconButton(onPressed: () => _editIdentity(campaign, npc, sheet), icon: const Icon(Icons.edit_outlined)),
-                  ]),
-                  if (sheet.background.trim().isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Text('Antecedente', style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 4),
-                    Text(sheet.background),
-                  ],
-                ]),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        CircleAvatar(
+                            radius: 27,
+                            child: Icon(_kindIcon('${npc['kind'] ?? 'NPC'}'))),
+                        const SizedBox(width: 14),
+                        Expanded(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                              Text(sheet.name,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleLarge
+                                      ?.copyWith(fontWeight: FontWeight.w800)),
+                              const SizedBox(height: 2),
+                              Text(
+                                  '${npc['kind'] ?? 'NPC'} • ${sheet.race.isEmpty ? 'Sem raça' : sheet.race} • ${sheet.className.isEmpty ? 'Sem classe' : sheet.className}'),
+                              const SizedBox(height: 2),
+                              Text('Nível ${sheet.level} • $systemName',
+                                  style: Theme.of(context).textTheme.bodySmall),
+                            ])),
+                        IconButton(
+                            onPressed: () =>
+                                _editIdentity(campaign, npc, sheet),
+                            icon: const Icon(Icons.edit_outlined)),
+                      ]),
+                      if (sheet.background.trim().isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Text('Antecedente',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelLarge
+                                ?.copyWith(fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 4),
+                        Text(sheet.background),
+                      ],
+                    ]),
               ),
             ),
           );
@@ -376,7 +533,9 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
             Expanded(child: cardFor(id)),
             ReorderableDragStartListener(
               index: index,
-              child: const Padding(padding: EdgeInsets.only(left: 8), child: Icon(Icons.drag_handle)),
+              child: const Padding(
+                  padding: EdgeInsets.only(left: 8),
+                  child: Icon(Icons.drag_handle)),
             ),
           ]),
         );
@@ -384,139 +543,330 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
     );
   }
 
-  Widget _status(Campaign campaign, Map<String, dynamic> npc, Character sheet) => ListView(
-    padding: const EdgeInsets.all(16),
-    children: [
-      Text('Condições ativas', style: Theme.of(context).textTheme.titleMedium),
-      const SizedBox(height: 8),
-      if (sheet.conditions.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('Nenhuma condição ativa.'))),
-      Wrap(spacing: 8, runSpacing: 8, children: sheet.conditions.map((c) => InputChip(
-        label: Text(c),
-        onDeleted: () async { sheet.conditions.remove(c); await _save(campaign, npc, sheet); },
-      )).toList()),
-      const SizedBox(height: 20),
-      FilledButton.icon(onPressed: () => _chooseCondition(campaign, npc, sheet), icon: const Icon(Icons.add), label: const Text('Adicionar condição')),
-    ],
-  );
+  Widget _status(
+          Campaign campaign, Map<String, dynamic> npc, Character sheet) =>
+      ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text('Condições ativas',
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          if (sheet.conditions.isEmpty)
+            const Card(
+                child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('Nenhuma condição ativa.'))),
+          Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: sheet.conditions
+                  .map((c) => InputChip(
+                        label: Text(c),
+                        onDeleted: () async {
+                          sheet.conditions.remove(c);
+                          await _save(campaign, npc, sheet);
+                        },
+                      ))
+                  .toList()),
+          const SizedBox(height: 20),
+          FilledButton.icon(
+              onPressed: () => _chooseCondition(campaign, npc, sheet),
+              icon: const Icon(Icons.add),
+              label: const Text('Adicionar condição')),
+        ],
+      );
 
-  Widget _actions(Campaign campaign, Map<String, dynamic> npc, Character sheet) {
-    final weaponNames = sheet.inventory.where((name) => (sheet.inventoryDetails[name]?['damage']?.toString().trim().isNotEmpty ?? false)).toList();
+  Widget _actions(
+      Campaign campaign, Map<String, dynamic> npc, Character sheet) {
+    final weaponNames = sheet.inventory
+        .where((name) => (sheet.inventoryDetails[name]?['damage']
+                ?.toString()
+                .trim()
+                .isNotEmpty ??
+            false))
+        .toList();
     final themeId = context.watch<AppState>().themeId;
     final artSize = actionArtSize(context.watch<AppState>().compactMode);
     return ListView(padding: const EdgeInsets.all(16), children: [
-      Row(children: [Expanded(child: Text('Ataques', style: Theme.of(context).textTheme.titleMedium)), IconButton(onPressed: () => _addAction(campaign, npc, sheet, weapon: true), icon: const Icon(Icons.add))]),
-      if (weaponNames.isEmpty) const Card(margin: cardSpacingMargin, child: Padding(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10), child: Text('Nenhum ataque cadastrado.'))),
-      ...weaponNames.map((name) { final d = sheet.inventoryDetails[name] ?? {}; return Card(margin: cardSpacingMargin, child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-        leading: ActionIconSlot(
-          themeId: themeId,
-          artPath: ActionArtResolver.resolve(kind: ActionArtKind.weapon, name: name, description: sheet.inventoryDescriptions[name] ?? ''),
-          size: artSize,
-          fallback: const Icon(Icons.gps_fixed),
-        ),
-        title: Text(name),
-        subtitle: Text('Dano ${d['damage'] ?? '—'}${d['ammo'] != null ? ' • Munição ${d['ammo']}' : ''}'),
-        trailing: const Icon(Icons.edit_outlined),
-        onTap: () => _editAction(campaign, npc, sheet, name, weapon: true),
-      )); }),
+      Row(children: [
+        Expanded(
+            child: Text('Ataques',
+                style: Theme.of(context).textTheme.titleMedium)),
+        IconButton(
+            onPressed: () => _addAction(campaign, npc, sheet, weapon: true),
+            icon: const Icon(Icons.add))
+      ]),
+      if (weaponNames.isEmpty)
+        const Card(
+            margin: cardSpacingMargin,
+            child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Text('Nenhum ataque cadastrado.'))),
+      ...weaponNames.map((name) {
+        final d = sheet.inventoryDetails[name] ?? {};
+        return Card(
+            margin: cardSpacingMargin,
+            child: ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+              leading: ActionIconSlot(
+                themeId: themeId,
+                artPath: ActionArtResolver.resolve(
+                    kind: ActionArtKind.weapon,
+                    name: name,
+                    description: sheet.inventoryDescriptions[name] ?? ''),
+                size: artSize,
+                fallback: const Icon(Icons.gps_fixed),
+              ),
+              title: Text(name),
+              subtitle: Text(
+                  'Dano ${d['damage'] ?? '—'}${d['ammo'] != null ? ' • Munição ${d['ammo']}' : ''}'),
+              trailing: const Icon(Icons.edit_outlined),
+              onTap: () =>
+                  _editAction(campaign, npc, sheet, name, weapon: true),
+            ));
+      }),
       const SizedBox(height: 14),
-      Row(children: [Expanded(child: Text('Poderes / Magias', style: Theme.of(context).textTheme.titleMedium)), IconButton(onPressed: () => _addAction(campaign, npc, sheet, weapon: false), icon: const Icon(Icons.add))]),
-      if (sheet.abilities.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('Nenhuma habilidade cadastrada.'))),
-      ...sheet.abilities.map((name) { final d = sheet.abilityDetails[name] ?? {}; final isSpell = d['category'] == 'Magia'; return Card(margin: cardSpacingMargin, child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-        leading: ActionIconSlot(
-          themeId: themeId,
-          artPath: ActionArtResolver.resolve(kind: isSpell ? ActionArtKind.spell : ActionArtKind.ability, name: name, description: sheet.abilityDescriptions[name] ?? '', category: d['category']?.toString() ?? ''),
-          size: artSize,
-          fallback: Icon(
-            Icons.auto_awesome,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-        title: Text(name),
-        subtitle: Text([if ((d['damage'] ?? '').toString().isNotEmpty) 'Dano ${d['damage']}', if ((sheet.abilityDescriptions[name] ?? '').isNotEmpty) sheet.abilityDescriptions[name]!].join(' • ')),
-        trailing: const Icon(Icons.edit_outlined),
-        onTap: () => _editAction(campaign, npc, sheet, name, weapon: false),
-      )); }),
+      Row(children: [
+        Expanded(
+            child: Text('Poderes / Magias',
+                style: Theme.of(context).textTheme.titleMedium)),
+        IconButton(
+            onPressed: () => _addAction(campaign, npc, sheet, weapon: false),
+            icon: const Icon(Icons.add))
+      ]),
+      if (sheet.abilities.isEmpty)
+        const Card(
+            child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('Nenhuma habilidade cadastrada.'))),
+      ...sheet.abilities.map((name) {
+        final d = sheet.abilityDetails[name] ?? {};
+        final isSpell = d['category'] == 'Magia';
+        return Card(
+            margin: cardSpacingMargin,
+            child: ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+              leading: ActionIconSlot(
+                themeId: themeId,
+                artPath: ActionArtResolver.resolve(
+                    kind: isSpell ? ActionArtKind.spell : ActionArtKind.ability,
+                    name: name,
+                    description: sheet.abilityDescriptions[name] ?? '',
+                    category: d['category']?.toString() ?? ''),
+                size: artSize,
+                fallback: Icon(
+                  Icons.auto_awesome,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              title: Text(name),
+              subtitle: Text([
+                if ((d['damage'] ?? '').toString().isNotEmpty)
+                  'Dano ${d['damage']}',
+                if ((sheet.abilityDescriptions[name] ?? '').isNotEmpty)
+                  sheet.abilityDescriptions[name]!
+              ].join(' • ')),
+              trailing: const Icon(Icons.edit_outlined),
+              onTap: () =>
+                  _editAction(campaign, npc, sheet, name, weapon: false),
+            ));
+      }),
     ]);
   }
 
-  Widget _stringList(Campaign campaign, Map<String, dynamic> npc, Character sheet, {required String title, required List<String> items, required Map<String,String> descriptions}) => ListView(
-    padding: const EdgeInsets.all(16),
-    children: [
-      Row(children: [Expanded(child: Text(title, style: Theme.of(context).textTheme.titleMedium)), IconButton(onPressed: () => _addSimpleItem(campaign, npc, sheet, title, items, descriptions), icon: const Icon(Icons.add))]),
-      if (items.isEmpty) Card(margin: cardSpacingMargin, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), child: Text('Nenhum item em $title.'))),
-      ...items.map((name) => Card(margin: cardSpacingMargin, child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-        title: Text(name),
-        subtitle: (descriptions[name] ?? '').isEmpty ? null : Text(descriptions[name]!),
-        trailing: PopupMenuButton<String>(itemBuilder: (_) => const [PopupMenuItem(value:'edit',child:Text('Editar')),PopupMenuItem(value:'delete',child:Text('Excluir'))], onSelected: (v) async {
-          if (v == 'delete') { items.remove(name); descriptions.remove(name); await _save(campaign, npc, sheet); }
-          else { await _editSimpleItem(campaign, npc, sheet, name, items, descriptions); }
-        }),
-      ))),
-    ],
-  );
+  Widget _stringList(
+          Campaign campaign, Map<String, dynamic> npc, Character sheet,
+          {required String title,
+          required List<String> items,
+          required Map<String, String> descriptions}) =>
+      ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Row(children: [
+            Expanded(
+                child: Text(title,
+                    style: Theme.of(context).textTheme.titleMedium)),
+            IconButton(
+                onPressed: () => _addSimpleItem(
+                    campaign, npc, sheet, title, items, descriptions),
+                icon: const Icon(Icons.add))
+          ]),
+          if (items.isEmpty)
+            Card(
+                margin: cardSpacingMargin,
+                child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    child: Text('Nenhum item em $title.'))),
+          ...items.map((name) => Card(
+              margin: cardSpacingMargin,
+              child: ListTile(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                title: Text(name),
+                subtitle: (descriptions[name] ?? '').isEmpty
+                    ? null
+                    : Text(descriptions[name]!),
+                trailing: PopupMenuButton<String>(
+                    itemBuilder: (_) => const [
+                          PopupMenuItem(value: 'edit', child: Text('Editar')),
+                          PopupMenuItem(value: 'delete', child: Text('Excluir'))
+                        ],
+                    onSelected: (v) async {
+                      if (v == 'delete') {
+                        items.remove(name);
+                        descriptions.remove(name);
+                        await _save(campaign, npc, sheet);
+                      } else {
+                        await _editSimpleItem(
+                            campaign, npc, sheet, name, items, descriptions);
+                      }
+                    }),
+              ))),
+        ],
+      );
 
   Widget _notes(Campaign campaign, Map<String, dynamic> npc, Character sheet) {
-    final ctrl = TextEditingController(text: sheet.sectionNotes['npcNotes'] ?? '');
+    final ctrl =
+        TextEditingController(text: sheet.sectionNotes['npcNotes'] ?? '');
     return ListView(padding: const EdgeInsets.all(16), children: [
-      Text('Notas privadas do Mestre', style: Theme.of(context).textTheme.titleMedium),
+      Text('Notas privadas do Mestre',
+          style: Theme.of(context).textTheme.titleMedium),
       const SizedBox(height: 8),
-      TextField(controller: ctrl, minLines: 10, maxLines: 18, decoration: const InputDecoration(hintText: 'Táticas, personalidade, segredos, comportamento em combate...')),
+      TextField(
+          controller: ctrl,
+          minLines: 10,
+          maxLines: 18,
+          decoration: const InputDecoration(
+              hintText:
+                  'Táticas, personalidade, segredos, comportamento em combate...')),
       const SizedBox(height: 12),
-      FilledButton.icon(onPressed: () async { sheet.sectionNotes['npcNotes'] = ctrl.text; await _save(campaign, npc, sheet); if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Notas salvas.'))); }, icon: const Icon(Icons.save_outlined), label: const Text('Salvar notas')),
+      FilledButton.icon(
+          onPressed: () async {
+            sheet.sectionNotes['npcNotes'] = ctrl.text;
+            await _save(campaign, npc, sheet);
+            if (mounted) {
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(const SnackBar(content: Text('Notas salvas.')));
+            }
+          },
+          icon: const Icon(Icons.save_outlined),
+          label: const Text('Salvar notas')),
     ]);
   }
 
-  IconData _kindIcon(String kind) => switch (kind) { 'Monstro' => Icons.bug_report_outlined, 'Chefe' => Icons.workspace_premium_outlined, 'Aliado' => Icons.shield_outlined, _ => Icons.person_outline };
+  IconData _kindIcon(String kind) => switch (kind) {
+        'Monstro' => Icons.bug_report_outlined,
+        'Chefe' => Icons.workspace_premium_outlined,
+        'Aliado' => Icons.shield_outlined,
+        _ => Icons.person_outline
+      };
 
-  Future<void> _editIdentity(Campaign campaign, Map<String,dynamic> npc, Character sheet) async {
+  Future<void> _editIdentity(
+      Campaign campaign, Map<String, dynamic> npc, Character sheet) async {
     final name = TextEditingController(text: sheet.name);
     final race = TextEditingController(text: sheet.race);
     final className = TextEditingController(text: sheet.className);
     final background = TextEditingController(text: sheet.background);
     final level = TextEditingController(text: '${sheet.level}');
-    String kind='${npc['kind'] ?? 'NPC'}';
-    final ok=await showDialog<bool>(
-      context:context,
-      builder:(d)=>StatefulBuilder(builder:(context,setD)=>AlertDialog(
-        title:const Text('Identidade do NPC'),
-        content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
-          TextField(controller:name,decoration:const InputDecoration(labelText:'Nome')),
-          const SizedBox(height:10),
-          DropdownButtonFormField<String>(initialValue:kind,items:const ['NPC','Monstro','Aliado','Chefe'].map((e)=>DropdownMenuItem(value:e,child:Text(e))).toList(),onChanged:(v)=>setD(()=>kind=v??kind),decoration:const InputDecoration(labelText:'Tipo')),
-          const SizedBox(height:10),
-          TextField(controller:race,decoration:const InputDecoration(labelText:'Raça / espécie')),
-          const SizedBox(height:10),
-          TextField(controller:className,decoration:const InputDecoration(labelText:'Classe / arquétipo')),
-          const SizedBox(height:10),
-          TextField(controller:background,decoration:const InputDecoration(labelText:'Antecedente / identidade')),
-          const SizedBox(height:10),
-          TextField(controller:level,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'Nível')),
-        ])),
-        actions:[
-          TextButton(onPressed:()=>Navigator.pop(d,false),child:const Text('Cancelar')),
-          FilledButton(onPressed:()=>Navigator.pop(d,true),child:const Text('Salvar')),
-        ],
-      )),
+    String kind = '${npc['kind'] ?? 'NPC'}';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => StatefulBuilder(
+          builder: (context, setD) => AlertDialog(
+                title: const Text('Identidade do NPC'),
+                content: SingleChildScrollView(
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  TextField(
+                      controller: name,
+                      decoration: const InputDecoration(labelText: 'Nome')),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                      initialValue: kind,
+                      items: const ['NPC', 'Monstro', 'Aliado', 'Chefe']
+                          .map(
+                              (e) => DropdownMenuItem(value: e, child: Text(e)))
+                          .toList(),
+                      onChanged: (v) => setD(() => kind = v ?? kind),
+                      decoration: const InputDecoration(labelText: 'Tipo')),
+                  const SizedBox(height: 10),
+                  TextField(
+                      controller: race,
+                      decoration:
+                          const InputDecoration(labelText: 'Raça / espécie')),
+                  const SizedBox(height: 10),
+                  TextField(
+                      controller: className,
+                      decoration: const InputDecoration(
+                          labelText: 'Classe / arquétipo')),
+                  const SizedBox(height: 10),
+                  TextField(
+                      controller: background,
+                      decoration: const InputDecoration(
+                          labelText: 'Antecedente / identidade')),
+                  const SizedBox(height: 10),
+                  TextField(
+                      controller: level,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Nível')),
+                ])),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(d, false),
+                      child: const Text('Cancelar')),
+                  FilledButton(
+                      onPressed: () => Navigator.pop(d, true),
+                      child: const Text('Salvar')),
+                ],
+              )),
     );
-    if(ok==true && name.text.trim().isNotEmpty){
-      sheet.name=name.text.trim();
-      sheet.race=race.text.trim();
-      sheet.className=className.text.trim();
-      sheet.background=background.text.trim();
-      sheet.level=(int.tryParse(level.text.trim()) ?? sheet.level).clamp(1,999);
-      npc['kind']=kind;
-      await _save(campaign,npc,sheet);
+    if (ok == true && name.text.trim().isNotEmpty) {
+      sheet.name = name.text.trim();
+      sheet.race = race.text.trim();
+      sheet.className = className.text.trim();
+      sheet.background = background.text.trim();
+      sheet.level =
+          (int.tryParse(level.text.trim()) ?? sheet.level).clamp(1, 999);
+      npc['kind'] = kind;
+      await _save(campaign, npc, sheet);
     }
-    name.dispose(); race.dispose(); className.dispose(); background.dispose(); level.dispose();
+    name.dispose();
+    race.dispose();
+    className.dispose();
+    background.dispose();
+    level.dispose();
   }
 
-  Future<void> _editAttribute(Campaign campaign, Map<String,dynamic> npc, Character sheet, String key) async {
-    final c=TextEditingController(text:'${sheet.attributes[key] ?? 0}');
-    final v=await showDialog<int>(context:context,builder:(d)=>AlertDialog(title:Text('Atributo $key'),content:TextField(controller:c,keyboardType:TextInputType.number,autofocus:true),actions:[TextButton(onPressed:()=>Navigator.pop(d),child:const Text('Cancelar')),FilledButton(onPressed:()=>Navigator.pop(d,int.tryParse(c.text.trim())),child:const Text('Salvar'))]));
-    if(v!=null){sheet.attributes[key]=v;await _save(campaign,npc,sheet);}
+  Future<void> _editAttribute(Campaign campaign, Map<String, dynamic> npc,
+      Character sheet, String key) async {
+    final c = TextEditingController(text: '${sheet.attributes[key] ?? 0}');
+    final v = await showDialog<int>(
+        context: context,
+        builder: (d) => AlertDialog(
+                title: Text('Atributo $key'),
+                content: TextField(
+                    controller: c,
+                    keyboardType: TextInputType.number,
+                    autofocus: true),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(d),
+                      child: const Text('Cancelar')),
+                  FilledButton(
+                      onPressed: () =>
+                          Navigator.pop(d, int.tryParse(c.text.trim())),
+                      child: const Text('Salvar'))
+                ]));
+    if (v != null) {
+      sheet.attributes[key] = v;
+      await _save(campaign, npc, sheet);
+    }
   }
 
-  Future<void> _editResource(Campaign campaign, Map<String,dynamic> npc, Character sheet, String key) async {
+  Future<void> _editResource(Campaign campaign, Map<String, dynamic> npc,
+      Character sheet, String key) async {
     final isLife = isLifeResourceKey(key);
     final vida = isLife ? readVida(sheet) : null;
     final current = vida?.current ?? sheet.resourceValues[key] ?? 0;
@@ -551,7 +901,10 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Ajuste rápido',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelLarge
+                        ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -569,7 +922,9 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
                           );
                           if (amount == null) return;
                           final base = int.tryParse(value.text) ?? current;
-                          final limit = (int.tryParse(max.text) ?? maximum).clamp(0, 999999).toInt();
+                          final limit = (int.tryParse(max.text) ?? maximum)
+                              .clamp(0, 999999)
+                              .toInt();
                           setDialogState(() {
                             value.text = applyResourceDelta(
                               current: base,
@@ -593,7 +948,9 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
                           );
                           if (amount == null) return;
                           final base = int.tryParse(value.text) ?? current;
-                          final limit = (int.tryParse(max.text) ?? maximum).clamp(0, 999999).toInt();
+                          final limit = (int.tryParse(max.text) ?? maximum)
+                              .clamp(0, 999999)
+                              .toInt();
                           setDialogState(() {
                             value.text = applyResourceDelta(
                               current: base,
@@ -624,8 +981,10 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
     );
 
     if (confirmed == true) {
-      final newMax = (int.tryParse(max.text) ?? maximum).clamp(0, 999999).toInt();
-      final newValue = (int.tryParse(value.text) ?? current).clamp(0, newMax).toInt();
+      final newMax =
+          (int.tryParse(max.text) ?? maximum).clamp(0, 999999).toInt();
+      final newValue =
+          (int.tryParse(value.text) ?? current).clamp(0, newMax).toInt();
       if (isLife) {
         // Vida e PV ficam iguais: grava na chave de vida resolvida, espelha
         // 'Vida' se existir e mantém hp/maxHp.
@@ -677,33 +1036,229 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
     return result;
   }
 
-  Future<void> _chooseCondition(Campaign campaign, Map<String,dynamic> npc, Character sheet) async {
-    final name=await showDialog<String>(context:context,builder:(d)=>SimpleDialog(title:const Text('Adicionar condição'),children:[...conditionPresets.where((p)=>!sheet.conditions.contains(p.name)).map((p)=>SimpleDialogOption(onPressed:()=>Navigator.pop(d,p.name),child:Row(children:[Icon(p.icon),const SizedBox(width:10),Text(p.name)]))),SimpleDialogOption(onPressed:()async{final ctrl=TextEditingController();final x=await showDialog<String>(context:d,builder:(x)=>AlertDialog(title:const Text('Condição personalizada'),content:TextField(controller:ctrl,autofocus:true),actions:[FilledButton(onPressed:()=>Navigator.pop(x,ctrl.text.trim()),child:const Text('Adicionar'))]));if(d.mounted)Navigator.pop(d,x);},child:const Row(children:[Icon(Icons.add),SizedBox(width:10),Text('Personalizada')]))]));
-    if(name!=null && name.isNotEmpty && !sheet.conditions.contains(name)){sheet.conditions.add(name);await _save(campaign,npc,sheet);}
+  Future<void> _chooseCondition(
+      Campaign campaign, Map<String, dynamic> npc, Character sheet) async {
+    final name = await showDialog<String>(
+        context: context,
+        builder: (d) =>
+            SimpleDialog(title: const Text('Adicionar condição'), children: [
+              ...conditionPresets
+                  .where((p) => !sheet.conditions.contains(p.name))
+                  .map((p) => SimpleDialogOption(
+                      onPressed: () => Navigator.pop(d, p.name),
+                      child: Row(children: [
+                        Icon(p.icon),
+                        const SizedBox(width: 10),
+                        Text(p.name)
+                      ]))),
+              SimpleDialogOption(
+                  onPressed: () async {
+                    final ctrl = TextEditingController();
+                    final x = await showDialog<String>(
+                        context: d,
+                        builder: (x) => AlertDialog(
+                                title: const Text('Condição personalizada'),
+                                content: TextField(
+                                    controller: ctrl, autofocus: true),
+                                actions: [
+                                  FilledButton(
+                                      onPressed: () =>
+                                          Navigator.pop(x, ctrl.text.trim()),
+                                      child: const Text('Adicionar'))
+                                ]));
+                    if (d.mounted) Navigator.pop(d, x);
+                  },
+                  child: const Row(children: [
+                    Icon(Icons.add),
+                    SizedBox(width: 10),
+                    Text('Personalizada')
+                  ]))
+            ]));
+    if (name != null && name.isNotEmpty && !sheet.conditions.contains(name)) {
+      sheet.conditions.add(name);
+      await _save(campaign, npc, sheet);
+    }
   }
 
   /// Nome para comparar repetidos (sem maiúsculas/minúsculas e espaços nas pontas).
   static String _normName(String value) => value.trim().toLowerCase();
 
-  Future<void> _addAction(Campaign campaign, Map<String,dynamic> npc, Character sheet,{required bool weapon}) async => _editAction(campaign,npc,sheet,'',weapon:weapon);
-  Future<void> _editAction(Campaign campaign, Map<String,dynamic> npc, Character sheet,String oldName,{required bool weapon}) async {
-    final details=weapon ? sheet.inventoryDetails : sheet.abilityDetails; final descriptions=weapon ? sheet.inventoryDescriptions : sheet.abilityDescriptions; final items=weapon ? sheet.inventory : sheet.abilities;
-    final raw=details[oldName] ?? <String,dynamic>{}; final name=TextEditingController(text:oldName);final damage=TextEditingController(text:'${raw['damage'] ?? ''}');final desc=TextEditingController(text:descriptions[oldName] ?? '');
+  Future<void> _addAction(
+          Campaign campaign, Map<String, dynamic> npc, Character sheet,
+          {required bool weapon}) async =>
+      _editAction(campaign, npc, sheet, '', weapon: weapon);
+  Future<void> _editAction(Campaign campaign, Map<String, dynamic> npc,
+      Character sheet, String oldName,
+      {required bool weapon}) async {
+    final details = weapon ? sheet.inventoryDetails : sheet.abilityDetails;
+    final descriptions =
+        weapon ? sheet.inventoryDescriptions : sheet.abilityDescriptions;
+    final items = weapon ? sheet.inventory : sheet.abilities;
+    final raw = details[oldName] ?? <String, dynamic>{};
+    final name = TextEditingController(text: oldName);
+    final damage = TextEditingController(text: '${raw['damage'] ?? ''}');
+    final desc = TextEditingController(text: descriptions[oldName] ?? '');
     // Valida antes de fechar: nome vazio ou repetido na mesma lista.
     String? nameError;
-    final ok=await showDialog<bool>(context:context,builder:(d)=>DisposeOnRemoved(onRemoved:(){name.dispose();damage.dispose();desc.dispose();},child:StatefulBuilder(builder:(_,setD)=>AlertDialog(title:Text(oldName.isEmpty?'Nova ação':'Editar ação'),content:Column(mainAxisSize:MainAxisSize.min,children:[TextField(controller:name,decoration:InputDecoration(labelText:'Nome',errorText:nameError,errorMaxLines:3),onChanged:(_){if(nameError!=null)setD(()=>nameError=null);}),TextField(controller:damage,decoration:const InputDecoration(labelText:'Dano (ex.: 1d8+3)')),TextField(controller:desc,minLines:2,maxLines:4,decoration:const InputDecoration(labelText:'Descrição'))]),actions:[TextButton(onPressed:()=>Navigator.pop(d,false),child:const Text('Cancelar')),FilledButton(onPressed:(){final n=name.text.trim();if(n.isEmpty){setD(()=>nameError='Dê um nome.');return;}final own=oldName.isNotEmpty&&_normName(n)==_normName(oldName);if(!own&&items.any((i)=>_normName(i)==_normName(n))){setD(()=>nameError='Já existe um item com esse nome. Use outro nome.');return;}Navigator.pop(d,true);},child:const Text('Salvar'))]))));
+    final ok = await showDialog<bool>(
+        context: context,
+        builder: (d) => DisposeOnRemoved(
+            onRemoved: () {
+              name.dispose();
+              damage.dispose();
+              desc.dispose();
+            },
+            child: StatefulBuilder(
+                builder: (_, setD) => AlertDialog(
+                        title:
+                            Text(oldName.isEmpty ? 'Nova ação' : 'Editar ação'),
+                        content:
+                            Column(mainAxisSize: MainAxisSize.min, children: [
+                          TextField(
+                              controller: name,
+                              decoration: InputDecoration(
+                                  labelText: 'Nome',
+                                  errorText: nameError,
+                                  errorMaxLines: 3),
+                              onChanged: (_) {
+                                if (nameError != null) {
+                                  setD(() => nameError = null);
+                                }
+                              }),
+                          TextField(
+                              controller: damage,
+                              decoration: const InputDecoration(
+                                  labelText: 'Dano (ex.: 1d8+3)')),
+                          TextField(
+                              controller: desc,
+                              minLines: 2,
+                              maxLines: 4,
+                              decoration:
+                                  const InputDecoration(labelText: 'Descrição'))
+                        ]),
+                        actions: [
+                          TextButton(
+                              onPressed: () => Navigator.pop(d, false),
+                              child: const Text('Cancelar')),
+                          FilledButton(
+                              onPressed: () {
+                                final n = name.text.trim();
+                                if (n.isEmpty) {
+                                  setD(() => nameError = 'Dê um nome.');
+                                  return;
+                                }
+                                final own = oldName.isNotEmpty &&
+                                    _normName(n) == _normName(oldName);
+                                if (!own &&
+                                    items.any(
+                                        (i) => _normName(i) == _normName(n))) {
+                                  setD(() => nameError =
+                                      'Já existe um item com esse nome. Use outro nome.');
+                                  return;
+                                }
+                                Navigator.pop(d, true);
+                              },
+                              child: const Text('Salvar'))
+                        ]))));
     // Lidos antes de o diálogo sair da árvore (os campos são liberados depois).
-    final n=name.text.trim();final damageText=damage.text.trim();final descText=desc.text.trim();
-    if(ok!=true||n.isEmpty)return;if(oldName.isNotEmpty&&oldName!=n){items.remove(oldName);details.remove(oldName);descriptions.remove(oldName);}if(!items.contains(n))items.add(n);details[n]={...raw,'damage':damageText};descriptions[n]=descText;await _save(campaign,npc,sheet);
+    final n = name.text.trim();
+    final damageText = damage.text.trim();
+    final descText = desc.text.trim();
+    if (ok != true || n.isEmpty) return;
+    if (oldName.isNotEmpty && oldName != n) {
+      items.remove(oldName);
+      details.remove(oldName);
+      descriptions.remove(oldName);
+    }
+    if (!items.contains(n)) items.add(n);
+    details[n] = {...raw, 'damage': damageText};
+    descriptions[n] = descText;
+    await _save(campaign, npc, sheet);
   }
 
-  Future<void> _addSimpleItem(Campaign campaign, Map<String,dynamic> npc, Character sheet,String title,List<String> items,Map<String,String> descriptions) async => _editSimpleItem(campaign,npc,sheet,'',items,descriptions);
-  Future<void> _editSimpleItem(Campaign campaign, Map<String,dynamic> npc, Character sheet,String oldName,List<String> items,Map<String,String> descriptions) async {
+  Future<void> _addSimpleItem(
+          Campaign campaign,
+          Map<String, dynamic> npc,
+          Character sheet,
+          String title,
+          List<String> items,
+          Map<String, String> descriptions) async =>
+      _editSimpleItem(campaign, npc, sheet, '', items, descriptions);
+  Future<void> _editSimpleItem(
+      Campaign campaign,
+      Map<String, dynamic> npc,
+      Character sheet,
+      String oldName,
+      List<String> items,
+      Map<String, String> descriptions) async {
     // Valida antes de fechar: nome vazio ou repetido na mesma lista.
     String? nameError;
-    final name=TextEditingController(text:oldName);final desc=TextEditingController(text:descriptions[oldName]??'');final ok=await showDialog<bool>(context:context,builder:(d)=>DisposeOnRemoved(onRemoved:(){name.dispose();desc.dispose();},child:StatefulBuilder(builder:(_,setD)=>AlertDialog(title:Text(oldName.isEmpty?'Adicionar':'Editar'),content:Column(mainAxisSize:MainAxisSize.min,children:[TextField(controller:name,decoration:InputDecoration(labelText:'Nome',errorText:nameError,errorMaxLines:3),onChanged:(_){if(nameError!=null)setD(()=>nameError=null);}),TextField(controller:desc,minLines:2,maxLines:4,decoration:const InputDecoration(labelText:'Descrição'))]),actions:[TextButton(onPressed:()=>Navigator.pop(d,false),child:const Text('Cancelar')),FilledButton(onPressed:(){final n=name.text.trim();if(n.isEmpty){setD(()=>nameError='Dê um nome.');return;}final own=oldName.isNotEmpty&&_normName(n)==_normName(oldName);if(!own&&items.any((i)=>_normName(i)==_normName(n))){setD(()=>nameError='Já existe um item com esse nome. Use outro nome.');return;}Navigator.pop(d,true);},child:const Text('Salvar'))]))));
+    final name = TextEditingController(text: oldName);
+    final desc = TextEditingController(text: descriptions[oldName] ?? '');
+    final ok = await showDialog<bool>(
+        context: context,
+        builder: (d) => DisposeOnRemoved(
+            onRemoved: () {
+              name.dispose();
+              desc.dispose();
+            },
+            child: StatefulBuilder(
+                builder: (_, setD) => AlertDialog(
+                        title: Text(oldName.isEmpty ? 'Adicionar' : 'Editar'),
+                        content:
+                            Column(mainAxisSize: MainAxisSize.min, children: [
+                          TextField(
+                              controller: name,
+                              decoration: InputDecoration(
+                                  labelText: 'Nome',
+                                  errorText: nameError,
+                                  errorMaxLines: 3),
+                              onChanged: (_) {
+                                if (nameError != null) {
+                                  setD(() => nameError = null);
+                                }
+                              }),
+                          TextField(
+                              controller: desc,
+                              minLines: 2,
+                              maxLines: 4,
+                              decoration:
+                                  const InputDecoration(labelText: 'Descrição'))
+                        ]),
+                        actions: [
+                          TextButton(
+                              onPressed: () => Navigator.pop(d, false),
+                              child: const Text('Cancelar')),
+                          FilledButton(
+                              onPressed: () {
+                                final n = name.text.trim();
+                                if (n.isEmpty) {
+                                  setD(() => nameError = 'Dê um nome.');
+                                  return;
+                                }
+                                final own = oldName.isNotEmpty &&
+                                    _normName(n) == _normName(oldName);
+                                if (!own &&
+                                    items.any(
+                                        (i) => _normName(i) == _normName(n))) {
+                                  setD(() => nameError =
+                                      'Já existe um item com esse nome. Use outro nome.');
+                                  return;
+                                }
+                                Navigator.pop(d, true);
+                              },
+                              child: const Text('Salvar'))
+                        ]))));
     // Lidos antes de o diálogo sair da árvore (os campos são liberados depois).
-    final n=name.text.trim();final descText=desc.text.trim();
-    if(ok!=true||n.isEmpty)return;if(oldName.isNotEmpty&&oldName!=n){items.remove(oldName);descriptions.remove(oldName);}if(!items.contains(n))items.add(n);descriptions[n]=descText;await _save(campaign,npc,sheet);
+    final n = name.text.trim();
+    final descText = desc.text.trim();
+    if (ok != true || n.isEmpty) return;
+    if (oldName.isNotEmpty && oldName != n) {
+      items.remove(oldName);
+      descriptions.remove(oldName);
+    }
+    if (!items.contains(n)) items.add(n);
+    descriptions[n] = descText;
+    await _save(campaign, npc, sheet);
   }
 }
