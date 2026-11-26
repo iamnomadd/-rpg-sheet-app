@@ -85,14 +85,18 @@ class ConditionIcon extends StatelessWidget {
   final Color? color;
   final IconData? fallback;
 
-  const ConditionIcon(this.name, {super.key, this.size = 18, this.color, this.fallback});
+  /// Tamanho da arte; por padrão [conditionArtSize] (22 px). Menor só onde
+  /// o espaço é menor (chips do card do personagem 2D, 1.3.73).
+  final double artSize;
+
+  const ConditionIcon(this.name, {super.key, this.size = 18, this.color, this.fallback, this.artSize = conditionArtSize});
 
   @override
   Widget build(BuildContext context) {
     final icon = Icon(fallback ?? conditionIcon(name), size: size, color: color);
     final art = conditionArtFor(name);
     if (art == null) return icon;
-    final box = size > conditionArtSize ? size : conditionArtSize;
+    final box = size > artSize ? size : artSize;
     // Caixa externa do tamanho do ícone/arte. Dentro de um chip (que força o
     // avatar a ~20 px), a arte continua com 22 px, centralizada, sem mudar a
     // altura do chip (o excedente fica no respiro do avatar).
@@ -101,10 +105,10 @@ class ConditionIcon extends StatelessWidget {
       child: OverflowBox(
         minWidth: 0,
         minHeight: 0,
-        maxWidth: conditionArtSize,
-        maxHeight: conditionArtSize,
+        maxWidth: artSize,
+        maxHeight: artSize,
         child: SizedBox.square(
-          dimension: conditionArtSize,
+          dimension: artSize,
           child: Image.asset(
             art,
             key: ValueKey('condition-art-$name'),

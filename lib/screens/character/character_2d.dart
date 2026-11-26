@@ -295,6 +295,8 @@ class _CombatCharacter2D extends StatelessWidget {
                   avatar: ConditionIcon(
                     name,
                     size: 16,
+                    // A arte respeita os 16 px pedidos (não encosta no texto).
+                    artSize: 16,
                     color: positive ? scheme.tertiary : scheme.error,
                   ),
                   label: Text(name),
