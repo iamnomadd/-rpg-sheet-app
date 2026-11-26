@@ -29,6 +29,8 @@ import 'package:rpg_sheet_app/utils/error_message.dart';
 import 'package:rpg_sheet_app/widgets/dispose_on_removed.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../helpers/source_reader.dart';
+
 // ---------------------------------------------------------------- nuvem falsa
 
 class _FakeCloud {
@@ -317,7 +319,7 @@ void main() {
   group('C1: DisposeOnRemoved único', () {
     test('as cópias privadas saíram; os três editores usam o widget público', () {
       for (final file in ['lib/screens/character/character_screen.dart', 'lib/screens/systems/system_editor_screen.dart', 'lib/screens/campaigns/npc_sheet_screen.dart']) {
-        final source = _readWithParts(file);
+        final source = readWithParts(file);
         expect(source, isNot(contains('class _OnRemoved')), reason: file);
         expect(source, isNot(contains('class _DisposeOnRemoved')), reason: file);
         expect(source, contains('DisposeOnRemoved('), reason: file);
@@ -457,14 +459,4 @@ void main() {
       }, () => client);
     });
   });
-}
-
-
-/// Lê o arquivo de lib/ e, se ele for dividido com `part` (1.3.70), também os
-/// arquivos das partes, para conferir o mesmo conteúdo de antes.
-String _readWithParts(String path) {
-  final main = File(path).readAsStringSync();
-  final dir = File(path).parent.path;
-  final parts = RegExp(r"^part '([^']+)';", multiLine: true).allMatches(main).map((m) => File('$dir/${m.group(1)}').readAsStringSync());
-  return [main, ...parts].join('\n');
 }

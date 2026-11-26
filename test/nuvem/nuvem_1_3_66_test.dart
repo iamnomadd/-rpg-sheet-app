@@ -18,6 +18,8 @@ import 'package:rpg_sheet_app/services/cloud_service.dart';
 import 'package:rpg_sheet_app/utils/error_message.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../helpers/source_reader.dart';
+
 /// Backup da nuvem simulado (tabela rpg_cloud_backups de um usuário).
 class _FakeCloud {
   Map<String, dynamic>? payload;
@@ -270,7 +272,7 @@ void main() {
       };
       final technical = RegExp(r"""Text\(\s*'[^']*(\$e\b|\$\{e\}|e\.toString\(\))""");
       for (final entry in points.entries) {
-        final source = _readWithParts(entry.key);
+        final source = readWithParts(entry.key);
         // 1.3.70: comparação sem espaços (arquivos formatados com dart format).
         String compact(String text) => text.replaceAll(RegExp(r'\s+'), '');
         for (final phrase in entry.value) {
@@ -312,14 +314,4 @@ void main() {
       });
     }
   });
-}
-
-
-/// Lê o arquivo de lib/ e, se ele for dividido com `part` (1.3.70), também os
-/// arquivos das partes, para conferir o mesmo conteúdo de antes.
-String _readWithParts(String path) {
-  final main = File(path).readAsStringSync();
-  final dir = File(path).parent.path;
-  final parts = RegExp(r"^part '([^']+)';", multiLine: true).allMatches(main).map((m) => File('$dir/${m.group(1)}').readAsStringSync());
-  return [main, ...parts].join('\n');
 }

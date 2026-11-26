@@ -158,6 +158,10 @@ class _ThemedResourceBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AbyssResourceBar(value: value, secondary: secondary, colors: abyssResourceBarColors(resourceName));
+    // O número flutuante (mudanças feitas pelo jogador) fica por cima da barra.
+    return FloatingResourceDelta(
+      resource: resourceName,
+      child: AbyssResourceBar(value: value, secondary: secondary, colors: abyssResourceBarColors(resourceName)),
+    );
   }
 }

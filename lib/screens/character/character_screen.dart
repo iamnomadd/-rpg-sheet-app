@@ -19,6 +19,7 @@ import '../../services/skill_tree_templates.dart';
 import '../../utils/resource_math.dart';
 import '../../utils/action_art.dart';
 import 'character_sprites.dart';
+import 'resource_delta.dart';
 import 'resource_quick_adjust.dart';
 import '../../widgets/confirm_delete_dialog.dart';
 import 'skill_roll.dart';
@@ -49,6 +50,7 @@ class CharacterScreen extends StatefulWidget {
 class _CharacterScreenState extends State<CharacterScreen> {
   int tab = 0;
   late final PageController _tabController;
+  final _resourceDeltas = ResourceDeltaEvents();
 
   @override
   void initState() {
@@ -62,6 +64,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
   @override
   void dispose() {
     _tabController.dispose();
+    _resourceDeltas.dispose();
     super.dispose();
   }
 
@@ -147,7 +150,9 @@ class _CharacterScreenState extends State<CharacterScreen> {
       max: c.resourceMaxValues[name] ?? 0,
     );
     if (result == null) return;
+    final before = Map<String, int>.from(c.resourceValues);
     _applyResourceValues(c, name, result);
+    _resourceDeltas.reportChanges(before, c.resourceValues);
     await state.updateCharacter(c);
     if (mounted) setState(() {});
   }
@@ -157,6 +162,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
     final max = c.resourceMaxValues[name] ?? 0;
     final current = c.resourceValues[name] ?? 0;
     c.resourceValues[name] = applyResourceDelta(current: current, maximum: max, delta: delta);
+    _resourceDeltas.report(name, c.resourceValues[name]! - current);
     if (name.toLowerCase() == 'vida') c.hp = c.resourceValues[name]!;
     if (name.toLowerCase() == 'energia') c.energy = c.resourceValues[name]!;
     await state.updateCharacter(c);
@@ -300,7 +306,8 @@ class _CharacterScreenState extends State<CharacterScreen> {
     }
     for (final section in system.sections) { c.sectionNotes.putIfAbsent(section, () => ''); }
 
-    return Scaffold(
+    // Canal do número flutuante dos recursos (só mudanças feitas nesta tela).
+    return ResourceDeltaScope(events: _resourceDeltas, child: Scaffold(
       bottomNavigationBar: PlayerTurnBanner(character: c),
       appBar: AppBar(
         title: Text(c.name),
@@ -431,7 +438,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
           );
         },
       ),
-    );
+    ));
   }
 }
 

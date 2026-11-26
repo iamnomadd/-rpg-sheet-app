@@ -32,10 +32,16 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
   static const _labels = {'weapons':'Armas','spells':'Magias','abilities':'Habilidades','consumables':'Consumíveis'};
   @override void initState(){super.initState();_idle=AnimationController(vsync:this,duration:const Duration(milliseconds:2600))..repeat(reverse:true);}
   @override void dispose(){_idle.dispose();super.dispose();}
-  Future<void> _save() async {await context.read<AppState>().updateCharacter(widget.character);if(!mounted)return;setState((){});}
+  /// Salva; com [before] (os recursos antes da ação do jogador), mostra o
+  /// número flutuante de cada recurso que mudou.
+  Future<void> _save([Map<String, int>? before]) async {
+    final deltas = ResourceDeltaScope.maybeOf(context);
+    if (before != null) deltas?.reportChanges(before, widget.character.resourceValues);
+    await context.read<AppState>().updateCharacter(widget.character);if(!mounted)return;setState((){});}
   void _actionError(String message){if(!mounted)return;ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(message)));}
 
   Future<void> _useItem(String name) async {
+    final before = Map<String, int>.from(widget.character.resourceValues);
     final d=widget.character.inventoryDetails[name]??=<String,dynamic>{}; final cat=d['category']?.toString()??'Outro';
     if(cat=='Consumível'){
       final q=(d['quantity'] as num?)?.toInt()??1;if(q<=0){_actionError('Sem unidades de $name.');return;}
@@ -46,7 +52,7 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
         if(resource.toLowerCase()=='vida')widget.character.hp=widget.character.resourceValues[resource]!;
         if(resource.toLowerCase()=='energia')widget.character.energy=widget.character.resourceValues[resource]!;
       }
-      return _save();
+      return _save(before);
     }
     if(cat=='Arma'){
       final max=(d['ammoMax'] as num?)?.toInt()??0, ammo=(d['ammo'] as num?)?.toInt()??max;
@@ -63,8 +69,8 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
     final used=available<needed?available:needed;d['ammo']=current+used;stock['quantity']=available-used;
     return _save();
   }
-  Future<void> _cast(String name) async {final d=widget.character.abilityDetails[name]??=<String,dynamic>{};final cost=(d['cost'] as num?)?.toInt()??0;final resource=d['resource']?.toString().isNotEmpty==true?d['resource'].toString():'Energia';final current=widget.character.resourceValues[resource]??0;if(current<cost){_actionError('$resource insuficiente para $name.');return;}widget.character.resourceValues[resource]=current-cost;if(resource.toLowerCase()=='energia')widget.character.energy=current-cost;if(resource.toLowerCase()=='vida')widget.character.hp=current-cost;await _save();}
-  Future<void> _changeResource(String name,int delta) async{final current=widget.character.resourceValues[name]??0,max=widget.character.resourceMaxValues[name]??0;widget.character.resourceValues[name]=applyResourceDelta(current:current,maximum:max,delta:delta);if(name.toLowerCase()=='vida')widget.character.hp=widget.character.resourceValues[name]!;if(name.toLowerCase()=='energia')widget.character.energy=widget.character.resourceValues[name]!;await _save();}
+  Future<void> _cast(String name) async {final before=Map<String,int>.from(widget.character.resourceValues);final d=widget.character.abilityDetails[name]??=<String,dynamic>{};final cost=(d['cost'] as num?)?.toInt()??0;final resource=d['resource']?.toString().isNotEmpty==true?d['resource'].toString():'Energia';final current=widget.character.resourceValues[resource]??0;if(current<cost){_actionError('$resource insuficiente para $name.');return;}widget.character.resourceValues[resource]=current-cost;if(resource.toLowerCase()=='energia')widget.character.energy=current-cost;if(resource.toLowerCase()=='vida')widget.character.hp=current-cost;await _save(before);}
+  Future<void> _changeResource(String name,int delta) async{final before=Map<String,int>.from(widget.character.resourceValues);final current=widget.character.resourceValues[name]??0,max=widget.character.resourceMaxValues[name]??0;widget.character.resourceValues[name]=applyResourceDelta(current:current,maximum:max,delta:delta);if(name.toLowerCase()=='vida')widget.character.hp=widget.character.resourceValues[name]!;if(name.toLowerCase()=='energia')widget.character.energy=widget.character.resourceValues[name]!;await _save(before);}
   Future<void> _editResourceValue(String name) async {
     final result = await showResourceQuickAdjust(
       context,
@@ -73,8 +79,9 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
       max: widget.character.resourceMaxValues[name] ?? 0,
     );
     if (result == null || !mounted) return;
+    final before = Map<String, int>.from(widget.character.resourceValues);
     _applyResourceValues(widget.character, name, result);
-    await _save();
+    await _save(before);
   }
   Widget _resource(String name){final current=widget.character.resourceValues[name]??0,max=widget.character.resourceMaxValues[name]??0,value=max<=0?0.0:(current/max).clamp(0.0,1.0);final themeId=context.watch<AppState>().themeId,secondary=name.toLowerCase()!='vida';return Card(child:Padding(padding:const EdgeInsets.fromLTRB(14,10,14,12),child:Column(children:[Row(children:[ThemedResourceIcon(themeId,name,fallbackIcon:secondary?Icons.bolt:themedIcon(themeId,'resources'),size:22),const SizedBox(width:8),Expanded(child:Text(name,style:const TextStyle(fontWeight:FontWeight.w700))),IconButton(tooltip:'Diminuir',visualDensity:VisualDensity.compact,onPressed:()=>_changeResource(name,-1),icon:const Icon(Icons.remove)),Text('$current / $max',style:Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w600)),IconButton(tooltip:'Aumentar',visualDensity:VisualDensity.compact,onPressed:()=>_changeResource(name,1),icon:const Icon(Icons.add))]),const SizedBox(height:7),ResourceBarTapTarget(label:name,onTap:()=>_editResourceValue(name),child:_ThemedResourceBar(value:value,themeId:themeId,secondary:secondary,resourceName:name))])));}
 
