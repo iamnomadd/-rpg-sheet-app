@@ -411,6 +411,8 @@ class _MasterScreenState extends State<MasterScreen> with SingleTickerProviderSt
     final original=state.characters.firstWhere((ch)=>ch.id==chosen); String kind='NPC'; final k=await showDialog<String>(context:context,builder:(d)=>SimpleDialog(title:const Text('Tipo da cópia'),children:['NPC','Monstro','Aliado','Chefe'].map((x)=>SimpleDialogOption(onPressed:()=>Navigator.pop(d,x),child:Text(x))).toList()));
     if(k!=null)kind=k;
     final id=const Uuid().v4(); final data=Map<String,dynamic>.from(original.toJson()); data['id']=id; data['player']='Mestre'; data['shareCode']='';
+    // A cópia para NPC não leva o personagem 2D personalizado (as imagens não se repetem dentro da campanha).
+    data['customSpriteImages']=<String,String>{}; data['customSpriteEnabled']=false;
     final copy=Character.fromJson(data); c.npcSheets.add({'id':id,'name':copy.name,'kind':kind,'source':'character','sourceCharacterId':original.id,'sheet':copy.toJson()}); await state.updateCampaign(c);
     if(context.mounted)await Navigator.push(context,MaterialPageRoute(builder:(_)=>NpcSheetScreen(campaignId:c.id,npcId:id)));
   }
@@ -1046,7 +1048,7 @@ class MasterToolsScreen extends StatelessWidget {
   Future<void> _addLog(BuildContext context, Campaign c) async {
     final controller = TextEditingController();
     final value = await showDialog<String>(context: context, builder: (_) => AlertDialog(title: const Text('Registrar acontecimento'), content: TextField(textCapitalization: TextCapitalization.sentences, controller: controller, autofocus: true, maxLines: 3, decoration: const InputDecoration(hintText: 'O que aconteceu na sessão?')), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: const Text('Registrar'))]));
-    if (value != null && value.isNotEmpty && context.mounted) { c.sessionLog.add(value); await context.read<AppState>().updateCampaign(c); }
+    if (value != null && value.isNotEmpty && context.mounted) { c.addSessionLog(value); await context.read<AppState>().updateCampaign(c); }
   }
 
   Future<void> _clearLog(BuildContext context, Campaign c) async {
@@ -1445,7 +1447,7 @@ class SessionToolsScreen extends StatelessWidget {
     final after = readVida(found.sheet);
     if (after == before) return;
     found.npc['sheet'] = found.sheet.toJson();
-    campaign.sessionLog.add('${entry['name'] ?? found.sheet.name}: vida ${before.current}/${before.max} → ${after.current}/${after.max}');
+    campaign.addSessionLog('${entry['name'] ?? found.sheet.name}: vida ${before.current}/${before.max} → ${after.current}/${after.max}');
     try {
       await state.updateCampaign(campaign);
     } catch (_) {
@@ -1459,7 +1461,7 @@ class SessionToolsScreen extends StatelessWidget {
 
   Future<void> _changeRound(BuildContext context, Campaign campaign, int delta) async {
     campaign.sessionRound = (campaign.sessionRound + delta).clamp(1, 9999);
-    campaign.sessionLog.add('Rodada alterada manualmente para ${campaign.sessionRound}.');
+    campaign.addSessionLog('Rodada alterada manualmente para ${campaign.sessionRound}.');
     await context.read<AppState>().updateCampaign(campaign);
     await _syncCombat(campaign);
   }
@@ -1480,7 +1482,7 @@ class SessionToolsScreen extends StatelessWidget {
       campaign.sessionRound = 1;
       campaign.currentTurnIndex = 0;
       for(final e in campaign.initiative){e['done']=false;}
-      campaign.sessionLog.add('Rodadas reiniciadas.');
+      campaign.addSessionLog('Rodadas reiniciadas.');
       await context.read<AppState>().updateCampaign(campaign);
       await _syncCombat(campaign);
     }
@@ -1560,7 +1562,7 @@ class SessionToolsScreen extends StatelessWidget {
     campaign.sessionRound = 1;
     campaign.currentTurnIndex = 0;
     campaign.combatActive = true;
-    campaign.sessionLog.add('Combate iniciado.');
+    campaign.addSessionLog('Combate iniciado.');
     await context.read<AppState>().updateCampaign(campaign);
     await _syncCombat(campaign);
   }
@@ -1571,7 +1573,7 @@ class SessionToolsScreen extends StatelessWidget {
     if (index != current) return;
     participants[index]['done'] = true;
     final finishedName='${participants[index]['name'] ?? 'Participante'}';
-    campaign.sessionLog.add('Rodada ${campaign.sessionRound}: $finishedName concluiu o turno.');
+    campaign.addSessionLog('Rodada ${campaign.sessionRound}: $finishedName concluiu o turno.');
     final original = campaign.initiative.firstWhere((e) =>
       e['id'] == participants[index]['id'] && e['value'] == participants[index]['value'],
       orElse: () => participants[index]);
@@ -1579,7 +1581,7 @@ class SessionToolsScreen extends StatelessWidget {
 
     if (index >= participants.length - 1) {
       campaign.sessionRound += 1;
-      campaign.sessionLog.add('Rodada ${campaign.sessionRound} iniciada.');
+      campaign.addSessionLog('Rodada ${campaign.sessionRound} iniciada.');
       campaign.currentTurnIndex = 0;
       for (final e in campaign.initiative) { e['done'] = false; }
     } else {
@@ -1605,7 +1607,7 @@ class SessionToolsScreen extends StatelessWidget {
     campaign.combatActive = false;
     campaign.currentTurnIndex = 0;
     for (final e in campaign.initiative) { e['done'] = false; }
-    campaign.sessionLog.add('Combate encerrado na rodada ${campaign.sessionRound}.');
+    campaign.addSessionLog('Combate encerrado na rodada ${campaign.sessionRound}.');
     await context.read<AppState>().updateCampaign(campaign);
     await _syncCombat(campaign);
   }
@@ -1635,7 +1637,7 @@ class SessionToolsScreen extends StatelessWidget {
       final ix=campaign.initiative.indexWhere((e)=>e['id']==currentId);
       if(ix>=0) campaign.currentTurnIndex=ix;
     }
-    campaign.sessionLog.add('Iniciativa de ${entry['name']} alterada para $value.');
+    campaign.addSessionLog('Iniciativa de ${entry['name']} alterada para $value.');
     await context.read<AppState>().updateCampaign(campaign);
     await _syncCombat(campaign);
   }
@@ -1706,7 +1708,7 @@ class SessionToolsScreen extends StatelessWidget {
       final ix=campaign.initiative.indexWhere((e)=>e['id']==currentId);
       if(ix>=0) campaign.currentTurnIndex=ix;
     }
-    campaign.sessionLog.add('$name entrou no combate com iniciativa $value.');
+    campaign.addSessionLog('$name entrou no combate com iniciativa $value.');
     await context.read<AppState>().updateCampaign(campaign);
     await _syncCombat(campaign);
   }
@@ -1715,7 +1717,7 @@ class SessionToolsScreen extends StatelessWidget {
     if (!await confirmDelete(context, title: 'Remover do combate?', message: '"${entry['name'] ?? 'Participante'}" será removido da iniciativa.', confirmLabel: 'Remover')) return;
     if (!context.mounted) return;
     removeInitiativeParticipant(campaign, entry['id']);
-    campaign.sessionLog.add('${entry['name'] ?? 'Participante'} removido do combate.');
+    campaign.addSessionLog('${entry['name'] ?? 'Participante'} removido do combate.');
     await context.read<AppState>().updateCampaign(campaign);
     await _syncCombat(campaign);
   }
@@ -1841,7 +1843,7 @@ class SessionToolsScreen extends StatelessWidget {
     } else if (!isLocal) {
       entry['conditions'] = patchedConditions(initiativeConditions(entry), add: value);
     }
-    campaign.sessionLog.add('${entry['name'] ?? 'Participante'} ficou com $value.');
+    campaign.addSessionLog('${entry['name'] ?? 'Participante'} ficou com $value.');
     if (!context.mounted) return;
     await _saveCombatChange(context, state, campaign);
   }
@@ -1864,7 +1866,7 @@ class SessionToolsScreen extends StatelessWidget {
       if (!conditions.remove(condition)) return;
       entry['conditions'] = conditions;
     }
-    campaign.sessionLog.add('${entry['name'] ?? 'Participante'} não está mais com $condition.');
+    campaign.addSessionLog('${entry['name'] ?? 'Participante'} não está mais com $condition.');
     if (!context.mounted) return;
     await _saveCombatChange(context, state, campaign);
   }

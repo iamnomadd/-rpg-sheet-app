@@ -292,7 +292,7 @@ class CloudService {
   }
 
   static Future<CloudSession?> signUp(String email, String password) async {
-    if (!configured) throw Exception('Supabase ainda não configurado neste site.');
+    if (!configured) throw AppMessageException('Supabase ainda não configurado neste site.');
     final data = await _request(
       'POST',
       Uri.parse('$supabaseUrl/auth/v1/signup'),
@@ -544,7 +544,7 @@ class CloudService {
 
   static Future<void> updateSharedCharacterPatch(CloudSession session,String code,Map<String,dynamic> patch) async {
     final ok=await _rawRequest('POST',Uri.parse('$supabaseUrl/rest/v1/rpc/set_rpg_master_patch'),headers:{'Authorization':'Bearer ${session.accessToken}'},body:{'p_share_code':code,'p_patch':patch});
-    if(ok!=true) throw Exception('Sem permissão para alterar esta ficha.');
+    if(ok!=true) throw AppMessageException('Sem permissão para alterar esta ficha.');
   }
 
   static Future<void> clearSharedCharacterPatch(CloudSession session, String code) async {

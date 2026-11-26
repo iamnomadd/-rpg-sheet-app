@@ -44,6 +44,10 @@ class Character {
   /// Liga/desliga as imagens próprias sem apagá-las.
   bool customSpriteEnabled;
 
+  /// Última alteração feita pelo usuário (ISO 8601 UTC), usada para juntar a
+  /// sincronização por item. Dados antigos: null.
+  String? updatedAt;
+
   Character({
     required this.id,
     required this.name,
@@ -82,6 +86,7 @@ class Character {
     this.shareCode = '',
     Map<String, String>? customSpriteImages,
     this.customSpriteEnabled = false,
+    this.updatedAt,
   })  : customSpriteImages = customSpriteImages ?? {},
         attributes = attributes ?? {'FOR': 10, 'DES': 10, 'CON': 10, 'INT': 10, 'SAB': 10, 'CAR': 10},
         resourceValues = resourceValues ?? {'Vida': 10, 'Energia': 0},
@@ -141,6 +146,7 @@ class Character {
         'shareCode': shareCode,
         'customSpriteImages': customSpriteImages,
         'customSpriteEnabled': customSpriteEnabled,
+        if (updatedAt != null) 'updatedAt': updatedAt,
       };
 
   static const _customSpritePoses = {'normal', 'agony', 'critical', 'incapacitated'};
@@ -211,6 +217,7 @@ class Character {
       shareCode: json['shareCode']?.toString() ?? '',
       customSpriteImages: _parseCustomSpriteImages(json['customSpriteImages']),
       customSpriteEnabled: json['customSpriteEnabled'] == true,
+      updatedAt: json['updatedAt']?.toString(),
     );
   }
 }

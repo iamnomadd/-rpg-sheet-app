@@ -20,6 +20,14 @@ class Campaign {
   bool combatActive;
   int currentTurnIndex;
 
+  /// Última alteração feita pelo usuário (ISO 8601 UTC), usada para juntar a
+  /// sincronização por item. Dados antigos: null.
+  String? updatedAt;
+
+  /// Limite do registro de sessão: ao entrar um registro novo, ficam só os
+  /// [sessionLogLimit] mais recentes.
+  static const sessionLogLimit = 300;
+
   Campaign({
     required this.id,
     required this.name,
@@ -41,6 +49,7 @@ class Campaign {
     List<Map<String, dynamic>>? linkedCharacters,
     this.combatActive = false,
     this.currentTurnIndex = 0,
+    this.updatedAt,
   })  : characterIds = characterIds ?? [],
         hiddenCharacterIds = hiddenCharacterIds ?? [],
         npcs = npcs ?? [],
@@ -73,7 +82,17 @@ class Campaign {
         'linkedCharacters': linkedCharacters,
         'combatActive': combatActive,
         'currentTurnIndex': currentTurnIndex,
+        if (updatedAt != null) 'updatedAt': updatedAt,
       };
+
+  /// Acrescenta um registro ao histórico da sessão e mantém só os
+  /// [sessionLogLimit] mais recentes (os antigos só saem quando um novo entra).
+  void addSessionLog(String entry) {
+    sessionLog.add(entry);
+    if (sessionLog.length > sessionLogLimit) {
+      sessionLog.removeRange(0, sessionLog.length - sessionLogLimit);
+    }
+  }
 
   factory Campaign.fromJson(Map<String, dynamic> json) => Campaign(
         id: json['id'] ?? '',
@@ -98,5 +117,6 @@ class Campaign {
         linkedCharacters: (json['linkedCharacters'] as List? ?? []).whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList(),
         combatActive: json['combatActive'] == true,
         currentTurnIndex: json['currentTurnIndex'] is int ? json['currentTurnIndex'] : 0,
+        updatedAt: json['updatedAt']?.toString(),
       );
 }

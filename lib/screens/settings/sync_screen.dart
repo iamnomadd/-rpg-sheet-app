@@ -268,6 +268,8 @@ class _SyncScreenState extends State<SyncScreen> with WidgetsBindingObserver {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _StorageUsageText(bytes: state.storageUsage),
+          const SizedBox(height: 12),
           Card(
             child: ListTile(
               leading: const Icon(Icons.import_export),
@@ -404,5 +406,30 @@ class _SyncScreenState extends State<SyncScreen> with WidgetsBindingObserver {
         ],
       ),
     );
+  }
+}
+
+/// "Espaço usado neste aparelho: X,X MB de cerca de 5 MB" (na cor de alerta
+/// acima de 80%).
+class _StorageUsageText extends StatelessWidget {
+  final int bytes;
+  const _StorageUsageText({required this.bytes});
+
+  @override
+  Widget build(BuildContext context) {
+    final megabytes = (bytes / (1024 * 1024)).toStringAsFixed(1).replaceAll('.', ',');
+    final high = bytes > storageQuotaBytes * .8;
+    final scheme = Theme.of(context).colorScheme;
+    return Row(children: [
+      Icon(Icons.storage_outlined, size: 18, color: high ? scheme.error : scheme.onSurfaceVariant),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(
+          'Espaço usado neste aparelho: $megabytes MB de cerca de 5 MB',
+          key: const ValueKey('storage-usage'),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: high ? scheme.error : scheme.onSurfaceVariant, fontWeight: high ? FontWeight.w700 : null),
+        ),
+      ),
+    ]);
   }
 }

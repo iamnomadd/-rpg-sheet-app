@@ -82,13 +82,34 @@ class _CustomSpriteSheetState extends State<_CustomSpriteSheet> {
   Future<void> _apply(Map<String, String> images, bool enabled) async {
     final oldImages = Map<String, String>.from(_c.customSpriteImages);
     final oldEnabled = _c.customSpriteEnabled;
+    final state = context.read<AppState>();
+    // Espaço do aparelho: com as imagens novas, o armazenamento passaria de
+    // 4,5 MB? Então não salva (remover ou diminuir sempre é permitido).
+    final before = await state.projectedStorageUsage();
     _c.customSpriteImages = images;
     _c.customSpriteEnabled = enabled && (images['normal']?.isNotEmpty ?? false);
-    try {
-      await context.read<AppState>().updateCharacter(_c);
-    } catch (_) {
+    final after = await state.projectedStorageUsage();
+    if (after > customSpriteStorageLimitBytes && after > before) {
       _c.customSpriteImages = oldImages;
       _c.customSpriteEnabled = oldEnabled;
+      _message('Sem espaço para este personagem 2D. Remova outro personagem personalizado ou use imagens menores.');
+      if (mounted) setState(() {});
+      return;
+    }
+    var failed = false;
+    try {
+      await state.updateCharacter(_c);
+      // O salvamento não lança mais (1.3.68): a falha fica em lastSaveFailed.
+      failed = state.lastSaveFailed;
+    } catch (_) {
+      failed = true;
+    }
+    if (failed) {
+      _c.customSpriteImages = oldImages;
+      _c.customSpriteEnabled = oldEnabled;
+      try {
+        await state.updateCharacter(_c);
+      } catch (_) {}
       _message('Não foi possível salvar as imagens. O armazenamento pode estar cheio.');
     }
     if (mounted) setState(() {});
