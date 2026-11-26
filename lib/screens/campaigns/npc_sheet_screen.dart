@@ -7,7 +7,6 @@ import '../../models/character.dart';
 import '../../services/app_state.dart';
 import '../../utils/resource_math.dart';
 import '../../utils/action_art.dart';
-import '../../utils/spell_icon.dart';
 import '../character/resource_quick_adjust.dart';
 import 'initiative_tools.dart';
 import '../../widgets/card_spacing.dart';
@@ -428,7 +427,7 @@ class _NpcSheetScreenState extends State<NpcSheetScreen> with SingleTickerProvid
           artPath: ActionArtResolver.resolve(kind: isSpell ? ActionArtKind.spell : ActionArtKind.ability, name: name, description: sheet.abilityDescriptions[name] ?? '', category: d['category']?.toString() ?? ''),
           size: artSize,
           fallback: Icon(
-            isSpell ? SpellIconResolver.resolve(name, description: sheet.abilityDescriptions[name] ?? '') : Icons.auto_awesome,
+            Icons.auto_awesome,
             color: Theme.of(context).colorScheme.primary,
           ),
         ),

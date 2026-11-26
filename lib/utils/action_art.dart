@@ -10,8 +10,7 @@ enum ActionArtKind { spell, ability, weapon, item }
 /// Escolhe uma das 60 ilustrações de `assets/icons/action/` (só usadas no tema
 /// Abissal) pelo nome, depois pela descrição e por fim pela categoria.
 ///
-/// Diferente do [SpellIconResolver], um termo só casa no INÍCIO de uma
-/// palavra: 'arco' casa "arco longo" e "arcos", mas não "barco"; 'mente' não
+/// Um termo só casa no INÍCIO de uma palavra: 'arco' casa "arco longo" e "arcos", mas não "barco"; 'mente' não
 /// casa "rapidamente". Nada é salvo: a arte é calculada na hora de exibir.
 class ActionArtResolver {
   const ActionArtResolver._();
@@ -35,8 +34,8 @@ class ActionArtResolver {
 
   static String path(String file) => '$folder$file.webp';
 
-  /// Mesmas 21 categorias e na mesma ordem do [SpellIconResolver] ('bras'
-  /// trocado por 'brasa'/'brasas').
+  /// As 21 categorias de magia, na ordem do antigo detector de ícones
+  /// (removido na 1.3.69; 'bras' trocado por 'brasa'/'brasas').
   static const spellTerms = <(String, List<String>)>[
     ('spell_fire', ['fogo', 'chama', 'incend', 'inferno', 'brasa', 'brasas', 'combust', 'flame', 'fire']),
     ('spell_lightning', ['raio', 'relamp', 'trovao', 'choque', 'eletric', 'lightning', 'thunder']),
@@ -258,7 +257,7 @@ class ActionArtResolver {
 
   static bool _isWordChar(int c) => (c >= 0x61 && c <= 0x7A) || (c >= 0x30 && c <= 0x39);
 
-  // Cópia da normalização do SpellIconResolver (minúsculas, sem acentos/cedilha).
+  // Normalização: minúsculas, sem acentos/cedilha.
   static String _normalize(String value) {
     var text = value.trim().toLowerCase();
     const replacements = {

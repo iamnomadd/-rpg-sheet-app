@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:rpg_sheet_app/app/abyss_theme.dart';
 import 'package:rpg_sheet_app/app/app.dart';
 import 'package:rpg_sheet_app/app/theme.dart';
-import 'package:rpg_sheet_app/core/feature_flags.dart';
 import 'package:rpg_sheet_app/services/app_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -53,8 +52,6 @@ void main() {
   }
 
   setUp(() {
-    // Estes testes cobrem a barra com a aba Dados ligada (como antes da 1.3.52).
-    diceTabEnabled = true;
     SharedPreferences.setMockInitialValues({});
     state = AppState();
     controller = PageController();
@@ -63,7 +60,6 @@ void main() {
   });
 
   tearDown(() {
-    diceTabEnabled = false;
     controller.dispose();
     index.dispose();
   });
@@ -116,9 +112,9 @@ void main() {
   testWidgets('com Reduzir animações a troca de aba é imediata', (tester) async {
     await state.setReduceAnimations(true);
     await pumpShell(tester);
-    await tester.tap(find.text('Dados'));
+    await tester.tap(find.text('Config.'));
     await tester.pump();
-    expect(find.text('Página Dados'), findsOneWidget);
+    expect(find.text('Página Config'), findsOneWidget);
     expect(index.value, 3);
   });
 

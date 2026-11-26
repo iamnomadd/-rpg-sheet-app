@@ -18,7 +18,6 @@ import '../../app/condition_presets.dart';
 import '../../services/skill_tree_templates.dart';
 import '../../utils/resource_math.dart';
 import '../../utils/action_art.dart';
-import '../../utils/spell_icon.dart';
 import 'character_sprites.dart';
 import 'resource_quick_adjust.dart';
 import '../../widgets/confirm_delete_dialog.dart';
@@ -1870,10 +1869,9 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
                   category: switch (id) { 'consumables' => 'Consumível', 'spells' => 'Magia', _ => d['category']?.toString() ?? '' },
                 ),
                 size: artSize,
+                // Sem arte: ícone fixo por tipo (magia → auto_awesome).
                 fallback: Icon(
-                  id == 'spells'
-                      ? SpellIconResolver.resolve(name, description: c.abilityDescriptions[name] ?? '')
-                      : groupIcon,
+                  id == 'spells' ? Icons.auto_awesome : groupIcon,
                   size: 20,
                   color: Theme.of(context).colorScheme.primary,
                 ),
@@ -1897,7 +1895,7 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
                   id == 'weapons'
                       ? Icons.gps_fixed
                       : id == 'spells'
-                          ? SpellIconResolver.resolve(name, description: c.abilityDescriptions[name] ?? '')
+                          ? Icons.auto_awesome
                           : Icons.play_arrow,
                   size: 17,
                 ),
@@ -2001,7 +1999,9 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
 
   IconData _itemIcon(String category, {String name = '', String description = ''}) {
     if (widget.isAbility) {
-      if (category == 'Magia') return SpellIconResolver.resolve(name, description: description);
+      // Magia: sem nome (chip de filtro) fica o contorno de sempre; numa linha
+      // sem arte, o ícone fixo de magia.
+      if (category == 'Magia') return name.isEmpty ? Icons.auto_awesome_outlined : Icons.auto_awesome;
       return category == 'Técnica' ? Icons.sports_martial_arts : Icons.bolt_outlined;
     }
     return switch (category) {
