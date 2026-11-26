@@ -20,6 +20,7 @@ import '../../utils/resource_math.dart';
 import '../../utils/action_art.dart';
 import 'character_sprites.dart';
 import 'resource_delta.dart';
+import 'character_share_image.dart';
 import 'resource_quick_adjust.dart';
 import '../../widgets/confirm_delete_dialog.dart';
 import 'skill_roll.dart';
@@ -337,6 +338,8 @@ class _CharacterScreenState extends State<CharacterScreen> {
                   await RpgFileService.exportCharacter(c, system);
                 } else if (value == 'summary') {
                   await RpgFileService.shareCharacterSummary(c, system);
+                } else if (value == 'image') {
+                  await Navigator.push(context, MaterialPageRoute(fullscreenDialog: true, builder: (_) => CharacterShareImageScreen(character: c, system: system)));
                 }
               } catch (e) {
                 debugPrint('Compartilhar ficha falhou: $e');
@@ -362,6 +365,14 @@ class _CharacterScreenState extends State<CharacterScreen> {
                   leading: Icon(Icons.text_snippet_outlined),
                   title: Text('Compartilhar resumo'),
                   subtitle: Text('Envia uma versão em texto para consulta.'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'image',
+                child: ListTile(
+                  leading: Icon(Icons.image_outlined),
+                  title: Text('Compartilhar como imagem'),
+                  subtitle: Text('Cartão da ficha para enviar ou salvar.'),
                 ),
               ),
             ],

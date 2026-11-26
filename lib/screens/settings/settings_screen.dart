@@ -5,7 +5,7 @@ import '../../app/theme.dart';
 import '../../services/app_state.dart';
 import 'theme_screen.dart';
 import 'beta_check_screen.dart';
-import 'invite_manager_screen.dart';
+import 'share_with_friend.dart';
 import 'account_screen.dart';
 import '../../services/cloud_service.dart';
 import '../../core/app_version.dart';
@@ -92,31 +92,9 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            FutureBuilder<CloudSession?>(
-              future: CloudService.loadSession(),
-              builder: (context, snap) {
-                final session=snap.data;
-                if(session==null) return const SizedBox.shrink();
-                return FutureBuilder<bool>(
-                  future: CloudService.isAppAdmin(session),
-                  builder:(context,adminSnap){
-                    if(adminSnap.data!=true) return const SizedBox.shrink();
-                    return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-                      Text('Administração',style:Theme.of(context).textTheme.titleMedium),
-                      const SizedBox(height:8),
-                      Card(child:ListTile(
-                        leading:const Icon(Icons.confirmation_number_outlined),
-                        title:const Text('Gerenciar convites'),
-                        subtitle:const Text('Crie, copie e revogue códigos de acesso ao Grimório.'),
-                        trailing:const Icon(Icons.chevron_right),
-                        onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>const InviteManagerScreen())),
-                      )),
-                      const SizedBox(height:16),
-                    ]);
-                  },
-                );
-              },
-            ),
+            // 1.3.72: a entrada "Gerenciar convites" (InviteManagerScreen) ficou
+            // escondida porque a entrada no Grimório foi liberada (Criar conta).
+            // A tela, as funções do CloudService e as tabelas continuam.
             Text('Manutenção', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Card(
@@ -164,6 +142,9 @@ class SettingsScreen extends StatelessWidget {
               icon: const Icon(Icons.delete_forever),
               label: const Text('Apagar todos os dados locais'),
             ),
+            const SizedBox(height: 20),
+            // Para todos os usuários (sem relação com o código de vínculo do Mestre).
+            const ShareWithFriendSection(),
           ],
         ),
       ),

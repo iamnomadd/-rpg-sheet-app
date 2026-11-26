@@ -304,7 +304,11 @@ class _NpcSheetScreenState extends State<NpcSheetScreen>
                             runSpacing: 7,
                             children: sheet.conditions
                                 .take(6)
-                                .map((c) => Chip(label: Text(c)))
+                                .map((c) => Chip(
+                                    avatar: conditionArtFor(c) == null
+                                        ? null
+                                        : ConditionIcon(c),
+                                    label: Text(c)))
                                 .toList()),
                     ]),
               ),
@@ -561,6 +565,9 @@ class _NpcSheetScreenState extends State<NpcSheetScreen>
               runSpacing: 8,
               children: sheet.conditions
                   .map((c) => InputChip(
+                        avatar: conditionArtFor(c) == null
+                            ? null
+                            : ConditionIcon(c),
                         label: Text(c),
                         onDeleted: () async {
                           sheet.conditions.remove(c);
@@ -1047,7 +1054,7 @@ class _NpcSheetScreenState extends State<NpcSheetScreen>
                   .map((p) => SimpleDialogOption(
                       onPressed: () => Navigator.pop(d, p.name),
                       child: Row(children: [
-                        Icon(p.icon),
+                        ConditionIcon(p.name, size: 24),
                         const SizedBox(width: 10),
                         Text(p.name)
                       ]))),

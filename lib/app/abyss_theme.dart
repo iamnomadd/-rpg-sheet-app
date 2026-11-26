@@ -851,28 +851,15 @@ class _AbyssBarPainter extends CustomPainter {
       oldDelegate.value != value || oldDelegate.colors != colors || oldDelegate.track != track || oldDelegate.gold != gold;
 }
 
-/// Arte de fundo por tema (themeId → asset). Para outro tema ganhar a sua
-/// arte, basta acrescentar uma linha aqui (e registrar a pasta no pubspec).
-const themeBackgroundArt = <String, String>{
-  'abyss': 'assets/backgrounds/abyss_background.webp',
-};
-
-/// Fundo do app: gradiente de ardósia atrás do conteúdo e, por cima dele, a
-/// arte do tema ([themeBackgroundArt]) ou, sem arte, a fumaça roxa estática.
-/// Se a arte falhar ao carregar, volta para a fumaça, sem erro na tela.
+/// Fundo do app: gradiente de ardósia + fumaça roxa estática atrás do conteúdo.
 class AbyssBackground extends StatelessWidget {
   final Widget child;
 
-  /// Tema ativo; sem tema (ou tema sem arte), o fundo é gradiente + fumaça.
-  final String? themeId;
-
-  const AbyssBackground({super.key, required this.child, this.themeId});
+  const AbyssBackground({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
     final p = AbyssPalette.of(context);
-    final art = themeBackgroundArt[themeId];
-    final smoke = RepaintBoundary(child: CustomPaint(painter: AbyssSmokePainter(color: p.smoke)));
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -887,27 +874,7 @@ class AbyssBackground extends StatelessWidget {
         children: [
           Positioned.fill(
             child: IgnorePointer(
-              child: art == null
-                  ? smoke
-                  : LayoutBuilder(
-                      builder: (context, constraints) {
-                        // Tela larga (computador): altura inteira, centralizada,
-                        // com o gradiente dos lados (sem ampliar e borrar a arte).
-                        final wide = constraints.maxWidth > constraints.maxHeight * .75;
-                        return Image.asset(
-                          art,
-                          key: ValueKey('theme-background-$themeId'),
-                          fit: wide ? BoxFit.fitHeight : BoxFit.cover,
-                          alignment: Alignment.center,
-                          width: constraints.maxWidth,
-                          height: constraints.maxHeight,
-                          filterQuality: FilterQuality.medium,
-                          gaplessPlayback: true,
-                          excludeFromSemantics: true,
-                          errorBuilder: (_, __, ___) => smoke,
-                        );
-                      },
-                    ),
+              child: RepaintBoundary(child: CustomPaint(painter: AbyssSmokePainter(color: p.smoke))),
             ),
           ),
           child,
@@ -915,14 +882,6 @@ class AbyssBackground extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Pré-carrega a arte de fundo do tema (sem "piscada" na primeira tela).
-/// Falha ao carregar é ignorada: o fundo cai no gradiente + fumaça.
-Future<void> precacheThemeBackground(BuildContext context, String themeId) async {
-  final art = themeBackgroundArt[themeId];
-  if (art == null) return;
-  await precacheImage(AssetImage(art), context, onError: (_, __) {});
 }
 
 /// Filetes ondulados de fumaça roxa translúcida (8–14%), estáticos.

@@ -33,7 +33,6 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
   final _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSubscription;
   late final PageController _pageController;
-  String? _precachedBackground;
 
   @override
   void initState() {
@@ -90,13 +89,6 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
     final themeId = context.select<AppState, String>((s) => s.themeId);
     final compact = context.select<AppState, bool>((s) => s.compactMode);
     final largeText = context.select<AppState, bool>((s) => s.largeText);
-    if (_precachedBackground != themeId) {
-      // Pré-carrega a arte de fundo do tema ativo (se houver) logo no início.
-      _precachedBackground = themeId;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) precacheThemeBackground(context, themeId);
-      });
-    }
     return FlushOnBackground(child: MaterialApp(
       title: 'Grimório',
       debugShowCheckedModeBanner: false,
@@ -104,7 +96,7 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
       builder: (context, child) {
         final media = MediaQuery.of(context);
         final content = child ?? const SizedBox.shrink();
-        final themedContent = AbyssBackground(themeId: themeId, child: SaveFailedBanner(child: content));
+        final themedContent = AbyssBackground(child: SaveFailedBanner(child: content));
         final userScale = largeText ? 1.15 : (compact ? 0.90 : 1.0);
         final systemScale = media.textScaler.scale(1.0);
         final combinedScale = (systemScale * userScale).clamp(0.85, 2.0).toDouble();

@@ -114,7 +114,7 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
                       final active = selected.contains(preset.name);
                       return FilterChip(
                         selected: active,
-                        avatar: Icon(preset.icon, size: 18),
+                        avatar: ConditionIcon(preset.name),
                         label: Text(preset.name),
                         onSelected: (value) => setSheetState(() => value ? selected.add(preset.name) : selected.remove(preset.name)),
                       );
@@ -158,7 +158,7 @@ class _ActionsTabState extends State<_ActionsTab> with SingleTickerProviderState
     final preset = conditionPresetFor(name);
     final scheme = Theme.of(context).colorScheme;
     return InputChip(
-      avatar: Icon(preset?.icon ?? Icons.flag_outlined, size: 18, color: preset?.positive == true ? scheme.tertiary : scheme.primary),
+      avatar: ConditionIcon(name, color: preset?.positive == true ? scheme.tertiary : scheme.primary),
       label: Text(name),
       onPressed: _selectConditions,
       onDeleted: () async {

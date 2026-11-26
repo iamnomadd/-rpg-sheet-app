@@ -124,6 +124,9 @@ class SessionToolsScreen extends StatelessWidget {
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               ...conditions.map((condition) => InputChip(
+                                    avatar: conditionArtFor(condition) == null
+                                        ? null
+                                        : ConditionIcon(condition),
                                     label: Text(condition),
                                     visualDensity: VisualDensity.compact,
                                     materialTapTargetSize:
@@ -222,7 +225,8 @@ class SessionToolsScreen extends StatelessWidget {
                         child: Text('Nenhuma condição registrada.')),
                   ...campaign.conditions.asMap().entries.map((e) => ListTile(
                         dense: true,
-                        leading: const Icon(Icons.warning_amber_rounded),
+                        leading: ConditionIcon(e.value,
+                            size: 24, fallback: Icons.warning_amber_rounded),
                         title: Text(e.value),
                         trailing: IconButton(
                           onPressed: () =>
@@ -889,7 +893,7 @@ class SessionToolsScreen extends StatelessWidget {
               .map((p) => SimpleDialogOption(
                     onPressed: () => Navigator.pop(dialogContext, p.name),
                     child: Row(children: [
-                      Icon(p.icon),
+                      ConditionIcon(p.name, size: 24),
                       const SizedBox(width: 10),
                       Text(p.name)
                     ]),
