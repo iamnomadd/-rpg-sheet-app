@@ -68,6 +68,10 @@ class RpgSystem {
   /// Atributo base opcional de cada perícia (perícia → atributo).
   Map<String, String> skillAttributes;
 
+  /// Última alteração feita pelo usuário (ISO 8601 UTC), usada para juntar a
+  /// sincronização por item. Dados antigos: null.
+  String? updatedAt;
+
   RpgSystem({
     required this.id,
     required this.name,
@@ -78,6 +82,7 @@ class RpgSystem {
     List<String>? sections,
     List<int>? dice,
     Map<String, String>? skillAttributes,
+    this.updatedAt,
   })  : attributes = attributes ?? [],
         skills = skills ?? [],
         resources = resources ?? [],
@@ -97,6 +102,7 @@ class RpgSystem {
         sections: List<String>.from(sections),
         dice: List<int>.from(dice),
         skillAttributes: Map<String, String>.from(skillAttributes),
+        updatedAt: updatedAt,
       );
 
   Map<String, dynamic> toJson() => {
@@ -109,6 +115,7 @@ class RpgSystem {
         'sections': sections,
         'dice': dice,
         'skillAttributes': skillAttributes,
+        if (updatedAt != null) 'updatedAt': updatedAt,
       };
 
   factory RpgSystem.fromJson(Map<String, dynamic> json) {
@@ -139,6 +146,7 @@ class RpgSystem {
       sections: List<String>.from(json['sections'] ?? []),
       dice: (json['dice'] as List?)?.map((e) => int.tryParse(e.toString()) ?? 0).where((e) => e > 0).toList(),
       skillAttributes: skillAttributes,
+      updatedAt: json['updatedAt']?.toString(),
     );
   }
 }

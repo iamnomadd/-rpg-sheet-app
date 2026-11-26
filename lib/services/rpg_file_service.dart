@@ -274,7 +274,8 @@ class RpgFileService {
         return 'campaign';
 
       case 'backup':
-        await state.replaceFromBackup(data);
+        // Restaurar um arquivo substitui tudo e vale contra a nuvem (1.3.68).
+        await state.restoreFromFileBackup(data);
         return 'backup';
 
       default:

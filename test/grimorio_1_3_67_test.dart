@@ -223,12 +223,12 @@ void main() {
         await state.clearAll();
         await state.addCharacter(name: 'Nova');
         await state.setAutoSync(true);
-        expect(state.syncStatus, 'Este aparelho foi apagado. Use Restaurar da nuvem ou Forçar envio.');
-        expect(await state.syncNow(silent: true), 'Este aparelho foi apagado. Use Restaurar da nuvem ou Forçar envio.');
-        expect(cloud.uploads, 0);
-        expect(state.characters.map((c) => c.name), ['Nova']);
-        expect(state.cloudRestorePending, isTrue);
-        expect(AppState.backupCounts(cloud.payload), (characters: 2, campaigns: 1));
+        // 1.3.68 (junção): recebe a nuvem, mantém a ficha nova e envia o resultado.
+        expect(state.syncStatus, 'Alterações enviadas');
+        expect(cloud.uploads, 1);
+        expect(state.characters.map((c) => c.name), ['Nova', 'Nuvem 0', 'Nuvem 1']);
+        expect(state.cloudRestorePending, isFalse);
+        expect(AppState.backupCounts(cloud.payload), (characters: 3, campaigns: 1));
       }, cloud.client);
     });
 

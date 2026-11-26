@@ -140,7 +140,7 @@ void main() {
         final state = await _loadedState(autoSync: false, withCharacter: false, lastLocalChange: DateTime.now().toUtc().toIso8601String());
         expect(state.isLocalEmpty, isTrue);
         final status = await state.syncNow(silent: true);
-        expect(status, 'Nada enviado: este aparelho está vazio');
+        expect(status, 'Atualizado pela nuvem');
         expect(cloud.uploads, 0);
         expect(AppState.backupCounts(cloud.payload), (characters: 1, campaigns: 0));
       }, cloud.client);
@@ -222,6 +222,7 @@ void main() {
         await tester.enterText(field, 'apagar ');
         await tester.pump();
         expect(apagar().onPressed, isNotNull);
+        cloud.uploads = 0;
         await tester.tap(find.widgetWithText(FilledButton, 'Apagar'));
         await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
         await tester.pumpAndSettle();

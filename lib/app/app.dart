@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 
 import '../core/feature_flags.dart';
+import '../widgets/save_failed_banner.dart';
 import 'abyss_theme.dart';
 import '../services/app_state.dart';
 import '../services/cloud_service.dart';
@@ -98,7 +99,7 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
       builder: (context, child) {
         final media = MediaQuery.of(context);
         final content = child ?? const SizedBox.shrink();
-        final themedContent = AbyssBackground(child: content);
+        final themedContent = AbyssBackground(child: SaveFailedBanner(child: content));
         final userScale = largeText ? 1.15 : (compact ? 0.90 : 1.0);
         final systemScale = media.textScaler.scale(1.0);
         final combinedScale = (systemScale * userScale).clamp(0.85, 2.0).toDouble();

@@ -10,8 +10,19 @@ import 'package:uuid/uuid.dart';
 import '../models/campaign.dart';
 import '../models/character.dart';
 import '../models/rpg_system.dart';
+import '../utils/error_message.dart';
+import 'backup_merge.dart';
 import 'character_publish_queue.dart';
 import 'cloud_service.dart';
+
+/// Espaço de referência do armazenamento do navegador (~5 MB por site).
+const storageQuotaBytes = 5 * 1024 * 1024;
+
+/// Acima disso, um personagem 2D personalizado não é salvo.
+const customSpriteStorageLimitBytes = 4.5 * 1024 * 1024;
+
+/// Mensagem do aviso de salvamento que falhou.
+const saveFailedMessage = 'Não foi possível salvar neste aparelho: o espaço está cheio. Remova personagens 2D personalizados ou exporte um backup em Dados e sincronização.';
 
 class AppState extends ChangeNotifier {
   final _uuid = const Uuid();
@@ -33,6 +44,23 @@ class AppState extends ChangeNotifier {
   /// tiver dados, a sincronização só traz a nuvem de volta (aparelho vazio) e
   /// nunca substitui o backup sem confirmação (chave 'cloud_restore_pending').
   bool cloudRestorePending = false;
+
+  /// Exclusões feitas pelo usuário ({kind, id, deletedAt}), para a junção da
+  /// sincronização não trazer de volta o que foi apagado em outro aparelho.
+  List<Map<String, dynamic>> deletedItems = [];
+
+  /// O último salvamento falhou (por exemplo, espaço cheio). A interface mostra
+  /// um aviso fixo até um salvamento dar certo.
+  bool lastSaveFailed = false;
+  String? lastSaveError;
+
+  /// Tamanho aproximado (em caracteres ≈ bytes) do que o app guarda neste
+  /// aparelho, recalculado no load e a cada salvamento.
+  int storageUsage = 0;
+
+  /// Substitui a gravação de textos nos testes (para simular falha).
+  @visibleForTesting
+  Future<bool> Function(String key, String value)? writeStringOverride;
   DateTime? lastSyncUtc;
   String syncStatus = 'Aguardando';
   bool _applyingCloud = false;
@@ -120,6 +148,8 @@ class AppState extends ChangeNotifier {
     autoSync = prefs.getBool('auto_sync') ?? true;
     lastLocalChangeUtc = DateTime.tryParse(prefs.getString('last_local_change_utc') ?? '')?.toUtc();
     cloudRestorePending = prefs.getBool('cloud_restore_pending') ?? false;
+    // Exclusões com mais de 90 dias são descartadas.
+    deletedItems = cleanDeletedItems(_safeDecodeList(prefs.getString('deleted_items')));
     lastSyncUtc = DateTime.tryParse(prefs.getString('last_sync_utc') ?? '')?.toUtc();
 
     characters = _safeDecodeList(charactersJson)
@@ -162,6 +192,7 @@ class AppState extends ChangeNotifier {
         .toList();
 
     loaded = true;
+    storageUsage = _storageUsageOf(prefs);
     notifyListeners();
     // Local data is ready immediately. Cloud sync runs after startup instead of
     // holding the first usable screen behind network/auth latency.
@@ -175,36 +206,56 @@ class AppState extends ChangeNotifier {
   }
 
   /// Grava o estado local. Com [markLocalChange] false (só o "Apagar todos os
-  /// dados"), não marca uma alteração local nova nem agenda sincronização.
+  /// dados" e a aplicação da nuvem), não marca uma alteração local nova nem
+  /// agenda sincronização.
+  ///
+  /// Nunca lança: se a gravação falhar (por exemplo, espaço cheio no
+  /// navegador), liga [lastSaveFailed], guarda a mensagem e avisa a interface.
+  /// Os dados continuam na memória (e a sincronização, se ligada, segue).
   Future<void> save({bool markLocalChange = true}) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      'characters',
-      jsonEncode(characters.map((e) => e.toJson()).toList()),
-    );
-    await prefs.setString(
-      'systems',
-      jsonEncode(systems.map((e) => e.toJson()).toList()),
-    );
-    await prefs.setString(
-      'campaigns',
-      jsonEncode(campaigns.map((e) => e.toJson()).toList()),
-    );
-    await prefs.setString('dice_history', jsonEncode(diceHistory));
-    await prefs.setString('saved_rolls', jsonEncode(savedRolls));
-    await prefs.setString('theme_id', themeId);
-    await prefs.setBool('large_text', largeText);
-    await prefs.setBool('compact_mode', compactMode);
-    await prefs.setBool('reduce_animations', reduceAnimations);
-    await prefs.setBool('master_tools_enabled', masterToolsEnabled);
-    await prefs.setBool('auto_sync', autoSync);
+    Object? failure;
+    SharedPreferences? prefs;
+    try {
+      prefs = await SharedPreferences.getInstance();
+      final results = <bool>[
+        await _setString(prefs, 'characters', jsonEncode(characters.map((e) => e.toJson()).toList())),
+        await _setString(prefs, 'systems', jsonEncode(systems.map((e) => e.toJson()).toList())),
+        await _setString(prefs, 'campaigns', jsonEncode(campaigns.map((e) => e.toJson()).toList())),
+        await _setString(prefs, 'dice_history', jsonEncode(diceHistory)),
+        await _setString(prefs, 'saved_rolls', jsonEncode(savedRolls)),
+        await _setString(prefs, 'deleted_items', jsonEncode(deletedItems)),
+        await prefs.setString('theme_id', themeId),
+        await prefs.setBool('large_text', largeText),
+        await prefs.setBool('compact_mode', compactMode),
+        await prefs.setBool('reduce_animations', reduceAnimations),
+        await prefs.setBool('master_tools_enabled', masterToolsEnabled),
+        await prefs.setBool('auto_sync', autoSync),
+      ];
+      if (results.contains(false)) failure = 'O armazenamento recusou a gravação.';
+    } catch (e) {
+      failure = e;
+    }
     if (!_applyingCloud && markLocalChange) {
       _localRevision++;
       lastLocalChangeUtc = DateTime.now().toUtc();
-      await prefs.setString('last_local_change_utc', lastLocalChangeUtc!.toIso8601String());
+      try {
+        await prefs?.setString('last_local_change_utc', lastLocalChangeUtc!.toIso8601String());
+      } catch (e) {
+        failure ??= e;
+      }
     }
-    if (lastSyncUtc != null) {
-      await prefs.setString('last_sync_utc', lastSyncUtc!.toIso8601String());
+    try {
+      if (lastSyncUtc != null) await prefs?.setString('last_sync_utc', lastSyncUtc!.toIso8601String());
+    } catch (e) {
+      failure ??= e;
+    }
+    if (prefs != null) storageUsage = _storageUsageOf(prefs);
+    final failed = failure != null;
+    if (failed) debugPrint('Salvar falhou: $failure');
+    if (failed != lastSaveFailed || failed) {
+      lastSaveFailed = failed;
+      lastSaveError = failed ? failure.toString() : null;
+      notifyListeners();
     }
     if (!_applyingCloud && markLocalChange && autoSync && loaded) {
       _autoSyncDebounce?.cancel();
@@ -214,8 +265,63 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<bool> _setString(SharedPreferences prefs, String key, String value) {
+    final override = writeStringOverride;
+    return override != null ? override(key, value) : prefs.setString(key, value);
+  }
+
+  /// Chaves de dados que o [save] grava a partir da memória.
+  static const _dataKeys = ['characters', 'systems', 'campaigns', 'dice_history', 'saved_rolls', 'deleted_items'];
+
+  static int _entrySize(String key, Object? value) {
+    // No navegador cada chave fica como 'flutter.<chave>' e o valor em JSON.
+    final text = value is String ? value.length + 2 : '$value'.length;
+    return 'flutter.$key'.length + text;
+  }
+
+  static int _storageUsageOf(SharedPreferences prefs) {
+    var total = 0;
+    for (final key in prefs.getKeys()) {
+      total += _entrySize(key, prefs.get(key));
+    }
+    return total;
+  }
+
+  String _dataKeyValue(String key) => switch (key) {
+        'characters' => jsonEncode(characters.map((e) => e.toJson()).toList()),
+        'systems' => jsonEncode(systems.map((e) => e.toJson()).toList()),
+        'campaigns' => jsonEncode(campaigns.map((e) => e.toJson()).toList()),
+        'dice_history' => jsonEncode(diceHistory),
+        'saved_rolls' => jsonEncode(savedRolls),
+        _ => jsonEncode(deletedItems),
+      };
+
+  /// Tamanho que o armazenamento teria com os dados que estão na memória
+  /// agora (antes de salvar), para recusar mudanças que não cabem.
+  Future<int> projectedStorageUsage() async {
+    final prefs = await SharedPreferences.getInstance();
+    var total = 0;
+    for (final key in prefs.getKeys()) {
+      if (!_dataKeys.contains(key)) total += _entrySize(key, prefs.get(key));
+    }
+    for (final key in _dataKeys) {
+      total += _entrySize(key, _dataKeyValue(key));
+    }
+    return total;
+  }
+
+  /// Data de agora para marcar itens alterados pelo usuário.
+  static String _nowIso() => DateTime.now().toUtc().toIso8601String();
+
+  /// Registra a exclusão feita pelo usuário (vale também para outros
+  /// aparelhos, via sincronização).
+  void _recordDeletion(String kind, String id) {
+    deletedItems.removeWhere((e) => e['kind'] == kind && e['id'] == id);
+    deletedItems.add({'kind': kind, 'id': id, 'deletedAt': _nowIso()});
+  }
+
   Map<String, dynamic> cloudPayload() => {
-        'backupSchema': 4,
+        'backupSchema': 5,
         'appVersion': appVersion,
         'characters': characters.map((e) => e.toJson()).toList(),
         'systems': systems.map((e) => e.toJson()).toList(),
@@ -230,6 +336,7 @@ class AppState extends ChangeNotifier {
           'masterToolsEnabled': masterToolsEnabled,
         },
         'localChangedAt': lastLocalChangeUtc?.toIso8601String(),
+        'deletedItems': deletedItems,
       };
 
   /// Aparelho sem fichas e sem campanhas.
@@ -261,6 +368,11 @@ class AppState extends ChangeNotifier {
     return counts.characters > 0 || counts.campaigns > 0;
   }
 
+  /// Sincroniza juntando por item (1.3.68): baixa a nuvem; sem backup, envia
+  /// o aparelho; com backup, calcula a junção ([mergeBackups]), aplica no
+  /// aparelho se mudou algo (sem marcar alteração local nova) e envia se a
+  /// nuvem precisar. Se o envio esbarrar num conflito (a nuvem mudou no meio),
+  /// refaz o ciclo uma vez.
   Future<String> syncNow({bool silent = false}) async {
     if (_syncing) return syncStatus;
     if (!CloudService.configured) {
@@ -272,71 +384,14 @@ class AppState extends ChangeNotifier {
     syncStatus = 'Sincronizando…';
     if (!silent) notifyListeners();
     try {
-      final revisionAtStart = _localRevision;
-      final session = await CloudService.ensureSession();
-      final cloud = await CloudService.downloadSnapshot(session);
-      final localTime = lastLocalChangeUtc;
-      final cloudTime = cloud?.updatedAt;
-      // Depois do "Apagar todos os dados": com a nuvem cheia, só traz a nuvem
-      // de volta (aparelho vazio) ou não faz nada (aparelho já alterado).
-      var restoreHandled = false;
-      if (cloudRestorePending) {
-        if (cloud == null || !backupHasData(cloud.payload)) {
-          await setCloudRestorePending(false);
-        } else if (revisionAtStart != _localRevision) {
-          restoreHandled = true;
-          syncStatus = 'Alterações locais preservadas';
-        } else if (isLocalEmpty) {
-          restoreHandled = true;
-          _applyingCloud = true;
-          try {
-            await replaceFromBackup(cloud.payload);
-            lastLocalChangeUtc = cloudTime ?? lastLocalChangeUtc;
-          } finally {
-            _applyingCloud = false;
-          }
-          await setCloudRestorePending(false);
-          syncStatus = 'Atualizado pela nuvem';
-        } else {
-          restoreHandled = true;
-          syncStatus = 'Este aparelho foi apagado. Use Restaurar da nuvem ou Forçar envio.';
+      for (var attempt = 1;; attempt++) {
+        try {
+          await _syncOnce();
+          break;
+        } on AppMessageException catch (e) {
+          // Conflito no envio: a nuvem mudou entre o download e o envio.
+          if (attempt >= 2 || !_isCloudConflict(e)) rethrow;
         }
-      }
-      if (restoreHandled) {
-        // Já resolvido acima (sem enviar nada).
-      } else if (cloud == null) {
-        await CloudService.uploadBackup(session, cloudPayload());
-        syncStatus = 'Enviado para a nuvem';
-      } else if (cloudTime != null && (localTime == null || cloudTime.isAfter(localTime.add(const Duration(seconds: 2))))) {
-        // Never replace local state if the player edited anything while this
-        // cloud request was in flight. A later sync will reconcile safely.
-        if (revisionAtStart != _localRevision) {
-          syncStatus = 'Alterações locais preservadas';
-        } else {
-          _applyingCloud = true;
-          try {
-            await replaceFromBackup(cloud.payload);
-            lastLocalChangeUtc = cloudTime;
-          } finally {
-            _applyingCloud = false;
-          }
-          syncStatus = 'Atualizado pela nuvem';
-        }
-      } else if (localTime != null && (cloudTime == null || localTime.isAfter(cloudTime.add(const Duration(seconds: 2))))) {
-        if (wouldOverwriteCloudWithEmpty(cloud.payload)) {
-          // Nunca envia automaticamente um aparelho vazio por cima de um
-          // backup com fichas ou campanhas.
-          syncStatus = 'Nada enviado: este aparelho está vazio';
-        } else {
-          await CloudService.uploadBackup(
-            session,
-            cloudPayload(),
-            expectedCloudUpdatedAt: cloudTime,
-          );
-          syncStatus = 'Alterações enviadas';
-        }
-      } else {
-        syncStatus = 'Tudo sincronizado';
       }
       lastSyncUtc = DateTime.now().toUtc();
       final prefs = await SharedPreferences.getInstance();
@@ -350,6 +405,63 @@ class AppState extends ChangeNotifier {
       notifyListeners();
     }
     return syncStatus;
+  }
+
+  static bool _isCloudConflict(AppMessageException e) => e.message.startsWith('Há alterações mais recentes na nuvem');
+
+  static bool _sameData(Map<String, dynamic> a, Map<String, dynamic> b) => jsonEncode(backupDataView(a)) == jsonEncode(backupDataView(b));
+
+  Future<void> _syncOnce() async {
+    final revisionAtStart = _localRevision;
+    final session = await CloudService.ensureSession();
+    final cloud = await CloudService.downloadSnapshot(session);
+    if (cloud == null) {
+      // Nada a proteger na nuvem: envia o aparelho.
+      if (cloudRestorePending) await setCloudRestorePending(false);
+      await CloudService.uploadBackup(session, cloudPayload());
+      syncStatus = 'Enviado para a nuvem';
+      return;
+    }
+    final wasLocalEmpty = isLocalEmpty;
+    final local = cloudPayload();
+    final merged = mergeBackups(local, cloud.payload, localTime: lastLocalChangeUtc, cloudTime: cloud.updatedAt);
+    final changesLocal = !_sameData(merged, local);
+    final changesCloud = !_sameData(merged, cloud.payload);
+    if (changesLocal || changesCloud) {
+      // Alteração local durante a requisição: não sobrescreve o aparelho; a
+      // próxima sincronização junta com segurança.
+      if (revisionAtStart != _localRevision) {
+        syncStatus = 'Alterações locais preservadas';
+        return;
+      }
+    }
+    if (changesLocal) {
+      _applyingCloud = true;
+      try {
+        await replaceFromBackup(merged);
+      } finally {
+        _applyingCloud = false;
+      }
+    }
+    var uploaded = false;
+    if (changesCloud) {
+      if (wasLocalEmpty && backupHasData(cloud.payload)) {
+        // Proteção da 1.3.66: um aparelho vazio nunca envia sozinho por cima de
+        // um backup com dados (ele só recebe a nuvem neste ciclo).
+      } else {
+        await CloudService.uploadBackup(session, cloudPayload(), expectedCloudUpdatedAt: cloud.updatedAt);
+        uploaded = true;
+      }
+    }
+    // Depois do "Apagar todos os dados", a junção já trouxe a nuvem.
+    if (cloudRestorePending) await setCloudRestorePending(false);
+    syncStatus = uploaded
+        ? 'Alterações enviadas'
+        : changesLocal
+            ? 'Atualizado pela nuvem'
+            : wasLocalEmpty && changesCloud
+                ? 'Nada enviado: este aparelho está vazio'
+                : 'Tudo sincronizado';
   }
 
   Future<void> setAutoSync(bool value) async {
@@ -401,6 +513,7 @@ class AppState extends ChangeNotifier {
       resourceValues: resourceValues,
       resourceMaxValues: resourceMaxValues,
       sectionNotes: sectionNotes,
+      updatedAt: _nowIso(),
     );
     characters.add(character);
     await save();
@@ -423,6 +536,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> deleteCharacter(String id) async {
     final shareCode = characters.where((c) => c.id == id).map((c) => c.shareCode).firstWhere((code) => code.isNotEmpty, orElse: () => '');
+    if (characters.any((c) => c.id == id)) _recordDeletion('character', id);
     characters.removeWhere((c) => c.id == id);
     await save();
     notifyListeners();
@@ -435,6 +549,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> addImportedCharacter(Character character) async {
+    character.updatedAt = _nowIso();
     characters.add(character);
     await save();
     notifyListeners();
@@ -456,6 +571,8 @@ class AppState extends ChangeNotifier {
     diceHistory = (data['diceHistory'] as List? ?? [])
         .map((e) => Map<String, dynamic>.from(e))
         .toList();
+    // Backups antigos (schema 4) não têm exclusões.
+    deletedItems = cleanDeletedItems(data['deletedItems']);
 
     final preferences = Map<String, dynamic>.from(data['preferences'] ?? {});
     themeId = preferences['themeId']?.toString() ?? themeId;
@@ -480,12 +597,56 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Ids atuais de fichas, campanhas e sistemas, por kind.
+  Map<String, Set<String>> _currentIds() => {
+        'character': characters.map((c) => c.id).toSet(),
+        'campaign': campaigns.map((c) => c.id).toSet(),
+        'system': systems.map((s) => s.id).toSet(),
+      };
+
+  /// Depois de restaurar um arquivo .rpg (substituir tudo): os itens
+  /// restaurados ficam com updatedAt = agora e os ids que existiam antes e
+  /// não estão no backup viram exclusões, para a próxima sincronização
+  /// respeitar a restauração.
+  void _markFileRestore(Map<String, Set<String>> before, List<Map<String, dynamic>> previousDeleted) {
+    final now = _nowIso();
+    for (final c in characters) {
+      c.updatedAt = now;
+    }
+    for (final c in campaigns) {
+      c.updatedAt = now;
+    }
+    for (final sys in systems) {
+      sys.updatedAt = now;
+    }
+    deletedItems = unionDeletedItems(previousDeleted, deletedItems);
+    final after = _currentIds();
+    for (final entry in before.entries) {
+      for (final id in entry.value.difference(after[entry.key]!)) {
+        _recordDeletion(entry.key, id);
+      }
+    }
+  }
+
+  /// Restaurar a partir de um arquivo .rpg (substitui tudo) — ver
+  /// [_markFileRestore].
+  Future<void> restoreFromFileBackup(Map<String, dynamic> data) async {
+    final before = _currentIds();
+    final previousDeleted = [...deletedItems];
+    await replaceFromBackup(data);
+    _markFileRestore(before, previousDeleted);
+    await save();
+    notifyListeners();
+  }
+
   Future<void> restoreBackupSections(
     Map<String, dynamic> data, {
     required bool restoreGameData,
     required bool restoreRollData,
     required bool restorePreferences,
   }) async {
+    final before = _currentIds();
+    final previousDeleted = [...deletedItems];
     if (restoreGameData) {
       characters = (data['characters'] as List? ?? [])
           .map((e) => Character.fromJson(Map<String, dynamic>.from(e)))
@@ -500,6 +661,8 @@ class AppState extends ChangeNotifier {
       if (!systems.any((s) => s.id == 'generic')) {
         systems.insert(0, _builtInSystems().first);
       }
+      deletedItems = cleanDeletedItems(data['deletedItems']);
+      _markFileRestore(before, previousDeleted);
     }
 
     if (restoreRollData) {
@@ -546,7 +709,10 @@ class AppState extends ChangeNotifier {
 
   Future<void> updateCharacter(Character character) async {
     final index = characters.indexWhere((c) => c.id == character.id);
-    if (index >= 0) characters[index] = character;
+    if (index >= 0) {
+      character.updatedAt = _nowIso();
+      characters[index] = character;
+    }
     await save();
     notifyListeners();
     // Ficha que não existe mais localmente (apagada) não é republicada. O envio
@@ -578,6 +744,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> addSystem(RpgSystem system) async {
+    system.updatedAt = _nowIso();
     systems.add(system);
     await save();
     notifyListeners();
@@ -593,7 +760,10 @@ class AppState extends ChangeNotifier {
     final index = systems.indexWhere((s) => s.id == system.id);
     if (index < 0) return;
 
+    final now = _nowIso();
     for (final character in characters.where((c) => c.systemId == system.id)) {
+      // As fichas do sistema podem mudar (renomeações e campos novos).
+      character.updatedAt = now;
       for (final entry in attributeRenames.entries) {
         if (character.attributes.containsKey(entry.key)) {
           final value = character.attributes.remove(entry.key)!;
@@ -638,6 +808,7 @@ class AppState extends ChangeNotifier {
       }
     }
 
+    system.updatedAt = now;
     systems[index] = system;
     await save();
     notifyListeners();
@@ -656,7 +827,7 @@ class AppState extends ChangeNotifier {
       counter++;
     }
 
-    final copy = source.copyWith(id: _uuid.v4(), name: copyName);
+    final copy = source.copyWith(id: _uuid.v4(), name: copyName)..updatedAt = _nowIso();
 
     systems.add(copy);
     await save();
@@ -667,6 +838,7 @@ class AppState extends ChangeNotifier {
   Future<bool> deleteSystem(String id) async {
     if (id == 'generic') return false;
     if (characters.any((c) => c.systemId == id)) return false;
+    if (systems.any((s) => s.id == id)) _recordDeletion('system', id);
     systems.removeWhere((s) => s.id == id);
     await save();
     notifyListeners();
@@ -674,6 +846,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> addCampaign(Campaign campaign) async {
+    campaign.updatedAt = _nowIso();
     campaigns.add(campaign);
     await save();
     notifyListeners();
@@ -682,6 +855,7 @@ class AppState extends ChangeNotifier {
   Future<void> updateCampaign(Campaign campaign) async {
     final index = campaigns.indexWhere((c) => c.id == campaign.id);
     if (index >= 0) {
+      campaign.updatedAt = _nowIso();
       campaigns[index] = campaign;
       await save();
       notifyListeners();
@@ -689,6 +863,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> deleteCampaign(String id) async {
+    if (campaigns.any((c) => c.id == id)) _recordDeletion('campaign', id);
     campaigns.removeWhere((c) => c.id == id);
     await save();
     notifyListeners();
@@ -871,9 +1046,11 @@ class AppState extends ChangeNotifier {
     }
 
     final systemIds = systems.map((s) => s.id).toSet();
+    final now = _nowIso();
     for (final character in characters) {
       if (!systemIds.contains(character.systemId)) {
         character.systemId = 'generic';
+        character.updatedAt = now;
         repairs++;
       }
     }
@@ -894,9 +1071,14 @@ class AppState extends ChangeNotifier {
           .toList();
       repairs += beforeHidden - campaign.hiddenCharacterIds.length;
 
+      var roundFixed = false;
       if (campaign.sessionRound < 1) {
         campaign.sessionRound = 1;
+        roundFixed = true;
         repairs++;
+      }
+      if (roundFixed || campaign.characterIds.length != beforeCharacters || campaign.hiddenCharacterIds.length != beforeHidden) {
+        campaign.updatedAt = now;
       }
     }
 
