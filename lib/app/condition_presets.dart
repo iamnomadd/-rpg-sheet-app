@@ -40,3 +40,81 @@ ConditionPreset? conditionPresetFor(String name) {
 }
 
 IconData conditionIcon(String name) => conditionPresetFor(name)?.icon ?? Icons.flag_outlined;
+
+/// Arte de cada condição pré-definida (nome do preset → asset). Único lugar
+/// do mapeamento; o [ConditionPreset.icon] continua como reserva.
+const conditionArt = <String, String>{
+  'Envenenado': 'assets/icons/conditions/cond_poisoned.webp',
+  'Queimando': 'assets/icons/conditions/cond_burning.webp',
+  'Congelado': 'assets/icons/conditions/cond_frozen.webp',
+  'Sangrando': 'assets/icons/conditions/cond_bleeding.webp',
+  'Atordoado': 'assets/icons/conditions/cond_stunned.webp',
+  'Caído': 'assets/icons/conditions/cond_prone.webp',
+  'Cego': 'assets/icons/conditions/cond_blinded.webp',
+  'Surdo': 'assets/icons/conditions/cond_deafened.webp',
+  'Imobilizado': 'assets/icons/conditions/cond_restrained.webp',
+  'Assustado': 'assets/icons/conditions/cond_frightened.webp',
+  'Confuso': 'assets/icons/conditions/cond_confused.webp',
+  'Inconsciente': 'assets/icons/conditions/cond_unconscious.webp',
+  'Doente': 'assets/icons/conditions/cond_sick.webp',
+  'Exausto': 'assets/icons/conditions/cond_exhausted.webp',
+  'Silenciado': 'assets/icons/conditions/cond_silenced.webp',
+  'Protegido': 'assets/icons/conditions/cond_protected.webp',
+  'Inspirado': 'assets/icons/conditions/cond_inspired.webp',
+  'Fortalecido': 'assets/icons/conditions/cond_strengthened.webp',
+  'Acelerado': 'assets/icons/conditions/cond_hasted.webp',
+  'Regenerando': 'assets/icons/conditions/cond_regenerating.webp',
+};
+
+/// Tamanho da arte da condição (no lugar do ícone de 18 px).
+const conditionArtSize = 22.0;
+
+/// Asset da arte da condição [name], ou null (condição personalizada).
+String? conditionArtFor(String name) {
+  final preset = conditionPresetFor(name);
+  return preset == null ? null : conditionArt[preset.name];
+}
+
+/// Ícone de uma condição: a arte do preset (sem tint, a arte já tem cor) ou,
+/// em condição personalizada ou falha ao carregar a imagem, o ícone reserva
+/// ([fallback], senão o do preset ou [Icons.flag_outlined]) com [size] e
+/// [color].
+class ConditionIcon extends StatelessWidget {
+  final String name;
+  final double size;
+  final Color? color;
+  final IconData? fallback;
+
+  const ConditionIcon(this.name, {super.key, this.size = 18, this.color, this.fallback});
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = Icon(fallback ?? conditionIcon(name), size: size, color: color);
+    final art = conditionArtFor(name);
+    if (art == null) return icon;
+    final box = size > conditionArtSize ? size : conditionArtSize;
+    // Caixa externa do tamanho do ícone/arte. Dentro de um chip (que força o
+    // avatar a ~20 px), a arte continua com 22 px, centralizada, sem mudar a
+    // altura do chip (o excedente fica no respiro do avatar).
+    return SizedBox.square(
+      dimension: box,
+      child: OverflowBox(
+        minWidth: 0,
+        minHeight: 0,
+        maxWidth: conditionArtSize,
+        maxHeight: conditionArtSize,
+        child: SizedBox.square(
+          dimension: conditionArtSize,
+          child: Image.asset(
+            art,
+            key: ValueKey('condition-art-$name'),
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.medium,
+            excludeFromSemantics: true,
+            errorBuilder: (_, __, ___) => icon,
+          ),
+        ),
+      ),
+    );
+  }
+}

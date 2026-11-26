@@ -292,8 +292,8 @@ class _CombatCharacter2D extends StatelessWidget {
                 final positive = preset?.positive == true;
                 return Chip(
                   visualDensity: VisualDensity.compact,
-                  avatar: Icon(
-                    preset?.icon ?? Icons.flag_outlined,
+                  avatar: ConditionIcon(
+                    name,
                     size: 16,
                     color: positive ? scheme.tertiary : scheme.error,
                   ),

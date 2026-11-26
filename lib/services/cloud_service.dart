@@ -575,6 +575,13 @@ class CloudService {
     return decoded==true;
   }
 
+  /// Libera o acesso ao Grimório para a conta atual sem convite (1.3.72,
+  /// "Criar conta"). Precisa da migração *_open_access_v172.sql aplicada.
+  static Future<bool> claimOpenAccess(CloudSession session) async {
+    final decoded=await _rawRequest('POST',Uri.parse('$supabaseUrl/rest/v1/rpc/claim_rpg_open_access'),headers:{'Authorization':'Bearer ${session.accessToken}'},body:const {});
+    return decoded==true;
+  }
+
   static Future<List<Map<String,dynamic>>> approvedPlayerCampaigns(CloudSession session) async {
     final uri=Uri.parse('$supabaseUrl/rest/v1/rpg_character_link_requests?character_owner_id=eq.${Uri.encodeComponent(session.userId)}&status=eq.approved&share_code=not.is.null&select=campaign_id,share_code');
     final decoded=await _rawRequest('GET',uri,headers:{'Authorization':'Bearer ${session.accessToken}'});

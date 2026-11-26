@@ -54,6 +54,38 @@
     });
     observer.observe(document.documentElement,{childList:true,subtree:true});
   </script>
+  <script>
+    // Instalação do app (1.3.72). Guarda o pedido de instalação do Chrome/Android
+    // para o botão "Instalar app" do Grimório; no iPhone/iPad não há evento, só
+    // a instrução. Já instalado (standalone): nada é mostrado.
+    window.rpgInstallPrompt = null;
+    window.rpgIsStandalone = () => (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+    window.rpgIsIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    window.rpgInstallState = () => window.rpgIsStandalone() ? 'none' : (window.rpgInstallPrompt ? 'prompt' : (window.rpgIsIos() ? 'ios' : 'none'));
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault();
+      window.rpgInstallPrompt = event;
+      window.dispatchEvent(new Event('rpg-install-change'));
+    });
+    window.addEventListener('appinstalled', () => {
+      window.rpgInstallPrompt = null;
+      window.dispatchEvent(new Event('rpg-install-change'));
+    });
+    window.rpgPromptInstall = async () => {
+      const event = window.rpgInstallPrompt;
+      if (!event) return false;
+      window.rpgInstallPrompt = null;
+      try {
+        event.prompt();
+        const choice = await event.userChoice;
+        return !!choice && choice.outcome === 'accepted';
+      } catch (_) {
+        return false;
+      } finally {
+        window.dispatchEvent(new Event('rpg-install-change'));
+      }
+    };
+  </script>
   <script src="flutter_bootstrap.js" async></script>
   <script>
     // Keep startup independent from update checks. Never reload the page from
