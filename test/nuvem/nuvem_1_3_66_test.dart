@@ -270,9 +270,11 @@ void main() {
       };
       final technical = RegExp(r"""Text\(\s*'[^']*(\$e\b|\$\{e\}|e\.toString\(\))""");
       for (final entry in points.entries) {
-        final source = File(entry.key).readAsStringSync();
+        final source = _readWithParts(entry.key);
+        // 1.3.70: comparação sem espaços (arquivos formatados com dart format).
+        String compact(String text) => text.replaceAll(RegExp(r'\s+'), '');
         for (final phrase in entry.value) {
-          expect(source, contains("Text('$phrase')"), reason: '${entry.key}: $phrase');
+          expect(compact(source), contains(compact("Text('$phrase')")), reason: '${entry.key}: $phrase');
         }
         expect(technical.hasMatch(source), isFalse, reason: '${entry.key} ainda mostra o erro técnico');
         expect('debugPrint('.allMatches(source).length, greaterThanOrEqualTo(entry.value.length), reason: entry.key);
@@ -310,4 +312,14 @@ void main() {
       });
     }
   });
+}
+
+
+/// Lê o arquivo de lib/ e, se ele for dividido com `part` (1.3.70), também os
+/// arquivos das partes, para conferir o mesmo conteúdo de antes.
+String _readWithParts(String path) {
+  final main = File(path).readAsStringSync();
+  final dir = File(path).parent.path;
+  final parts = RegExp(r"^part '([^']+)';", multiLine: true).allMatches(main).map((m) => File('$dir/${m.group(1)}').readAsStringSync());
+  return [main, ...parts].join('\n');
 }

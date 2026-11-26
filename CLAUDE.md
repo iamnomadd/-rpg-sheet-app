@@ -97,7 +97,7 @@ Os arquivos estáticos usam cache primeiro, então sem subir a versão os usuár
 
 ### Temas e personagem 2D
 - Cada tema tem identidade própria e, quando aplicável, personagem próprio. IDs internos: Vampírico = 'vampire'; Cyberpunk = 'cyberpunk'; Pirata = 'parchment'. Os ids não são previsíveis: confirme em lib/app/theme.dart antes de usar.
-- O widget de combate é `_CombatCharacter2D`, em lib/screens/character/character_screen.dart. Os sprites ficam em assets/character2d/. Os temas sem personagem próprio usam normal.png, agony.png e incapacitated.png.
+- O widget de combate é `_CombatCharacter2D`, em lib/screens/character/character_2d.dart (parte do character_screen.dart). Os sprites ficam em assets/character2d/. Os temas sem personagem próprio usam normal.png, agony.png e incapacitated.png.
 - Nunca altere o personagem de um tema ao mexer em outro.
 - Pose por vida (já implementada em `_pose`, não altere sem pedido): vida <= 0 incapacitado; vida > 0 e <= 30% crítico; 31% a 40% agony; condição negativa também usa agony quando não está crítico; demais normal.
 - Renderização dos sprites: BoxFit.contain, FilterQuality.none, isAntiAlias false, mesma área fixa nos estados. O card (altura 220) não pode mudar de altura entre estados.

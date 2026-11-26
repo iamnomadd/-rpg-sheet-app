@@ -248,12 +248,14 @@ void main() {
     });
 
     test('a cópia para NPC não leva o personagem 2D personalizado', () {
-      final source = File('lib/screens/campaigns/campaigns_screen.dart').readAsStringSync();
-      final line = source.split('\n').firstWhere((l) => l.contains("data['player']='Mestre'"));
-      final index = source.indexOf(line);
+      // 1.3.70: comparação sem espaços (o arquivo foi formatado com dart format).
+      String compact(String text) => text.replaceAll(RegExp(r'\s+'), '');
+      final source = compact(_readWithParts('lib/screens/campaigns/campaigns_screen.dart'));
+      final index = source.indexOf(compact("data['player']='Mestre'"));
+      expect(index, greaterThanOrEqualTo(0));
       final block = source.substring(index, index + 600);
-      expect(block, contains("data['customSpriteImages']=<String,String>{}"));
-      expect(block, contains("data['customSpriteEnabled']=false"));
+      expect(block, contains(compact("data['customSpriteImages']=<String,String>{}")));
+      expect(block, contains(compact("data['customSpriteEnabled']=false")));
       // O import de .rpg continua levando as imagens (não é a cópia para NPC).
       expect(File('lib/services/rpg_file_service.dart').readAsStringSync(), contains('customSpriteImages: Map<String, String>.from(original.customSpriteImages),'));
     });
@@ -579,7 +581,7 @@ void main() {
     });
 
     test('a tela de campanhas usa o helper em todo lugar', () {
-      final source = File('lib/screens/campaigns/campaigns_screen.dart').readAsStringSync();
+      final source = _readWithParts('lib/screens/campaigns/campaigns_screen.dart');
       expect(source, isNot(contains('sessionLog.add(')));
       expect('addSessionLog('.allMatches(source).length, 13);
     });
@@ -610,4 +612,14 @@ void main() {
       expect(source, isNot(contains("throw Exception('Sem permissão para alterar esta ficha.')")));
     });
   });
+}
+
+
+/// Lê o arquivo de lib/ e, se ele for dividido com `part` (1.3.70), também os
+/// arquivos das partes, para conferir o mesmo conteúdo de antes.
+String _readWithParts(String path) {
+  final main = File(path).readAsStringSync();
+  final dir = File(path).parent.path;
+  final parts = RegExp(r"^part '([^']+)';", multiLine: true).allMatches(main).map((m) => File('$dir/${m.group(1)}').readAsStringSync());
+  return [main, ...parts].join('\n');
 }
