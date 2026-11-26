@@ -433,7 +433,7 @@ void main() {
         'A senha precisa ter pelo menos 6 caracteres.',
         'Há alterações mais recentes na nuvem. Sincronize novamente antes de enviar.',
       ]) {
-        expect(source, contains("throw AppMessageException('$text')"), reason: text);
+        expect(source.contains("throw AppMessageException('$text')") || (text.startsWith('Há alterações') && source.contains("throw const CloudConflictException('$text')")), isTrue, reason: text);
         expect(source, isNot(contains("throw Exception('$text')")), reason: text);
       }
     });

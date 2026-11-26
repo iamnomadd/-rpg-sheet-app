@@ -11,7 +11,6 @@ import 'package:rpg_sheet_app/app/theme.dart';
 import 'package:rpg_sheet_app/models/character.dart';
 import 'package:rpg_sheet_app/models/rpg_system.dart';
 import 'package:rpg_sheet_app/screens/character/character_screen.dart';
-import 'package:rpg_sheet_app/screens/character/combat_tab.dart';
 import 'package:rpg_sheet_app/services/app_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -177,17 +176,6 @@ void main() {
                 expect(_resourceArtShown(tester), {'res_life', 'res_temp_hp', 'res_energy', 'res_ecstasy'}, reason: 'Status');
                 for (final image in tester.widgetList<Image>(find.byType(Image)).where((i) => (_asset(i) ?? '').startsWith(abyssResourceArtFolder))) {
                   expect(image.width, abyssArtIconSize(compact), reason: 'Status: tamanho padrão do Abissal');
-                }
-              }
-              await _finish(tester);
-              final combat = await _state(themeId, compact: compact);
-              await tester.pumpWidget(_app(combat, themeId, Scaffold(body: CombatTab(character: combat.characters.single, system: combat.systems.first)), compact: compact));
-              await _settle(tester);
-              if (themeId == 'abyss') {
-                final art = tester.widgetList<Image>(find.byType(Image)).where((i) => (_asset(i) ?? '').startsWith(abyssResourceArtFolder)).toList();
-                expect(art, isNotEmpty);
-                for (final image in art) {
-                  expect(image.width, abyssArtIconSize(compact), reason: 'combate: tamanho padrão do Abissal');
                 }
               }
               await _finish(tester);

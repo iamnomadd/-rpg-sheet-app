@@ -16,6 +16,12 @@ class CloudRequestException implements Exception {
   @override String toString()=>message;
 }
 
+/// O backup da nuvem mudou entre o download e o envio (conflito). A
+/// sincronização refaz o ciclo uma vez; a mensagem é a mesma de antes.
+class CloudConflictException extends AppMessageException {
+  const CloudConflictException(super.message);
+}
+
 class CloudSession {
   final String accessToken;
   final String refreshToken;
@@ -392,7 +398,7 @@ class CloudService {
       final latest = await downloadSnapshot(session);
       final latestTime = latest?.updatedAt;
       if (latestTime != null && latestTime.isAfter(expectedCloudUpdatedAt.add(const Duration(milliseconds: 500)))) {
-        throw AppMessageException('Há alterações mais recentes na nuvem. Sincronize novamente antes de enviar.');
+        throw const CloudConflictException('Há alterações mais recentes na nuvem. Sincronize novamente antes de enviar.');
       }
     }
     await _request(

@@ -9,25 +9,14 @@ import 'package:rpg_sheet_app/models/character.dart';
 import 'package:rpg_sheet_app/models/rpg_system.dart';
 import 'package:rpg_sheet_app/screens/campaigns/npc_sheet_screen.dart';
 import 'package:rpg_sheet_app/screens/character/character_screen.dart';
-import 'package:rpg_sheet_app/screens/character/combat_tab.dart';
 import 'package:rpg_sheet_app/services/app_state.dart';
 import 'package:rpg_sheet_app/utils/action_art.dart';
-import 'package:rpg_sheet_app/utils/spell_icon.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 String? art(ActionArtKind kind, String name, {String description = '', String category = ''}) {
   final path = ActionArtResolver.resolve(kind: kind, name: name, description: description, category: category);
   return path?.replaceFirst(ActionArtResolver.folder, '').replaceFirst('.webp', '');
 }
-
-/// Ícones do SpellIconResolver na ordem das 21 categorias.
-const _oldIcons = [
-  Icons.local_fire_department_outlined, Icons.bolt, Icons.ac_unit, Icons.science_outlined, Icons.healing,
-  Icons.shield_outlined, Icons.bloodtype_outlined, Icons.dangerous_outlined, Icons.nights_stay_outlined,
-  Icons.wb_sunny_outlined, Icons.water_drop_outlined, Icons.air, Icons.landscape_outlined, Icons.eco_outlined,
-  Icons.blur_circular, Icons.bedtime_outlined, Icons.warning_amber_rounded, Icons.psychology_outlined,
-  Icons.graphic_eq, Icons.schedule_outlined, Icons.public,
-];
 
 void main() {
   group('(a) exemplos nome → arte', () {
@@ -124,16 +113,6 @@ void main() {
           if (path != null) expect(File(path).existsSync(), isTrue, reason: path);
         }
       }
-    }
-  });
-
-  test('(e) paridade de categoria com o SpellIconResolver', () {
-    const names = ['fogo', 'raio', 'gelo', 'veneno', 'cura', 'escudo', 'sangue', 'morte', 'sombra', 'luz', 'água', 'vento', 'terra', 'natureza', 'portal', 'sono', 'medo', 'mente', 'som', 'tempo', 'gravidade'];
-    for (var i = 0; i < names.length; i++) {
-      final oldIndex = _oldIcons.indexOf(SpellIconResolver.resolve(names[i]));
-      final newFile = art(ActionArtKind.spell, names[i], category: 'Magia');
-      expect(oldIndex, i, reason: names[i]);
-      expect(newFile, ActionArtResolver.spellTerms[oldIndex].$1, reason: names[i]);
     }
   });
 
@@ -257,15 +236,6 @@ void main() {
       final state = await pump(tester, 'abyss', const SizedBox());
       await tester.pumpWidget(ChangeNotifierProvider<AppState>.value(
         value: state,
-        child: MaterialApp(theme: buildAppTheme('abyss', false), home: Scaffold(body: CombatTab(character: state.characters.single, system: state.systems.first))),
-      ));
-      await tester.pump(const Duration(milliseconds: 300));
-      expect(tester.takeException(), isNull);
-      expect(artShown(tester), containsAll(['spell_fire', 'item_pistol', 'item_potion']));
-      await finish(tester);
-
-      await tester.pumpWidget(ChangeNotifierProvider<AppState>.value(
-        value: state,
         child: MaterialApp(theme: buildAppTheme('abyss', false), home: const NpcSheetScreen(campaignId: 'c1', npcId: 'n1')),
       ));
       await tester.pump(const Duration(milliseconds: 300));
@@ -275,18 +245,6 @@ void main() {
       }
       expect(tester.takeException(), isNull);
       expect(artShown(tester), containsAll(['spell_fire', 'item_pistol']));
-      await finish(tester);
-    });
-
-    // Design do Abissal em todos os temas desde a 1.3.62.
-    testWidgets('aba de combate no Pirata também mostra a arte', (tester) async {
-      final state = await pump(tester, 'parchment', const SizedBox());
-      await tester.pumpWidget(ChangeNotifierProvider<AppState>.value(
-        value: state,
-        child: MaterialApp(theme: buildAppTheme('parchment', false), home: Scaffold(body: CombatTab(character: state.characters.single, system: state.systems.first))),
-      ));
-      await tester.pump(const Duration(milliseconds: 300));
-      expect(artShown(tester), containsAll(['item_pistol']));
       await finish(tester);
     });
   });

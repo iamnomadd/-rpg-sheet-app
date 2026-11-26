@@ -200,7 +200,7 @@ class AppState extends ChangeNotifier {
       Future<void>.delayed(const Duration(milliseconds:900),(){
         // Confere de novo: o "Apagar todos os dados" pode ter desligado a
         // sincronização automática nesse meio-tempo.
-        if (autoSync) syncNow(silent:true);
+        if (autoSync) syncNow(silent:true, automatic:true);
       });
     }
   }
@@ -260,7 +260,7 @@ class AppState extends ChangeNotifier {
     if (!_applyingCloud && markLocalChange && autoSync && loaded) {
       _autoSyncDebounce?.cancel();
       _autoSyncDebounce=Timer(const Duration(milliseconds:700),(){
-        syncNow(silent:true);
+        syncNow(silent:true, automatic:true);
       });
     }
   }
@@ -373,10 +373,19 @@ class AppState extends ChangeNotifier {
   /// aparelho se mudou algo (sem marcar alteração local nova) e envia se a
   /// nuvem precisar. Se o envio esbarrar num conflito (a nuvem mudou no meio),
   /// refaz o ciclo uma vez.
-  Future<String> syncNow({bool silent = false}) async {
+  ///
+  /// [automatic] (a sincronização ao abrir o app e a do salvamento): com o
+  /// aparelho sem nada para guardar e sem sessão salva, não cria uma conta
+  /// anônima nova (não chama ensureSession).
+  Future<String> syncNow({bool silent = false, bool automatic = false}) async {
     if (_syncing) return syncStatus;
     if (!CloudService.configured) {
       syncStatus = 'Nuvem não configurada';
+      if (!silent) notifyListeners();
+      return syncStatus;
+    }
+    if (automatic && !hasDataToKeep && await CloudService.loadSession() == null) {
+      syncStatus = 'Nada para sincronizar ainda';
       if (!silent) notifyListeners();
       return syncStatus;
     }
@@ -407,7 +416,14 @@ class AppState extends ChangeNotifier {
     return syncStatus;
   }
 
-  static bool _isCloudConflict(AppMessageException e) => e.message.startsWith('Há alterações mais recentes na nuvem');
+  static bool _isCloudConflict(AppMessageException e) => e is CloudConflictException;
+
+  /// Ids dos sistemas que já vêm com o app.
+  static final Set<String> _builtInSystemIds = _builtInSystems().map((s) => s.id).toSet();
+
+  /// Há algo deste aparelho para guardar na nuvem (fichas, campanhas ou
+  /// sistemas personalizados).
+  bool get hasDataToKeep => characters.isNotEmpty || campaigns.isNotEmpty || systems.any((s) => !_builtInSystemIds.contains(s.id));
 
   static bool _sameData(Map<String, dynamic> a, Map<String, dynamic> b) => jsonEncode(backupDataView(a)) == jsonEncode(backupDataView(b));
 
@@ -423,6 +439,10 @@ class AppState extends ChangeNotifier {
       return;
     }
     final wasLocalEmpty = isLocalEmpty;
+    // Aparelho vazio SEM exclusões registradas = "Apagar todos os dados" (ou
+    // aparelho novo): não envia por cima da nuvem. Com exclusões (por exemplo,
+    // a última ficha foi excluída), envia a junção normalmente.
+    final blockEmptyUpload = wasLocalEmpty && deletedItems.isEmpty;
     final local = cloudPayload();
     final merged = mergeBackups(local, cloud.payload, localTime: lastLocalChangeUtc, cloudTime: cloud.updatedAt);
     final changesLocal = !_sameData(merged, local);
@@ -445,7 +465,7 @@ class AppState extends ChangeNotifier {
     }
     var uploaded = false;
     if (changesCloud) {
-      if (wasLocalEmpty && backupHasData(cloud.payload)) {
+      if (blockEmptyUpload && backupHasData(cloud.payload)) {
         // Proteção da 1.3.66: um aparelho vazio nunca envia sozinho por cima de
         // um backup com dados (ele só recebe a nuvem neste ciclo).
       } else {

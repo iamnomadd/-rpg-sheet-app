@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 
-import '../core/feature_flags.dart';
 import '../widgets/save_failed_banner.dart';
 import 'abyss_theme.dart';
 import '../services/app_state.dart';
@@ -15,7 +14,6 @@ import '../screens/home/home_screen.dart';
 import '../screens/auth/access_gate.dart';
 import '../screens/systems/systems_screen.dart';
 import '../screens/campaigns/campaigns_screen.dart';
-import '../screens/dice/dice_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/home/skill_trees_screen.dart';
 import 'theme.dart';
@@ -80,7 +78,6 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
         'characters' => const HomeScreen(),
         'systems' => const SystemsScreen(),
         'tree' => const SkillTreesScreen(),
-        'dice' => const DiceScreen(),
         'campaigns' => const MasterScreen(),
         _ => const SettingsScreen(),
       };
@@ -139,13 +136,12 @@ ThemeData buildAppTheme(String themeId, bool compact) => buildAbyssAppTheme(buil
 typedef MainTab = ({String role, String label});
 
 /// Fonte única das abas principais, na ordem da barra: Fichas, Sistemas,
-/// Árvore, [Dados], [Mestre], Config. A barra e o PageView saem desta lista,
+/// Árvore, [Mestre], Config. A barra e o PageView saem desta lista,
 /// então botões e páginas nunca divergem.
 List<MainTab> mainTabs({required bool masterToolsEnabled}) => [
       (role: 'characters', label: 'Fichas'),
       (role: 'systems', label: 'Sistemas'),
       (role: 'tree', label: 'Árvore'),
-      if (diceTabEnabled) (role: 'dice', label: 'Dados'),
       if (masterToolsEnabled) (role: 'campaigns', label: 'Mestre'),
       (role: 'settings', label: 'Config.'),
     ];
