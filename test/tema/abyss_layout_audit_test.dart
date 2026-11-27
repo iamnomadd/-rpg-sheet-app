@@ -21,7 +21,6 @@ import 'package:rpg_sheet_app/screens/campaigns/npc_sheet_screen.dart';
 import 'package:rpg_sheet_app/screens/character/character_screen.dart';
 import 'package:rpg_sheet_app/screens/character/skill_tree_screen.dart';
 import 'package:rpg_sheet_app/screens/home/home_screen.dart';
-import 'package:rpg_sheet_app/screens/home/skill_trees_screen.dart';
 import 'package:rpg_sheet_app/screens/settings/account_screen.dart';
 import 'package:rpg_sheet_app/screens/settings/beta_check_screen.dart';
 import 'package:rpg_sheet_app/screens/settings/import_export_screen.dart';
@@ -144,7 +143,6 @@ final _scenarios = <_Scenario>[
   _Scenario('Fichas', () => const HomeScreen()),
   _Scenario('Sistemas', () => const SystemsScreen()),
   _Scenario('Editor de sistema', () => SystemEditorScreen(system: _system())),
-  _Scenario('Árvore (lista)', () => const SkillTreesScreen()),
   _Scenario('Árvore (tela)', () => const SkillTreeScreen(characterId: 'p1')),
   _Scenario('Árvore › folha do nó', () => const SkillTreeScreen(characterId: 'p1'), open: () => find.text('Golpe furtivo')),
   _Scenario('Ficha › diálogo Editar dados', () => const CharacterScreen(characterId: 'p1'), open: () => find.byTooltip('Editar dados')),

@@ -115,7 +115,8 @@ void main() {
     await tester.tap(find.text('Config.'));
     await tester.pump();
     expect(find.text('Página Config'), findsOneWidget);
-    expect(index.value, 3);
+    // 1.3.78: sem a aba "Árvore", Config. é a 3ª aba (índice 2).
+    expect(index.value, 2);
   });
 
   testWidgets('trocar de tema continua atualizando a barra', (tester) async {

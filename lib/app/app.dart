@@ -16,7 +16,6 @@ import '../screens/auth/access_gate.dart';
 import '../screens/systems/systems_screen.dart';
 import '../screens/campaigns/campaigns_screen.dart';
 import '../screens/settings/settings_screen.dart';
-import '../screens/home/skill_trees_screen.dart';
 import 'theme.dart';
 import '../widgets/flush_on_background.dart';
 import '../widgets/update_available_listener.dart';
@@ -84,7 +83,6 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
   static Widget _mainPage(String role) => switch (role) {
         'characters' => const HomeScreen(),
         'systems' => const SystemsScreen(),
-        'tree' => const SkillTreesScreen(),
         'campaigns' => const MasterScreen(),
         _ => const SettingsScreen(),
       };
@@ -143,12 +141,12 @@ ThemeData buildAppTheme(String themeId, bool compact) => buildAbyssAppTheme(buil
 typedef MainTab = ({String role, String label});
 
 /// Fonte única das abas principais, na ordem da barra: Fichas, Sistemas,
-/// Árvore, [Mestre], Config. A barra e o PageView saem desta lista,
-/// então botões e páginas nunca divergem.
+/// [Mestre], Config. A barra e o PageView saem desta lista, então botões e
+/// páginas nunca divergem. (1.3.78: a "Árvore" saiu da barra; ela continua
+/// dentro de cada ficha.)
 List<MainTab> mainTabs({required bool masterToolsEnabled}) => [
       (role: 'characters', label: 'Fichas'),
       (role: 'systems', label: 'Sistemas'),
-      (role: 'tree', label: 'Árvore'),
       if (masterToolsEnabled) (role: 'campaigns', label: 'Mestre'),
       (role: 'settings', label: 'Config.'),
     ];

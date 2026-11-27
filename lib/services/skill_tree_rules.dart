@@ -5,10 +5,11 @@
 // Formato do nó (todos os campos novos são OPCIONAIS; o padrão reproduz a
 // árvore de antes):
 //   id, name, description, parentId, level (profundidade), unlocked, template
-//   tier            'talento' (padrão) | 'facanha' | 'lenda'
-//   maxRank         1..5 (padrão 1)
-//   rank            0..maxRank (padrão: unlocked ? 1 : 0); unlocked = rank > 0
-//   rankTexts       [texto do nível 1, texto do nível 2, ...] (opcional)
+//   rank            0..3 (padrão: unlocked ? 1 : 0); unlocked = rank > 0.
+//                   1.3.78: o TIPO é o nível: 1 = Talento, 2 = Façanha,
+//                   3 = Lenda (com o Aprimoramento ligado no sistema).
+//   rankTexts       [texto de Talento, de Façanha, de Lenda] (opcional)
+//   tier, maxRank   da 1.3.76: continuam no JSON dos nós antigos, sem efeito
 //   branchId        id do ramo ('' = "Geral")
 //   exclusiveGroup  nome do grupo de escolha exclusiva ('' = nenhum)
 //   reqAttribute    atributo do requisito ('' = nenhum; só vale se o sistema
@@ -28,7 +29,6 @@ import '../models/rpg_system.dart';
 /// da ficha continuam guardados.
 class SkillTreeFeatures {
   final bool branches;
-  final bool tiers;
   final bool ranks;
   final bool exclusive;
   final bool requirement;
@@ -36,7 +36,6 @@ class SkillTreeFeatures {
 
   const SkillTreeFeatures({
     this.branches = false,
-    this.tiers = false,
     this.ranks = false,
     this.exclusive = false,
     this.requirement = false,
@@ -49,36 +48,39 @@ class SkillTreeFeatures {
       ? none
       : SkillTreeFeatures(
           branches: system.treeBranches,
-          tiers: system.treeTiers,
-          ranks: system.treeRanks,
+          // 1.3.78: "Tipos" foi unido ao Aprimoramento; um sistema salvo com
+          // treeTiers ligado conta como Aprimoramento ligado.
+          ranks: system.treeRanks || system.treeTiers,
           exclusive: system.treeExclusive,
           requirement: system.treeAttributeRequirement,
           abilityLink: system.treeAbilityLink,
         );
 
   /// Alguma função de "Mais opções" ligada (Ramos fica no editor principal).
-  bool get anyMoreOptions => tiers || ranks || exclusive || requirement || abilityLink;
+  bool get anyMoreOptions => ranks || exclusive || requirement || abilityLink;
+
+  /// Visual de Talento/Façanha/Lenda: vem do Aprimoramento (1.3.78).
+  bool get tiers => ranks;
 }
 
 /// Tipos de nó.
 const skillTreeTiers = ['talento', 'facanha', 'lenda'];
 
-/// Nome do tipo na interface.
-String skillTreeTierLabel(String tier) => switch (tier) {
+/// Tipo pelo NÍVEL (1.3.78): 1 = Talento, 2 = Façanha, 3 ou mais = Lenda.
+String skillTreeTierFor(int level) => level >= 3 ? 'lenda' : (level == 2 ? 'facanha' : 'talento');
+
+/// Nome do tipo para o NÍVEL: 1 → "Talento", 2 → "Façanha", 3 → "Lenda".
+String skillTreeTierLabel(int level) => switch (skillTreeTierFor(level)) {
       'facanha' => 'Façanha',
       'lenda' => 'Lenda',
       _ => 'Talento',
     };
 
-/// Uma frase por tipo (legenda e editor).
-String skillTreeTierHint(String tier) => switch (tier) {
-      'facanha' => 'Façanha: uma habilidade marcante.',
-      'lenda' => 'Lenda: o ápice do ramo, que muda o jeito de jogar.',
-      _ => 'Talento: uma melhoria comum.',
-    };
+/// Legenda do Aprimoramento.
+const skillTreeRanksLegend = 'Cada habilidade sobe até 3 pontos: Talento → Façanha → Lenda.';
 
-/// Máximo de níveis de aprimoramento por habilidade.
-const skillTreeMaxRanks = 5;
+/// Máximo de níveis de aprimoramento (fixo, 1.3.78).
+const skillTreeMaxRank = 3;
 
 /// Cores dos ramos (contraste ≥ 3:1 sobre o card de todos os temas).
 const skillTreeBranchColors = <Color>[
@@ -97,12 +99,11 @@ String _str(Object? value) => value?.toString() ?? '';
 String nodeId(Map<String, dynamic> node) => _str(node['id']);
 String nodeName(Map<String, dynamic> node) => _str(node['name']).isEmpty ? 'Habilidade' : _str(node['name']);
 
-String nodeTier(Map<String, dynamic> node) {
-  final tier = _str(node['tier']);
-  return skillTreeTiers.contains(tier) ? tier : 'talento';
-}
+/// Tipo atual do nó: vem do nível (o campo `tier` salvo é ignorado).
+String nodeTier(Map<String, dynamic> node) => skillTreeTierFor(nodeRank(node));
 
-int nodeMaxRank(Map<String, dynamic> node) => ((node['maxRank'] as num?)?.toInt() ?? 1).clamp(1, skillTreeMaxRanks);
+/// Máximo de níveis: 3 para todos (o campo `maxRank` salvo é ignorado).
+int nodeMaxRank(Map<String, dynamic> node) => skillTreeMaxRank;
 
 int nodeRank(Map<String, dynamic> node) {
   final rank = (node['rank'] as num?)?.toInt();

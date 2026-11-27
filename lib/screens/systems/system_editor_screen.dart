@@ -29,7 +29,6 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
   late Map<String, String> skillAttributes;
   late bool treeAttributeRequirement;
   late bool treeBranches;
-  late bool treeTiers;
   late bool treeRanks;
   late bool treeExclusive;
   late bool treeAbilityLink;
@@ -60,8 +59,9 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
     skillAttributes = {...widget.system.skillAttributes};
     treeAttributeRequirement = widget.system.treeAttributeRequirement;
     treeBranches = widget.system.treeBranches;
-    treeTiers = widget.system.treeTiers;
-    treeRanks = widget.system.treeRanks;
+    // 1.3.78: "Tipos" foi unido ao Aprimoramento; um sistema salvo com
+    // treeTiers ligado abre com o Aprimoramento ligado (ao salvar, só treeRanks).
+    treeRanks = widget.system.treeRanks || widget.system.treeTiers;
     treeExclusive = widget.system.treeExclusive;
     treeAbilityLink = widget.system.treeAbilityLink;
     _savedSnapshot = _snapshot();
@@ -80,7 +80,6 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
         skillAttributes: pruneSkillAttributes(skills: skills, attributes: attributes, links: skillAttributes),
         treeAttributeRequirement: treeAttributeRequirement,
         treeBranches: treeBranches,
-        treeTiers: treeTiers,
         treeRanks: treeRanks,
         treeExclusive: treeExclusive,
         treeAbilityLink: treeAbilityLink,
@@ -582,8 +581,7 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
               children: [
                 for (final (key, title, hint, value, set) in <(String, String, String, bool, void Function(bool))>[
                   ('tree-branches', 'Ramos', 'Divide a árvore em ramos com nome e cor.', treeBranches, (v) => treeBranches = v),
-                  ('tree-tiers', 'Tipos', 'Marca habilidades como Talento, Façanha ou Lenda.', treeTiers, (v) => treeTiers = v),
-                  ('tree-ranks', 'Aprimoramento', 'Permite habilidades com mais de um nível.', treeRanks, (v) => treeRanks = v),
+                  ('tree-ranks', 'Aprimoramento', 'Cada habilidade sobe até 3 pontos: Talento → Façanha → Lenda.', treeRanks, (v) => treeRanks = v),
                   ('tree-exclusive', 'Escolhas exclusivas', "Permite 'escolha uma das duas'.", treeExclusive, (v) => treeExclusive = v),
                   ('tree-attribute-requirement', 'Requisito de atributo', 'Exige um atributo mínimo para desbloquear.', treeAttributeRequirement, (v) => treeAttributeRequirement = v),
                   ('tree-ability-link', 'Adicionar às Habilidades', 'Ao desbloquear, a habilidade aparece em Habilidades e Ações.', treeAbilityLink, (v) => treeAbilityLink = v),

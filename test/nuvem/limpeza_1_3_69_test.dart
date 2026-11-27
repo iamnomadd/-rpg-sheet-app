@@ -125,8 +125,9 @@ void main() {
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
         expect(find.text('Dados'), findsNothing);
-        expect(mainTabs(masterToolsEnabled: master).map((t) => t.role), ['characters', 'systems', 'tree', if (master) 'campaigns', 'settings']);
-        for (final label in ['Fichas', 'Sistemas', 'Árvore', if (master) 'Mestre', 'Config.']) {
+        // 1.3.78: a aba "Árvore" saiu da barra principal.
+        expect(mainTabs(masterToolsEnabled: master).map((t) => t.role), ['characters', 'systems', if (master) 'campaigns', 'settings']);
+        for (final label in ['Fichas', 'Sistemas', if (master) 'Mestre', 'Config.']) {
           expect(find.text(label), findsOneWidget, reason: label);
         }
         expect(mainTabIndex('dice', masterToolsEnabled: master), 0, reason: 'papel que não existe cai na primeira aba');
