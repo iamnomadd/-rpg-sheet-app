@@ -23,6 +23,43 @@ import 'package:flutter/material.dart';
 import '../models/character.dart';
 import '../models/rpg_system.dart';
 
+/// Funções da árvore habilitadas pelo sistema da ficha (1.3.77). Sistema não
+/// encontrado = tudo desligado. Desligar só esconde/ignora: os dados dos nós e
+/// da ficha continuam guardados.
+class SkillTreeFeatures {
+  final bool branches;
+  final bool tiers;
+  final bool ranks;
+  final bool exclusive;
+  final bool requirement;
+  final bool abilityLink;
+
+  const SkillTreeFeatures({
+    this.branches = false,
+    this.tiers = false,
+    this.ranks = false,
+    this.exclusive = false,
+    this.requirement = false,
+    this.abilityLink = false,
+  });
+
+  static const none = SkillTreeFeatures();
+
+  factory SkillTreeFeatures.of(RpgSystem? system) => system == null
+      ? none
+      : SkillTreeFeatures(
+          branches: system.treeBranches,
+          tiers: system.treeTiers,
+          ranks: system.treeRanks,
+          exclusive: system.treeExclusive,
+          requirement: system.treeAttributeRequirement,
+          abilityLink: system.treeAbilityLink,
+        );
+
+  /// Alguma função de "Mais opções" ligada (Ramos fica no editor principal).
+  bool get anyMoreOptions => tiers || ranks || exclusive || requirement || abilityLink;
+}
+
 /// Tipos de nó.
 const skillTreeTiers = ['talento', 'facanha', 'lenda'];
 
@@ -143,8 +180,10 @@ String requirementText(({String attribute, int need, int have}) r) => 'Precisa d
 
 /// Mensagem do porquê não dá para desbloquear/aprimorar, ou null se dá.
 String? nodeRaiseBlock(RpgSystem? system, Character c, Map<String, dynamic> node) {
-  if (nodeRank(node) >= nodeMaxRank(node)) return 'Já está no nível máximo.';
-  final closer = nodeClosedBy(c, node);
+  final features = SkillTreeFeatures.of(system);
+  // Sem Aprimoramento, desbloqueada já é o máximo.
+  if (nodeRank(node) >= (features.ranks ? nodeMaxRank(node) : 1)) return 'Já está no nível máximo.';
+  final closer = features.exclusive ? nodeClosedBy(c, node) : null;
   if (closer != null) return 'Fechado pela escolha: ${nodeName(closer)}';
   if (!nodeParentReady(c, node)) return 'Desbloqueie primeiro a habilidade anterior deste ramo.';
   final requirement = nodeRequirement(system, c, node);
@@ -153,13 +192,18 @@ String? nodeRaiseBlock(RpgSystem? system, Character c, Map<String, dynamic> node
 }
 
 /// Mensagem do porquê não dá para reduzir, ou null se dá. Só impede voltar a
-/// 0 com um filho desbloqueado (decisão do dono, 1.3.76).
-String? nodeLowerBlock(Character c, Map<String, dynamic> node) {
+/// 0 com um filho desbloqueado (decisão do dono, 1.3.76). Sem Aprimoramento
+/// no [system], reduzir é bloquear (vai direto a 0).
+String? nodeLowerBlock(Character c, Map<String, dynamic> node, {RpgSystem? system}) {
   final rank = nodeRank(node);
   if (rank <= 0) return 'Esta habilidade já está bloqueada.';
-  if (rank == 1 && nodeHasUnlockedChild(c, node)) return 'Bloqueie primeiro as habilidades que dependem desta.';
+  final toZero = rank == 1 || !SkillTreeFeatures.of(system).ranks;
+  if (toZero && nodeHasUnlockedChild(c, node)) return 'Bloqueie primeiro as habilidades que dependem desta.';
   return null;
 }
+
+/// Nível depois de reduzir: −1 com Aprimoramento; sem ele, 0 (bloquear).
+int nodeLoweredRank(Map<String, dynamic> node, RpgSystem? system) => SkillTreeFeatures.of(system).ranks ? nodeRank(node) - 1 : 0;
 
 // ------------------------------------------------------------------ ramos
 
@@ -200,7 +244,9 @@ void removeSkillTreeBranch(Character c, String branchId) {
 
 /// Grupos de nós por ramo, na ordem dos ramos e com "Geral" (null) primeiro.
 /// Ramo sem nós não aparece.
-List<({Map<String, dynamic>? branch, List<Map<String, dynamic>> nodes})> skillTreeSections(Character c) {
+List<({Map<String, dynamic>? branch, List<Map<String, dynamic>> nodes})> skillTreeSections(Character c, {bool enabled = true}) {
+  // Ramos desligados no sistema: uma coluna única (os branchId ficam guardados).
+  if (!enabled) return [if (c.skillTree.isNotEmpty) (branch: null, nodes: c.skillTree)];
   final known = {for (final b in c.skillTreeBranches) _str(b['id'])};
   final general = [for (final n in c.skillTree) if (!known.contains(nodeBranchId(n))) n];
   return [
@@ -271,6 +317,24 @@ bool syncNodeAbility(Character c, Map<String, dynamic> node) {
     'fromTree': nodeId(node),
   };
   return true;
+}
+
+/// Copia para a habilidade vinda do nó os campos de categoria, custo,
+/// recurso, dano e duração (só quando eles mudaram no editor do nó).
+void applyNodeAbilitySettings(Character c, Map<String, dynamic> node) {
+  final linked = linkedAbilityName(c, node);
+  if (linked == null) return;
+  final settings = nodeAbilitySettings(node);
+  final passive = settings['category'] == 'Passiva';
+  c.abilityDetails[linked] = {
+    ...?c.abilityDetails[linked],
+    'category': settings['category'],
+    'damage': passive ? '' : settings['damage'],
+    'durationType': passive ? '' : settings['durationType'],
+    'turns': passive || settings['durationType'] != 'turns' ? '' : settings['turns'],
+    'cost': passive ? null : settings['cost'],
+    'resource': passive ? '' : settings['resource'],
+  };
 }
 
 /// Atualiza só a descrição da habilidade vinda do nó (novo nível).
