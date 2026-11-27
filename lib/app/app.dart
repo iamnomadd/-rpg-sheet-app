@@ -9,6 +9,7 @@ import '../widgets/save_failed_banner.dart';
 import 'abyss_theme.dart';
 import '../services/app_state.dart';
 import '../services/cloud_service.dart';
+import '../services/password_recovery.dart';
 
 import '../screens/home/home_screen.dart';
 import '../screens/auth/access_gate.dart';
@@ -51,6 +52,12 @@ class _RpgSheetAppState extends State<RpgSheetApp> {
 
   Future<void> _handleIncomingLink(Uri uri) async {
     if (!kIsWeb && (uri.scheme != 'rpgsheet' || uri.host != 'auth-callback')) return;
+    // Link de recuperação de senha (1.3.74): a tela de entrada abre "Criar
+    // nova senha". Os links de confirmação de e-mail seguem abaixo, como antes.
+    if (await PasswordRecovery.isRecoveryLink(uri)) {
+      await PasswordRecovery.handleLink(uri);
+      return;
+    }
     try {
       final result = await CloudService.handleAuthCallback(uri);
       if (!mounted || result == null) return;

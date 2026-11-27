@@ -344,6 +344,50 @@ class CloudService {
   }
 
 
+  /// Pede o e-mail de recuperação de senha (POST /auth/v1/recover). O link
+  /// volta para [authCallbackUrl] (no Web, a origem do próprio site). A
+  /// resposta não diz se a conta existe.
+  static Future<void> requestPasswordRecovery(String email) async {
+    if (!configured) throw AppMessageException('Supabase ainda não configurado neste site.');
+    final clean = email.trim();
+    if (clean.isEmpty || !clean.contains('@')) throw AppMessageException('Informe um e-mail válido.');
+    try {
+      await _rawRequest(
+        'POST',
+        Uri.parse('$supabaseUrl/auth/v1/recover?redirect_to=${Uri.encodeComponent(authCallbackUrl)}'),
+        body: {'email': clean},
+      );
+    } on CloudRequestException catch (e) {
+      if (e.statusCode == 429) {
+        throw AppMessageException('Muitos pedidos seguidos. Espere alguns minutos e tente de novo.');
+      }
+      rethrow;
+    }
+  }
+
+  /// Troca a senha da conta da [session] (PUT /auth/v1/user com {password}).
+  static Future<void> updatePassword(CloudSession session, String password) async {
+    if (password.length < 6) throw AppMessageException('A senha precisa ter pelo menos 6 caracteres.');
+    try {
+      await _request(
+        'PUT',
+        Uri.parse('$supabaseUrl/auth/v1/user'),
+        headers: {'Authorization': 'Bearer ${session.accessToken}'},
+        body: {'password': password},
+      );
+    } on CloudRequestException catch (e) {
+      final text = e.message.toLowerCase();
+      if (text.contains('different') || text.contains('same_password')) {
+        throw AppMessageException('A senha nova precisa ser diferente da atual.');
+      }
+      if (e.isUnauthorized) throw AppMessageException('Este link expirou ou já foi usado. Peça um novo em Esqueci minha senha.');
+      rethrow;
+    }
+  }
+
+  /// Parâmetros de um link de autenticação (query e fragmento).
+  static Map<String, String> authLinkParameters(Uri uri) => _callbackParameters(uri);
+
   static Map<String, String> _callbackParameters(Uri uri) {
     final values = <String, String>{...uri.queryParameters};
     if (uri.fragment.isNotEmpty) {

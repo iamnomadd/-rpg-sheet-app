@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/app_state.dart';
+import '../../services/example_character.dart';
 import '../../models/character.dart';
 import '../../models/rpg_system.dart';
 import '../character/character_screen.dart';
@@ -17,6 +18,8 @@ class HomeScreen extends StatelessWidget {
         state.systems.isNotEmpty ? state.systems.first.id : null;
     String? nameError;
 
+    // "Ficha de exemplo" no próprio fluxo de nova ficha.
+    var example = false;
     final result = await showDialog<_NewCharacterData>(
       context: context,
       builder: (_) => StatefulBuilder(
@@ -69,6 +72,14 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
           actions: [
+            TextButton.icon(
+              onPressed: () {
+                example = true;
+                Navigator.pop(dialogContext);
+              },
+              icon: const Icon(Icons.auto_stories_outlined),
+              label: const Text('Ficha de exemplo'),
+            ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Cancelar'),
@@ -99,6 +110,7 @@ class HomeScreen extends StatelessWidget {
 
     nameController.dispose();
 
+    if (example && context.mounted) return _newExampleCharacter(context);
     if (result == null || !context.mounted) return;
 
     final character = await context.read<AppState>().addCharacter(
@@ -107,6 +119,22 @@ class HomeScreen extends StatelessWidget {
         );
 
     if (!context.mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CharacterScreen(characterId: character.id),
+      ),
+    );
+  }
+
+  /// Cria a ficha de exemplo (uma ficha normal) e abre essa ficha.
+  Future<void> _newExampleCharacter(BuildContext context) async {
+    final character = await createExampleCharacter(context.read<AppState>());
+    if (!context.mounted) return;
+    if (character == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('O sistema Tormenta20 não está disponível para a ficha de exemplo.')));
+      return;
+    }
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -144,7 +172,7 @@ class HomeScreen extends StatelessWidget {
         body: !state.loaded
             ? const Center(child: CircularProgressIndicator())
             : state.characters.isEmpty
-                ? _EmptyState(onCreate: () => _newCharacter(context))
+                ? _EmptyState(onCreate: () => _newCharacter(context), onCreateExample: () => _newExampleCharacter(context))
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
                     itemCount: state.characters.length + 1,
@@ -181,8 +209,9 @@ class _NewCharacterData {
 
 class _EmptyState extends StatelessWidget {
   final VoidCallback onCreate;
+  final VoidCallback onCreateExample;
 
-  const _EmptyState({required this.onCreate});
+  const _EmptyState({required this.onCreate, required this.onCreateExample});
 
   @override
   Widget build(BuildContext context) {
@@ -209,6 +238,12 @@ class _EmptyState extends StatelessWidget {
               onPressed: onCreate,
               icon: const Icon(Icons.add),
               label: const Text('Criar primeira ficha'),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: onCreateExample,
+              icon: const Icon(Icons.auto_stories_outlined),
+              label: const Text('Criar ficha de exemplo'),
             ),
           ],
         ),
