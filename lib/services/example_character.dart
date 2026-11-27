@@ -1,24 +1,62 @@
+import 'dart:math';
+
 import '../models/character.dart';
 import 'app_state.dart';
 
-/// Nome base da ficha de exemplo.
-const exampleCharacterBaseName = 'Lyra (exemplo)';
+/// Gênero do nome da ficha de exemplo (para o texto do resumo).
+enum ExampleGender { male, female }
+
+/// Os 5 nomes da ficha de exemplo (1.3.75), na ordem fixa.
+const exampleCharacterNames = <(String, ExampleGender)>[
+  ('Aaron', ExampleGender.male),
+  ('Kael', ExampleGender.male),
+  ('Selene', ExampleGender.female),
+  ('Dorian', ExampleGender.male),
+  ('Mira', ExampleGender.female),
+];
 
 /// Sistema usado na ficha de exemplo: Tormenta20 (sistema padrão com PV, PM e
 /// perícias).
 const exampleCharacterSystemId = 'tormenta20';
 
-/// Nome livre para a ficha de exemplo: "Lyra (exemplo)", "Lyra (exemplo) (2)",
-/// "(3)"... (a mesma regra de nomes repetidos dos sistemas e campanhas).
-String exampleCharacterName(Iterable<String> existingNames) {
-  final taken = existingNames.map((n) => n.trim().toLowerCase()).toSet();
-  var name = exampleCharacterBaseName;
+/// Nome livre a partir de [base]: "Kael", "Kael (2)", "(3)"... (a mesma
+/// regra de nomes repetidos dos sistemas e campanhas).
+String _uniqueName(String base, Set<String> taken) {
+  var name = base;
   var counter = 2;
   while (taken.contains(name.toLowerCase())) {
-    name = '$exampleCharacterBaseName ($counter)';
+    name = '$base ($counter)';
     counter++;
   }
   return name;
+}
+
+/// Nome da ficha de exemplo:
+/// - sem ficha chamada "Aaron", sempre "Aaron";
+/// - senão, sorteia um dos outros 4 nomes ainda sem ficha;
+/// - com os 5 em uso, sorteia qualquer um e aplica "(2)", "(3)"...
+/// [random] é injetável nos testes.
+({String name, ExampleGender gender}) pickExampleCharacterName(Iterable<String> existingNames, {Random? random}) {
+  final rng = random ?? Random();
+  final taken = existingNames.map((n) => n.trim().toLowerCase()).toSet();
+  final first = exampleCharacterNames.first;
+  if (!taken.contains(first.$1.toLowerCase())) return (name: first.$1, gender: first.$2);
+  final free = exampleCharacterNames.skip(1).where((n) => !taken.contains(n.$1.toLowerCase())).toList();
+  if (free.isNotEmpty) {
+    final pick = free[rng.nextInt(free.length)];
+    return (name: pick.$1, gender: pick.$2);
+  }
+  final pick = exampleCharacterNames[rng.nextInt(exampleCharacterNames.length)];
+  return (name: _uniqueName(pick.$1, taken), gender: pick.$2);
+}
+
+/// Resumo da seção "Anotações" com o nome e o gênero da ficha.
+String exampleCharacterSummary(String name, ExampleGender gender) {
+  final intro = gender == ExampleGender.female
+      ? '$name é uma aventureira que cresceu nas docas e aprendeu magia sozinha.'
+      : '$name é um aventureiro que cresceu nas docas e aprendeu magia sozinho.';
+  return '$intro Procura o irmão desaparecido e confia em poucas pessoas. '
+      'Prefere resolver as coisas com astúcia antes de sacar a espada.';
 }
 
 /// Detalhes de um item/habilidade no mesmo formato que o editor da ficha
@@ -54,10 +92,11 @@ Map<String, dynamic> _details(
 
 /// Cria a ficha de exemplo (uma ficha normal: salva, editável e apagável) e
 /// devolve a ficha, ou null se o sistema Tormenta20 não estiver disponível.
-Future<Character?> createExampleCharacter(AppState state) async {
+Future<Character?> createExampleCharacter(AppState state, {Random? random}) async {
   if (!state.systems.any((s) => s.id == exampleCharacterSystemId)) return null;
+  final picked = pickExampleCharacterName(state.characters.map((c) => c.name), random: random);
   final character = await state.addCharacter(
-    name: exampleCharacterName(state.characters.map((c) => c.name)),
+    name: picked.name,
     systemId: exampleCharacterSystemId,
   );
 
@@ -108,10 +147,9 @@ Future<Character?> createExampleCharacter(AppState state) async {
   }
 
   // Resumo na seção "Anotações" do Tormenta20.
-  character.sectionNotes['Anotações'] =
-      'Lyra é uma aventureira que cresceu nas docas e aprendeu magia sozinha. '
-      'Procura o irmão desaparecido e confia em poucas pessoas. '
-      'Prefere resolver as coisas com astúcia antes de sacar a espada.';
+  // O nome base é o nome escolhido (sem o sufixo "(2)").
+  final baseName = picked.name.replaceFirst(RegExp(r' \(\d+\)$'), '');
+  character.sectionNotes['Anotações'] = exampleCharacterSummary(baseName, picked.gender);
 
   // Perícia treinada (perícia do sistema).
   character.skills.add('Furtividade');

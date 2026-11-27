@@ -175,8 +175,12 @@ class HomeScreen extends StatelessWidget {
                 ? _EmptyState(onCreate: () => _newCharacter(context), onCreateExample: () => _newExampleCharacter(context))
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
-                    itemCount: state.characters.length + 1,
+                    // Contador + fichas + bloco de criação no fim da lista.
+                    itemCount: state.characters.length + 2,
                     itemBuilder: (_, index) {
+                      if (index == state.characters.length + 1) {
+                        return _EmptyState.more(onCreate: () => _newCharacter(context), onCreateExample: () => _newExampleCharacter(context));
+                      }
                       if (index == 0) {
                         return Padding(
                           padding: const EdgeInsets.fromLTRB(2, 0, 2, 10),
@@ -207,43 +211,74 @@ class _NewCharacterData {
   });
 }
 
+/// Bloco de criação: a tela vazia (sem fichas) e, mais compacto, o fim da
+/// lista com fichas ([_EmptyState.more]). Mesmo ícone, títulos e botões.
 class _EmptyState extends StatelessWidget {
   final VoidCallback onCreate;
   final VoidCallback onCreateExample;
+  final double iconSize;
+  final String title;
+  final String text;
+  final String createLabel;
+  final String exampleLabel;
+  final EdgeInsetsGeometry padding;
+  final double iconGap;
+  final double buttonsGap;
 
-  const _EmptyState({required this.onCreate, required this.onCreateExample});
+  const _EmptyState({required this.onCreate, required this.onCreateExample})
+      : iconSize = 72,
+        title = 'Sua aventura começa aqui',
+        text = 'Crie sua primeira ficha e organize personagens, atributos, inventário e habilidades.',
+        createLabel = 'Criar primeira ficha',
+        exampleLabel = 'Criar ficha de exemplo',
+        padding = const EdgeInsets.all(32),
+        iconGap = 18,
+        buttonsGap = 24;
+
+  /// Fim da lista quando já há fichas (1.3.75): ~48 px e menos espaço,
+  /// com folga embaixo para não encostar na barra de navegação.
+  const _EmptyState.more({required this.onCreate, required this.onCreateExample})
+      : iconSize = 48,
+        title = 'Sua aventura continua',
+        text = 'Crie outra ficha ou explore uma ficha de exemplo.',
+        createLabel = 'Criar uma nova ficha',
+        exampleLabel = 'Criar uma nova ficha de exemplo',
+        padding = const EdgeInsets.fromLTRB(16, 20, 16, 32),
+        iconGap = 12,
+        buttonsGap = 18;
 
   @override
   Widget build(BuildContext context) {
     return Center(
+      key: ValueKey('create-block-$title'),
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: padding,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.auto_awesome, size: 72),
-            const SizedBox(height: 18),
+            Icon(Icons.auto_awesome, size: iconSize),
+            SizedBox(height: iconGap),
             Text(
-              'Sua aventura começa aqui',
+              title,
               style: Theme.of(context).textTheme.headlineSmall,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Crie sua primeira ficha e organize personagens, atributos, inventário e habilidades.',
+            Text(
+              text,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: buttonsGap),
             FilledButton.icon(
               onPressed: onCreate,
               icon: const Icon(Icons.add),
-              label: const Text('Criar primeira ficha'),
+              label: Text(createLabel, textAlign: TextAlign.center),
             ),
             const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: onCreateExample,
               icon: const Icon(Icons.auto_stories_outlined),
-              label: const Text('Criar ficha de exemplo'),
+              label: Text(exampleLabel, textAlign: TextAlign.center),
             ),
           ],
         ),

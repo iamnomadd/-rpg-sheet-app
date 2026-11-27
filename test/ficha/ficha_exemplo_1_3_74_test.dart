@@ -29,7 +29,7 @@ void main() {
     final state = await _state();
     final systemsBefore = state.systems.map((s) => s.toJson().toString()).toList();
     final c = (await createExampleCharacter(state))!;
-    expect(c.name, 'Lyra (exemplo)');
+    expect(c.name, 'Aaron');
     expect(c.systemId, 'tormenta20');
     expect(state.characters.single.id, c.id, reason: 'é uma ficha normal, salva no estado');
     // Barras de PV e PM abaixo do máximo.
@@ -64,7 +64,7 @@ void main() {
     final summary = c.sectionNotes['Anotações']!;
     final sentences = summary.split('.').where((s) => s.trim().isNotEmpty).length;
     expect(sentences, inInclusiveRange(2, 4));
-    expect(summary, startsWith('Lyra é uma aventureira'));
+    expect(summary, startsWith('Aaron é um aventureiro'));
     // Perícia treinada do sistema.
     expect(c.skills, ['Furtividade']);
     // Sem condições.
@@ -83,13 +83,14 @@ void main() {
     expect(art(ActionArtKind.spell, 'Seta arcana', c.abilityDetails, c.abilityDescriptions), isNotNull);
   });
 
-  test('criar duas vezes gera nomes diferentes: "(2)", "(3)"', () async {
+  test('criar duas vezes gera nomes diferentes', () async {
     final state = await _state();
     final a = await createExampleCharacter(state);
     final b = await createExampleCharacter(state);
     final c = await createExampleCharacter(state);
-    expect([a!.name, b!.name, c!.name], ['Lyra (exemplo)', 'Lyra (exemplo) (2)', 'Lyra (exemplo) (3)']);
-    expect(exampleCharacterName(['lyra (EXEMPLO)']), 'Lyra (exemplo) (2)');
+    // 1.3.75: nomes da lista de 5 (o primeiro é sempre "Aaron").
+    expect(a!.name, 'Aaron');
+    expect({a.name, b!.name, c!.name}, hasLength(3));
   });
 
   test('a ficha de exemplo pode ser apagada', () async {
@@ -122,7 +123,7 @@ void main() {
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
-    expect(state.characters.single.name, 'Lyra (exemplo)');
+    expect(state.characters.single.name, 'Aaron');
     expect(find.byType(CharacterScreen), findsOneWidget);
     expect(find.text('18 / 24'), findsOneWidget);
     expect(find.text('7 / 10'), findsOneWidget);
@@ -141,7 +142,9 @@ void main() {
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
-    expect(state.characters.map((c) => c.name), ['Lyra (exemplo)', 'Lyra (exemplo) (2)']);
+    expect(state.characters.first.name, 'Aaron');
+    expect(state.characters, hasLength(2));
+    expect(state.characters.last.name, isIn(['Kael', 'Selene', 'Dorian', 'Mira']));
     expect(find.byType(CharacterScreen), findsOneWidget);
     await finish(tester);
   });
