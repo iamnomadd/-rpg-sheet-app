@@ -44,6 +44,9 @@ Future<AppState> _pump(WidgetTester tester, String themeId, {bool compact = fals
 }
 
 Future<void> _openTab(WidgetTester tester, String label) async {
+  // 1.3.81: a barra de abas acompanha a página; traz a aba para a tela antes de tocar.
+  await tester.ensureVisible(find.text(label).first);
+  await tester.pump(const Duration(milliseconds: 300));
   await tester.tap(find.text(label).first);
   for (var i = 0; i < 6; i++) {
     await tester.pump(const Duration(milliseconds: 100));

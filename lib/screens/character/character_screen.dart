@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/character.dart';
@@ -51,6 +52,11 @@ class CharacterScreen extends StatefulWidget {
 class _CharacterScreenState extends State<CharacterScreen> {
   int tab = 0;
   late final PageController _tabController;
+  // Barra de abas acompanha a página atual (1.3.81): rola até a aba
+  // selecionada quando ela MUDA (não a cada pixel do arrasto das páginas).
+  final _tabBarController = ScrollController();
+  final _tabKeys = <String, GlobalKey>{};
+  int? _followedTab;
   final _resourceDeltas = ResourceDeltaEvents();
 
   @override
@@ -65,6 +71,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
   @override
   void dispose() {
     _tabController.dispose();
+    _tabBarController.dispose();
     _resourceDeltas.dispose();
     super.dispose();
   }
@@ -173,6 +180,26 @@ class _CharacterScreenState extends State<CharacterScreen> {
     if (name.toLowerCase() == 'energia') c.energy = c.resourceValues[name]!;
     await state.updateCharacter(c);
     if (mounted) setState(() {});
+  }
+
+  /// Rola a barra de abas para a aba [id] ficar visível e o mais centralizada
+  /// possível (nas pontas, só até o limite). Só a barra rola: a rolagem
+  /// vertical da ficha não muda. Com "reduzir movimento", pula direto.
+  void _revealTab(String id, bool reduceMotion) {
+    final tabContext = _tabKeys[id]?.currentContext;
+    if (tabContext == null || !_tabBarController.hasClients) return;
+    final box = tabContext.findRenderObject();
+    if (box == null || !box.attached) return;
+    final viewport = RenderAbstractViewport.maybeOf(box);
+    if (viewport == null) return;
+    final position = _tabBarController.position;
+    final target = viewport.getOffsetToReveal(box, 0.5).offset.clamp(position.minScrollExtent, position.maxScrollExtent).toDouble();
+    if ((target - position.pixels).abs() < 0.5) return;
+    if (reduceMotion) {
+      _tabBarController.jumpTo(target);
+    } else {
+      _tabBarController.animateTo(target, duration: const Duration(milliseconds: 250), curve: Curves.easeOutCubic);
+    }
   }
 
   Future<void> _editAttribute(Character c, String name) async {
@@ -389,6 +416,15 @@ class _CharacterScreenState extends State<CharacterScreen> {
         builder: (context) {
           final order = _normalizedTabOrder(c);
           if (tab >= order.length) tab = 0;
+          // A aba atual mudou (deslizar, tocar ou abrir): a barra acompanha
+          // depois do frame.
+          if (_followedTab != tab) {
+            _followedTab = tab;
+            final id = order[tab];
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _revealTab(id, reduceMotion);
+            });
+          }
           // 72 com texto 1.0; com texto maior, cresce o mesmo que o rótulo.
           final tabsHeight = 72 + textGrowth(context, 'Ág', Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800));
           _emCenaAnchors.pinnedHeight = tabsHeight;
@@ -410,10 +446,12 @@ class _CharacterScreenState extends State<CharacterScreen> {
                       child: SizedBox(
                         height: tabsHeight,
                         child: SingleChildScrollView(
+                          controller: _tabBarController,
                           scrollDirection: Axis.horizontal,
                           child: Row(children: order.asMap().entries.map((entry) {
                             final index = entry.key, id = entry.value, selected = tab == index;
                             return InkWell(
+                              key: _tabKeys.putIfAbsent(id, () => GlobalKey(debugLabel: 'tab-$id')),
                               onTap: () {
                                 final previousTab = tab;
                                 setState(() => tab = index);
