@@ -789,6 +789,10 @@ class AppState extends ChangeNotifier {
           final value = character.attributes.remove(entry.key)!;
           character.attributes.putIfAbsent(entry.value, () => value);
         }
+        // Requisito de atributo da árvore acompanha o nome novo (1.3.76).
+        for (final node in character.skillTree) {
+          if (node['reqAttribute'] == entry.key) node['reqAttribute'] = entry.value;
+        }
       }
 
       for (final entry in resourceRenames.entries) {

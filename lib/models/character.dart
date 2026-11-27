@@ -27,6 +27,10 @@ class Character {
   Map<String, Map<String, dynamic>> abilityDetails;
   Map<String, Map<String, dynamic>> inventoryDetails;
   List<Map<String, dynamic>> skillTree;
+
+  /// Ramos da árvore (1.3.76): [{id, name, color}]. Opcional; vazio = sem
+  /// ramos (todos os nós no grupo "Geral", como antes).
+  List<Map<String, dynamic>> skillTreeBranches;
   List<String> generalOrder;
   List<String> sheetTabOrder;
   List<String> conditions;
@@ -77,6 +81,7 @@ class Character {
     Map<String, Map<String, dynamic>>? abilityDetails,
     Map<String, Map<String, dynamic>>? inventoryDetails,
     List<Map<String, dynamic>>? skillTree,
+    List<Map<String, dynamic>>? skillTreeBranches,
     List<String>? generalOrder,
     List<String>? sheetTabOrder,
     List<String>? conditions,
@@ -101,6 +106,7 @@ class Character {
         abilityDetails = abilityDetails ?? {},
         inventoryDetails = inventoryDetails ?? {},
         skillTree = skillTree ?? [],
+        skillTreeBranches = skillTreeBranches ?? [],
         generalOrder = generalOrder ?? ['health', 'energy', 'attributes', 'skillTree', 'abilities', 'inventory'],
         sheetTabOrder = sheetTabOrder ?? ['general', 'attributesResources', 'actions', 'skillTree', 'abilities', 'skills', 'inventory', 'sections'],
         conditions = conditions ?? [],
@@ -137,6 +143,8 @@ class Character {
         'abilityDetails': abilityDetails,
         'inventoryDetails': inventoryDetails,
         'skillTree': skillTree,
+        // Só grava quando há ramos (fichas sem ramos ficam com o JSON de antes).
+        if (skillTreeBranches.isNotEmpty) 'skillTreeBranches': skillTreeBranches,
         'generalOrder': generalOrder,
         'sheetTabOrder': sheetTabOrder,
         'conditions': conditions,
@@ -208,6 +216,7 @@ class Character {
       abilityDetails: (json['abilityDetails'] as Map? ?? {}).map((k, v) => MapEntry(k.toString(), Map<String, dynamic>.from(v as Map? ?? {}))),
       inventoryDetails: (json['inventoryDetails'] as Map? ?? {}).map((k, v) => MapEntry(k.toString(), Map<String, dynamic>.from(v as Map? ?? {}))),
       skillTree: (json['skillTree'] as List? ?? []).whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList(),
+      skillTreeBranches: (json['skillTreeBranches'] as List? ?? []).whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList(),
       generalOrder: (json['generalOrder'] as List?)?.map((e) => e.toString()).toList() ?? ['health', 'energy', 'attributes', 'skillTree', 'abilities', 'inventory'],
       sheetTabOrder: (json['sheetTabOrder'] as List?)?.map((e) => e.toString()).toList() ?? ['general', 'attributesResources', 'actions', 'skillTree', 'abilities', 'skills', 'inventory', 'sections'],
       conditions: (json['conditions'] as List?)?.map((e) => e.toString()).toList() ?? [],

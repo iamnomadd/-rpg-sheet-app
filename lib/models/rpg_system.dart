@@ -68,6 +68,10 @@ class RpgSystem {
   /// Atributo base opcional de cada perícia (perícia → atributo).
   Map<String, String> skillAttributes;
 
+  /// Árvore de Habilidades: exigir atributo mínimo para desbloquear (1.3.76).
+  /// Padrão false: o requisito salvo nos nós é ignorado.
+  bool treeAttributeRequirement;
+
   /// Última alteração feita pelo usuário (ISO 8601 UTC), usada para juntar a
   /// sincronização por item. Dados antigos: null.
   String? updatedAt;
@@ -82,6 +86,7 @@ class RpgSystem {
     List<String>? sections,
     List<int>? dice,
     Map<String, String>? skillAttributes,
+    this.treeAttributeRequirement = false,
     this.updatedAt,
   })  : attributes = attributes ?? [],
         skills = skills ?? [],
@@ -102,6 +107,7 @@ class RpgSystem {
         sections: List<String>.from(sections),
         dice: List<int>.from(dice),
         skillAttributes: Map<String, String>.from(skillAttributes),
+        treeAttributeRequirement: treeAttributeRequirement,
         updatedAt: updatedAt,
       );
 
@@ -115,6 +121,8 @@ class RpgSystem {
         'sections': sections,
         'dice': dice,
         'skillAttributes': skillAttributes,
+        // Só grava quando ligado (sistemas de antes ficam com o JSON de antes).
+        if (treeAttributeRequirement) 'treeAttributeRequirement': true,
         if (updatedAt != null) 'updatedAt': updatedAt,
       };
 
@@ -146,6 +154,7 @@ class RpgSystem {
       sections: List<String>.from(json['sections'] ?? []),
       dice: (json['dice'] as List?)?.map((e) => int.tryParse(e.toString()) ?? 0).where((e) => e > 0).toList(),
       skillAttributes: skillAttributes,
+      treeAttributeRequirement: json['treeAttributeRequirement'] == true,
       updatedAt: json['updatedAt']?.toString(),
     );
   }
