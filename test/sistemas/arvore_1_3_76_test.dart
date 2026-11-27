@@ -25,7 +25,20 @@ Map<String, dynamic> _node(String id, {String parent = '', bool unlocked = false
       ...extra,
     };
 
-RpgSystem _system({bool requirement = false}) => RpgSystem(id: 'sys', name: 'Sistema', attributes: ['Força', 'Destreza'], resources: ['PV', 'PM'], treeAttributeRequirement: requirement);
+// 1.3.77: as funções da árvore são ligadas no sistema; os testes da 1.3.76
+// usam um sistema com todas ligadas (o requisito continua opcional).
+RpgSystem _system({bool requirement = false}) => RpgSystem(
+      id: 'sys',
+      name: 'Sistema',
+      attributes: ['Força', 'Destreza'],
+      resources: ['PV', 'PM'],
+      treeAttributeRequirement: requirement,
+      treeBranches: true,
+      treeTiers: true,
+      treeRanks: true,
+      treeExclusive: true,
+      treeAbilityLink: true,
+    );
 
 Character _character(List<Map<String, dynamic>> tree, {List<Map<String, dynamic>> branches = const []}) => Character(
       id: 'p1',
@@ -270,23 +283,23 @@ void main() {
       final parent = _node('a', extra: {'maxRank': 3});
       final child = _node('b', parent: 'a');
       final c = _character([parent, child]);
-      expect(nodeRaiseBlock(null, c, child), 'Desbloqueie primeiro a habilidade anterior deste ramo.');
+      expect(nodeRaiseBlock(_system(), c, child), 'Desbloqueie primeiro a habilidade anterior deste ramo.');
       for (var i = 1; i <= 3; i++) {
-        expect(nodeRaiseBlock(null, c, parent), isNull);
+        expect(nodeRaiseBlock(_system(), c, parent), isNull);
         setNodeRank(parent, nodeRank(parent) + 1);
         expect(parent['unlocked'], isTrue);
       }
       expect(nodeRank(parent), 3);
-      expect(nodeRaiseBlock(null, c, parent), 'Já está no nível máximo.');
-      expect(nodeRaiseBlock(null, c, child), isNull);
+      expect(nodeRaiseBlock(_system(), c, parent), 'Já está no nível máximo.');
+      expect(nodeRaiseBlock(_system(), c, child), isNull);
       setNodeRank(child, 1);
       setNodeRank(parent, 1);
-      expect(nodeLowerBlock(c, parent), 'Bloqueie primeiro as habilidades que dependem desta.');
+      expect(nodeLowerBlock(c, parent, system: _system()), 'Bloqueie primeiro as habilidades que dependem desta.');
       setNodeRank(child, 0);
-      expect(nodeLowerBlock(c, parent), isNull);
+      expect(nodeLowerBlock(c, parent, system: _system()), isNull);
       setNodeRank(parent, 0);
       expect(parent['unlocked'], isFalse);
-      expect(nodeLowerBlock(c, parent), isNotNull);
+      expect(nodeLowerBlock(c, parent, system: _system()), isNotNull);
     });
 
     testWidgets('o cartão mostra "1/3" e o detalhe tem Aprimorar e Reduzir', (tester) async {
@@ -325,7 +338,7 @@ void main() {
       await settle(tester);
       expect(nodeRank(a), 1);
       expect(nodeClosedBy(c, b), same(a));
-      expect(nodeRaiseBlock(null, c, b), 'Fechado pela escolha: Nó a');
+      expect(nodeRaiseBlock(_system(), c, b), 'Fechado pela escolha: Nó a');
       expect(find.text('Nível 1 • Fechada'), findsOneWidget);
       await openDetail(tester, 'Nó b');
       expect(find.text('Fechado porque você escolheu: Nó a'), findsOneWidget);
@@ -335,7 +348,7 @@ void main() {
       await settle(tester);
       setNodeRank(a, 0);
       expect(nodeClosedBy(c, b), isNull);
-      expect(nodeRaiseBlock(null, c, b), isNull);
+      expect(nodeRaiseBlock(_system(), c, b), isNull);
     });
   });
 

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -64,6 +65,9 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
 
   bool _isAvailable(Character character, Map<String, dynamic> node) => nodeParentReady(character, node);
 
+  /// Funções da árvore ligadas no sistema da ficha (sistema apagado: nenhuma).
+  SkillTreeFeatures _features(Character character) => SkillTreeFeatures.of(_system(character));
+
   void _message(String text) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
@@ -77,7 +81,9 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
   Future<void> _openEditor(Character character, {Map<String, dynamic>? node}) async {
     final editing = node != null;
     final system = _system(character);
-    final requirementOn = system?.treeAttributeRequirement == true;
+    // O sistema da ficha decide quais funções aparecem (1.3.77).
+    final features = SkillTreeFeatures.of(system);
+    final requirementOn = features.requirement;
     final name = TextEditingController(text: node?['name']?.toString() ?? '');
     final description = TextEditingController(text: node?['description']?.toString() ?? '');
     String parentId = node?['parentId']?.toString() ?? '';
@@ -170,18 +176,20 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                   ],
                   onChanged: (value) => setDialogState(() => parentId = value ?? ''),
                 ),
-                if (character.skillTreeBranches.isNotEmpty) ...[
+                if (features.branches && character.skillTreeBranches.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     key: const ValueKey('node-branch'),
                     initialValue: branchId,
+                    // Itens com bolinha + nome: precisa da largura do campo.
+                    isExpanded: true,
                     decoration: const InputDecoration(labelText: 'Ramo'),
                     items: [
                       const DropdownMenuItem(value: '', child: Text('Geral')),
                       for (final b in character.skillTreeBranches)
                         DropdownMenuItem(
                           value: b['id']?.toString() ?? '',
-                          child: Row(children: [
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
                             Icon(Icons.circle, size: 12, color: branchColor(b)),
                             const SizedBox(width: 8),
                             Flexible(child: Text(b['name']?.toString() ?? 'Ramo', overflow: TextOverflow.ellipsis)),
@@ -191,8 +199,10 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                     onChanged: (value) => setDialogState(() => branchId = value ?? ''),
                   ),
                 ],
+                // Tudo o que não é o básico fica aqui, recolhido; só com
+                // alguma função ligada no sistema, e só as ligadas.
+                if (features.anyMoreOptions) ...[
                 const SizedBox(height: 4),
-                // Tudo o que não é o básico fica aqui, recolhido.
                 Theme(
                   data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                   child: ExpansionTile(
@@ -201,6 +211,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                     childrenPadding: const EdgeInsets.only(bottom: 8),
                     title: const Text('Mais opções'),
                     children: [
+                      if (features.tiers) ...[
                       Align(alignment: Alignment.centerLeft, child: Text('Tipo', style: Theme.of(context).textTheme.labelLarge)),
                       const SizedBox(height: 6),
                       SegmentedButton<String>(
@@ -217,6 +228,8 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                       const SizedBox(height: 6),
                       Align(alignment: Alignment.centerLeft, child: Text(skillTreeTierHint(tier), style: Theme.of(context).textTheme.bodySmall)),
                       const SizedBox(height: 12),
+                      ],
+                      if (features.ranks) ...[
                       DropdownButtonFormField<int>(
                         key: const ValueKey('node-max-rank'),
                         initialValue: maxRank,
@@ -234,7 +247,9 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                             decoration: InputDecoration(labelText: 'Nível $i (opcional)', hintText: i == 1 ? 'Ex.: dano 1d6' : 'Ex.: o dano aumenta para ${i}d6'),
                           ),
                         ],
-                      if (character.skillTree.any((other) => nodeId(other) != ownId)) ...[
+                      const SizedBox(height: 4),
+                      ],
+                      if (features.exclusive && character.skillTree.any((other) => nodeId(other) != ownId)) ...[
                         const SizedBox(height: 12),
                         Align(alignment: Alignment.centerLeft, child: Text('Escolha exclusiva com…', style: Theme.of(context).textTheme.labelLarge)),
                         Align(alignment: Alignment.centerLeft, child: Text('Escolha uma das duas: desbloquear uma fecha as outras.', style: Theme.of(context).textTheme.bodySmall)),
@@ -277,6 +292,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                           ),
                         ]),
                       ],
+                      if (features.abilityLink) ...[
                       const SizedBox(height: 4),
                       SwitchListTile(
                         key: const ValueKey('node-add-ability'),
@@ -330,9 +346,11 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                           ],
                         ],
                       ],
+                      ],
                     ],
                   ),
                 ),
+                ],
               ],
             ),
           ),
@@ -350,15 +368,17 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                   'name': trimmed,
                   'description': description.text.trim(),
                   'parentId': parentId,
-                  'branchId': branchId,
-                  'tier': tier,
-                  'maxRank': maxRank,
-                  'rankTexts': maxRank > 1 && texts.any((t) => t.isNotEmpty) ? texts : null,
-                  'exclusive': exclusive.toList(),
+                  // Só as funções ligadas no sistema voltam; as outras ficam
+                  // como estão no nó (desligar só esconde).
+                  if (features.branches) 'branchId': branchId,
+                  if (features.tiers) 'tier': tier,
+                  if (features.ranks) 'maxRank': maxRank,
+                  if (features.ranks) 'rankTexts': maxRank > 1 && texts.any((t) => t.isNotEmpty) ? texts : null,
+                  if (features.exclusive) 'exclusive': exclusive.toList(),
                   'reqAttribute': reqAttribute,
                   'reqValue': int.tryParse(reqValue.text.trim()) ?? 0,
-                  'addToAbilities': addToAbilities,
-                  'ability': {
+                  if (features.abilityLink) 'addToAbilities': addToAbilities,
+                  if (features.abilityLink) 'ability': {
                     'category': category,
                     'damage': damage.text.trim(),
                     'cost': (int.tryParse(cost.text.trim()) ?? 0).clamp(0, 999999),
@@ -405,14 +425,16 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
       };
       character.skillTree.add(target);
     }
-    _applyAdvanced(character, target, result, requirementOn: requirementOn);
+    _applyAdvanced(character, target, result, requirementOn: requirementOn, features: features);
     await _save(character);
   }
 
   /// Grava os campos de "Mais opções" só quando diferem do padrão (o nó de
   /// antes continua com o mesmo JSON se nada mudar).
-  void _applyAdvanced(Character character, Map<String, dynamic> node, Map<String, dynamic> result, {required bool requirementOn}) {
+  void _applyAdvanced(Character character, Map<String, dynamic> node, Map<String, dynamic> result, {required bool requirementOn, required SkillTreeFeatures features}) {
+    // Só grava o que o editor devolveu (funções ligadas); o resto fica igual.
     void put(String key, Object? value, Object? standard) {
+      if (!result.containsKey(key == 'reqValue' ? 'reqAttribute' : key)) return;
       if (value == standard || value == null) {
         node.remove(key);
       } else {
@@ -420,11 +442,14 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
       }
     }
 
+    // Campos da habilidade antes desta edição (para o achado da 1.3.76).
+    final abilityBefore = jsonEncode(nodeAbilitySettings(node));
+
     put('branchId', result['branchId'], '');
     put('tier', result['tier'], 'talento');
     put('maxRank', result['maxRank'], 1);
     put('rankTexts', result['rankTexts'], null);
-    if (node.containsKey('rank') || nodeMaxRank(node) > 1) {
+    if (result.containsKey('maxRank') && (node.containsKey('rank') || nodeMaxRank(node) > 1)) {
       // Nível atual dentro do novo máximo.
       setNodeRank(node, nodeRank(node));
     }
@@ -434,14 +459,35 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
       put('reqAttribute', attribute.isEmpty || value <= 0 ? '' : attribute, '');
       put('reqValue', attribute.isEmpty || value <= 0 ? 0 : value, 0);
     }
-    put('addToAbilities', result['addToAbilities'] == true ? true : null, null);
-    if (result['addToAbilities'] == true) {
-      node['ability'] = result['ability'];
-    } else {
-      node.remove('ability');
+    if (result.containsKey('addToAbilities')) {
+      put('addToAbilities', result['addToAbilities'] == true ? true : null, null);
+      if (result['addToAbilities'] == true) {
+        node['ability'] = result['ability'];
+      } else {
+        node.remove('ability');
+      }
     }
 
-    // Escolha exclusiva: o nó e os escolhidos ficam no mesmo grupo.
+    if (result.containsKey('exclusive')) _applyExclusive(character, node, result);
+
+    // Habilidade vinda da árvore: o nome e a descrição acompanham o nó; os
+    // outros campos (categoria, custo, recurso, dano, duração) só se mudaram
+    // nesta edição. Ajustes feitos na aba Habilidades ficam (1.3.77).
+    if (!renameNodeAbility(character, node)) {
+      _message('Já existe uma habilidade com esse nome; ela não foi alterada.');
+      return;
+    }
+    if (!features.abilityLink) return;
+    if (linkedAbilityName(character, node) != null) {
+      refreshNodeAbilityDescription(character, node);
+      if (jsonEncode(nodeAbilitySettings(node)) != abilityBefore) applyNodeAbilitySettings(character, node);
+    } else if (nodeRank(node) > 0 && node['addToAbilities'] == true && !syncNodeAbility(character, node)) {
+      _message('Já existe uma habilidade com esse nome; ela não foi alterada.');
+    }
+  }
+
+  /// Escolha exclusiva: o nó e os escolhidos ficam no mesmo grupo.
+  void _applyExclusive(Character character, Map<String, dynamic> node, Map<String, dynamic> result) {
     final selected = {...(result['exclusive'] as List).cast<String>()};
     final current = nodeGroup(node);
     for (final other in character.skillTree) {
@@ -465,13 +511,6 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
     for (final other in character.skillTree) {
       if ((counts[nodeGroup(other)] ?? 0) == 1) other.remove('exclusiveGroup');
     }
-
-    // Habilidade vinda da árvore: acompanha o nome e os campos do nó.
-    if (!renameNodeAbility(character, node)) {
-      _message('Já existe uma habilidade com esse nome; ela não foi alterada.');
-    } else if (nodeRank(node) > 0 && node['addToAbilities'] == true && !syncNodeAbility(character, node)) {
-      _message('Já existe uma habilidade com esse nome; ela não foi alterada.');
-    }
   }
 
   Future<void> _generateTemplate(Character character) async {
@@ -491,7 +530,8 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
     }
     final before = nodeRank(node);
     setNodeRank(node, before + 1);
-    if (node['addToAbilities'] == true) {
+    // Sem "Adicionar às Habilidades" no sistema, desbloquear não cria habilidade.
+    if (_features(character).abilityLink && node['addToAbilities'] == true) {
       if (before == 0) {
         if (!syncNodeAbility(character, node)) _message('Já existe uma habilidade com esse nome; ela não foi alterada.');
       } else {
@@ -504,14 +544,17 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
   /// Reduzir (−1). No nível 0 volta a ficar bloqueada; se a habilidade veio da
   /// árvore, pergunta se remove também.
   Future<void> _lower(Character character, Map<String, dynamic> node) async {
-    final block = nodeLowerBlock(character, node);
+    final system = _system(character);
+    final features = SkillTreeFeatures.of(system);
+    final block = nodeLowerBlock(character, node, system: system);
     if (block != null) {
       _message(block);
       return;
     }
-    final next = nodeRank(node) - 1;
+    // Sem Aprimoramento, reduzir é bloquear (vai a 0); o nível salvo some só aí.
+    final next = nodeLoweredRank(node, system);
     var removeAbility = false;
-    if (next == 0) {
+    if (next == 0 && features.abilityLink) {
       final linked = linkedAbilityName(character, node);
       if (linked != null) {
         final answer = await showDialog<bool>(
@@ -532,7 +575,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
     setNodeRank(node, next);
     if (removeAbility) {
       removeNodeAbility(character, node);
-    } else if (next > 0) {
+    } else if (next > 0 && features.abilityLink) {
       refreshNodeAbilityDescription(character, node);
     }
     await _save(character);
@@ -542,12 +585,13 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
   /// níveis, abre o detalhe (Aprimorar/Reduzir).
   Future<void> _toggle(Character character, Map<String, dynamic> node) async {
     if (nodeRank(node) == 0) return _raise(character, node);
-    if (nodeMaxRank(node) == 1) return _lower(character, node);
+    if (!_features(character).ranks || nodeMaxRank(node) == 1) return _lower(character, node);
     return _showNode(character, node);
   }
 
   Future<void> _delete(Character character, Map<String, dynamic> node) async {
-    final linked = linkedAbilityName(character, node);
+    // Sem "Adicionar às Habilidades" no sistema, não pergunta sobre a habilidade.
+    final linked = _features(character).abilityLink ? linkedAbilityName(character, node) : null;
     var removeAbility = true;
     final accepted = await showDialog<bool>(
       context: context,
@@ -587,22 +631,24 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
   Future<void> _showNode(Character character, Map<String, dynamic> node) async {
     final description = node['description']?.toString().trim() ?? '';
     final system = _system(character);
+    final features = SkillTreeFeatures.of(system);
     final rank = nodeRank(node);
-    final maxRank = nodeMaxRank(node);
+    // Sem Aprimoramento: só Desbloquear/Bloquear (o nível salvo fica guardado).
+    final maxRank = features.ranks ? nodeMaxRank(node) : 1;
     final unlocked = rank > 0;
     final available = _isAvailable(character, node);
-    final closer = nodeClosedBy(character, node);
+    final closer = features.exclusive ? nodeClosedBy(character, node) : null;
     final requirement = nodeRequirement(system, character, node);
     final block = nodeRaiseBlock(system, character, node);
     final children = nodeChildren(character, node).map(nodeName).toList();
-    final branch = nodeBranch(character, node);
+    final branch = features.branches ? nodeBranch(character, node) : null;
     final summary = [
-      skillTreeTierLabel(nodeTier(node)),
+      if (features.tiers) skillTreeTierLabel(nodeTier(node)),
       if (maxRank > 1) 'Aprimoramento $rank de $maxRank',
       if (children.isNotEmpty) 'Desbloqueia: ${children.join(', ')}',
     ].join(' • ');
-    final rankText = nodeRankText(node, rank);
-    final nextText = rank < maxRank ? nodeRankText(node, rank + 1) : '';
+    final rankText = features.ranks ? nodeRankText(node, rank) : '';
+    final nextText = features.ranks && rank < maxRank ? nodeRankText(node, rank + 1) : '';
     final canRaise = rank < maxRank;
     final primaryLabel = canRaise ? (rank == 0 ? 'Desbloquear' : 'Aprimorar') : (maxRank == 1 ? 'Bloquear' : 'Reduzir');
     final error = Theme.of(context).colorScheme.error;
@@ -636,7 +682,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                 ),
                 const SizedBox(height: 10),
               ],
-              Text(summary, key: const ValueKey('node-summary'), style: Theme.of(context).textTheme.labelLarge),
+              if (summary.isNotEmpty) Text(summary, key: const ValueKey('node-summary'), style: Theme.of(context).textTheme.labelLarge),
               if (branch != null) ...[
                 const SizedBox(height: 4),
                 Text('Ramo: ${branch['name'] ?? 'Ramo'}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: branchColor(branch))),
@@ -724,21 +770,24 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
   List<Object?>? _growthKey;
   double _growthValue = 0;
 
-  _NodeState _stateOf(Character character, Map<String, dynamic> node) {
+  _NodeState _stateOf(Character character, Map<String, dynamic> node, [SkillTreeFeatures? features]) {
     if (nodeRank(node) > 0) return _NodeState.unlocked;
-    if (nodeClosedBy(character, node) != null) return _NodeState.closed;
+    if ((features ?? _features(character)).exclusive && nodeClosedBy(character, node) != null) return _NodeState.closed;
     return _isAvailable(character, node) ? _NodeState.available : _NodeState.locked;
   }
 
   /// Maior crescimento de texto entre os cartões (nas larguras do cartão).
-  double _nodeTextGrowth(BuildContext context, Character character, SkillTreeLayout layout) {
+  double _nodeTextGrowth(BuildContext context, Character character, SkillTreeLayout layout, SkillTreeFeatures features) {
     final labelSmall = Theme.of(context).textTheme.labelSmall;
     final key = <Object?>[
       layout.compact,
       layout.nodeWidth,
       MediaQuery.textScalerOf(context),
       labelSmall,
-      for (final node in character.skillTree) ...[node['name']?.toString(), (node['level'] as num?)?.toInt(), _stateOf(character, node), nodeRank(node), nodeMaxRank(node), nodeTier(node)],
+      features.ranks,
+      features.tiers,
+      features.exclusive,
+      for (final node in character.skillTree) ...[node['name']?.toString(), (node['level'] as num?)?.toInt(), _stateOf(character, node, features), nodeRank(node), nodeMaxRank(node), nodeTier(node)],
     ];
     final cached = _growthKey;
     if (cached != null && listEquals(cached, key)) return _growthValue;
@@ -746,17 +795,17 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
     var extra = 0.0;
     for (final node in character.skillTree) {
       final name = node['name']?.toString() ?? 'Habilidade';
-      final state = _stateOf(character, node);
+      final state = _stateOf(character, node, features);
       double growth;
       if (layout.compact) {
         final width = math.max(1.0, layout.nodeWidth - 10);
-        final small = skillNodeCompactLabel(node);
+        final small = skillNodeCompactLabel(node, ranks: features.ranks);
         growth = textGrowth(context, name, const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, height: 1.15), maxWidth: width, maxLines: 3) +
             (small == null ? 0 : textGrowth(context, small, labelSmall?.copyWith(fontSize: 10), maxWidth: width));
       } else {
         // Coluna do texto: cartão − padding (16) − ícone (24) − espaço (8) − cadeado (40).
         final width = math.max(1.0, layout.nodeWidth - 88);
-        final label = skillNodeCardLabel(node, state);
+        final label = skillNodeCardLabel(node, state, ranks: features.ranks);
         growth = textGrowth(context, name, const TextStyle(fontWeight: FontWeight.w700), maxWidth: width, maxLines: 2) +
             textGrowth(context, label, labelSmall, maxWidth: width);
         // Cartão normal estreito: o texto pode quebrar em mais linhas mesmo
@@ -768,7 +817,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
         growth = math.max(growth, (needed - _normalCardTextHeight).ceilToDouble());
       }
       // Selo do tipo (Façanha/Lenda): cresce com o texto também.
-      if (nodeTier(node) != 'talento') {
+      if (features.tiers && nodeTier(node) != 'talento') {
         growth += textGrowth(context, skillTreeTierLabel(nodeTier(node)), labelSmall?.copyWith(fontSize: 10), maxWidth: math.max(1.0, layout.nodeWidth - 10));
       }
       extra = math.max(extra, growth);
@@ -778,7 +827,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
   }
 
   /// Um desenho da árvore (todos os nós, ou os de um ramo).
-  Widget _canvas(Character character, List<Map<String, dynamic>> nodes, SkillTreeLayout layout, Map<String, _NodeState> stateById, {Color? accent, required double minHeight}) {
+  Widget _canvas(Character character, List<Map<String, dynamic>> nodes, SkillTreeLayout layout, Map<String, _NodeState> stateById, SkillTreeFeatures features, {Color? accent, required double minHeight}) {
     final state = context.watch<AppState>();
     final scheme = Theme.of(context).colorScheme;
     return SizedBox(
@@ -799,6 +848,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                 availableColor: accent ?? scheme.secondary,
                 lockedColor: scheme.outlineVariant,
                 orColor: scheme.onSurfaceVariant,
+                showExclusive: features.exclusive,
               ),
             ),
           ),
@@ -814,6 +864,8 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                 icon: themedIcon(state.themeId, 'skillTree'),
                 compact: layout.compact,
                 accent: accent,
+                tiers: features.tiers,
+                ranks: features.ranks,
                 onTap: () => _showNode(character, node),
                 onToggle: () => _toggle(character, node),
               ),
@@ -826,21 +878,23 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
   Widget _treeCanvas(Character character) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final features = _features(character);
         final stateById = <String, _NodeState>{
-          for (final node in character.skillTree) node['id']?.toString() ?? '': _stateOf(character, node),
+          for (final node in character.skillTree) node['id']?.toString() ?? '': _stateOf(character, node, features),
         };
-        final extras = skillTreeTierExtraHeights(character.skillTree);
+        // Sem Tipos no sistema, todos os cartões no tamanho de sempre.
+        final extras = features.tiers ? skillTreeTierExtraHeights(character.skillTree) : const <String, double>{};
         final base = computeSkillTreeLayout(character.skillTree, constraints.maxWidth, extraHeightById: extras);
         // 0 com texto 1.0 (a árvore fica igual); com texto maior, o cartão
         // cresce o mesmo que o seu texto, para nada estourar.
-        final extra = _nodeTextGrowth(context, character, base);
-        final sections = skillTreeSections(character);
+        final extra = _nodeTextGrowth(context, character, base, features);
+        final sections = skillTreeSections(character, enabled: features.branches);
         // Um ramo só (ou nenhum): o desenho de sempre.
         if (sections.length <= 1) {
           final layout = extra > 0 ? computeSkillTreeLayout(character.skillTree, constraints.maxWidth, extraNodeHeight: extra, extraHeightById: extras) : base;
           return SingleChildScrollView(
             key: const ValueKey('skill-tree-scroll'),
-            child: _canvas(character, character.skillTree, layout, stateById, minHeight: 250),
+            child: _canvas(character, character.skillTree, layout, stateById, features, minHeight: 250),
           );
         }
         // Vários ramos: uma seção por ramo, de cima para baixo, com a cor do ramo.
@@ -873,6 +927,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                   section.nodes,
                   computeSkillTreeLayout(section.nodes, constraints.maxWidth, extraNodeHeight: extra, extraHeightById: extras, minHeight: 0),
                   stateById,
+                  features,
                   accent: section.branch == null ? null : branchColor(section.branch!),
                   minHeight: 0,
                 ),
@@ -894,7 +949,8 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
     final unlocked = character.skillTree.where((node) => node['unlocked'] == true).length;
     final themeId = context.watch<AppState>().themeId;
     final templateLabel = SkillTreeTemplates.templateLabelForClass(character.className);
-    final usesTiers = character.skillTree.any((node) => nodeTier(node) != 'talento');
+    final features = _features(character);
+    final usesTiers = features.tiers && character.skillTree.any((node) => nodeTier(node) != 'talento');
     return Column(
       children: [
         Padding(
@@ -912,6 +968,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                   ],
                 ),
               ),
+              if (features.branches)
               IconButton(
                 tooltip: 'Ramos',
                 onPressed: () => _openBranches(character),
@@ -1032,7 +1089,7 @@ enum _NodeState { unlocked, available, locked, closed }
 
 /// Legenda do cartão normal: "Nível N • Estado" como antes; com mais de um
 /// nível de aprimoramento, também "2/3".
-String skillNodeCardLabel(Map<String, dynamic> node, Object state) {
+String skillNodeCardLabel(Map<String, dynamic> node, Object state, {bool ranks = true}) {
   final stateLabel = switch (state) {
     _NodeState.unlocked => 'Desbloqueada',
     _NodeState.available => 'Disponível',
@@ -1041,13 +1098,13 @@ String skillNodeCardLabel(Map<String, dynamic> node, Object state) {
   };
   final level = (node['level'] as num?)?.toInt();
   final label = level == null ? stateLabel : 'Nível $level • $stateLabel';
-  return nodeMaxRank(node) > 1 ? '$label • ${nodeRank(node)}/${nodeMaxRank(node)}' : label;
+  return ranks && nodeMaxRank(node) > 1 ? '$label • ${nodeRank(node)}/${nodeMaxRank(node)}' : label;
 }
 
 /// Linha pequena do cartão compacto: "Nv N" como antes; com níveis, "2/3".
-String? skillNodeCompactLabel(Map<String, dynamic> node) {
+String? skillNodeCompactLabel(Map<String, dynamic> node, {bool ranks = true}) {
   final level = (node['level'] as num?)?.toInt();
-  final rank = nodeMaxRank(node) > 1 ? '${nodeRank(node)}/${nodeMaxRank(node)}' : null;
+  final rank = ranks && nodeMaxRank(node) > 1 ? '${nodeRank(node)}/${nodeMaxRank(node)}' : null;
   if (level == null) return rank;
   return rank == null ? 'Nv $level' : 'Nv $level • $rank';
 }
@@ -1199,6 +1256,10 @@ class _SkillNodeCard extends StatelessWidget {
   /// Cor do ramo (vários ramos); null = cores de sempre.
   final Color? accent;
 
+  /// Funções ligadas no sistema: Tipos (selo/tamanho) e Aprimoramento ("2/3").
+  final bool tiers;
+  final bool ranks;
+
   const _SkillNodeCard({
     required this.node,
     required this.state,
@@ -1207,6 +1268,8 @@ class _SkillNodeCard extends StatelessWidget {
     required this.onToggle,
     this.compact = false,
     this.accent,
+    this.tiers = true,
+    this.ranks = true,
   });
 
   @override
@@ -1218,9 +1281,9 @@ class _SkillNodeCard extends StatelessWidget {
     final borderColor = unlocked ? (accent ?? scheme.primary) : available ? (accent ?? scheme.secondary) : scheme.outlineVariant;
     final stateLabel = unlocked ? 'Desbloqueada' : available ? 'Disponível' : closed ? 'Fechada' : 'Bloqueada';
     final level = (node['level'] as num?)?.toInt();
-    final label = skillNodeCardLabel(node, state);
+    final label = skillNodeCardLabel(node, state, ranks: ranks);
     final name = node['name']?.toString() ?? 'Habilidade';
-    final tier = nodeTier(node);
+    final tier = tiers ? nodeTier(node) : 'talento';
     final badge = tier == 'talento'
         ? null
         : Container(
@@ -1274,7 +1337,7 @@ class _SkillNodeCard extends StatelessWidget {
     if (compact) {
       // Cartão estreito (várias colunas): sem cadeado; desbloquear/bloquear
       // fica na folha de detalhes que abre ao tocar.
-      final small = skillNodeCompactLabel(node);
+      final small = skillNodeCompactLabel(node, ranks: ranks);
       return Semantics(
         container: true,
         button: true,
@@ -1339,7 +1402,7 @@ class _SkillNodeCard extends StatelessWidget {
             ),
             IconButton(
               visualDensity: VisualDensity.compact,
-              tooltip: unlocked ? (nodeMaxRank(node) > 1 ? 'Aprimorar ou reduzir' : 'Bloquear') : available ? 'Desbloquear' : closed ? 'Fechada pela escolha' : 'Requer pré-requisito',
+              tooltip: unlocked ? (ranks && nodeMaxRank(node) > 1 ? 'Aprimorar ou reduzir' : 'Bloquear') : available ? 'Desbloquear' : closed ? 'Fechada pela escolha' : 'Requer pré-requisito',
               onPressed: unlocked || available ? onToggle : (closed ? onTap : null),
               icon: Icon(unlocked ? Icons.lock_open_rounded : Icons.lock_outline, size: 18),
             ),
@@ -1362,6 +1425,7 @@ class _SkillTreePainter extends CustomPainter {
   final Color availableColor;
   final Color lockedColor;
   final Color orColor;
+  final bool showExclusive;
 
   const _SkillTreePainter({
     required this.nodes,
@@ -1374,6 +1438,7 @@ class _SkillTreePainter extends CustomPainter {
     required this.availableColor,
     required this.lockedColor,
     required this.orColor,
+    this.showExclusive = true,
   });
 
   double _height(String id) => heights[id] ?? nodeHeight;
@@ -1410,6 +1475,7 @@ class _SkillTreePainter extends CustomPainter {
     }
 
     // Escolha exclusiva: um "OU" discreto entre os nós do mesmo grupo.
+    if (!showExclusive) return;
     final groups = <String, List<String>>{};
     for (final node in nodes) {
       final group = nodeGroup(node);

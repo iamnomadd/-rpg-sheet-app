@@ -72,6 +72,14 @@ class RpgSystem {
   /// Padrão false: o requisito salvo nos nós é ignorado.
   bool treeAttributeRequirement;
 
+  /// Funções da Árvore de Habilidades que o sistema habilita (1.3.77). Todas
+  /// começam desligadas; desligar só esconde/ignora (nada é apagado).
+  bool treeBranches;
+  bool treeTiers;
+  bool treeRanks;
+  bool treeExclusive;
+  bool treeAbilityLink;
+
   /// Última alteração feita pelo usuário (ISO 8601 UTC), usada para juntar a
   /// sincronização por item. Dados antigos: null.
   String? updatedAt;
@@ -87,6 +95,11 @@ class RpgSystem {
     List<int>? dice,
     Map<String, String>? skillAttributes,
     this.treeAttributeRequirement = false,
+    this.treeBranches = false,
+    this.treeTiers = false,
+    this.treeRanks = false,
+    this.treeExclusive = false,
+    this.treeAbilityLink = false,
     this.updatedAt,
   })  : attributes = attributes ?? [],
         skills = skills ?? [],
@@ -108,6 +121,11 @@ class RpgSystem {
         dice: List<int>.from(dice),
         skillAttributes: Map<String, String>.from(skillAttributes),
         treeAttributeRequirement: treeAttributeRequirement,
+        treeBranches: treeBranches,
+        treeTiers: treeTiers,
+        treeRanks: treeRanks,
+        treeExclusive: treeExclusive,
+        treeAbilityLink: treeAbilityLink,
         updatedAt: updatedAt,
       );
 
@@ -123,6 +141,11 @@ class RpgSystem {
         'skillAttributes': skillAttributes,
         // Só grava quando ligado (sistemas de antes ficam com o JSON de antes).
         if (treeAttributeRequirement) 'treeAttributeRequirement': true,
+        if (treeBranches) 'treeBranches': true,
+        if (treeTiers) 'treeTiers': true,
+        if (treeRanks) 'treeRanks': true,
+        if (treeExclusive) 'treeExclusive': true,
+        if (treeAbilityLink) 'treeAbilityLink': true,
         if (updatedAt != null) 'updatedAt': updatedAt,
       };
 
@@ -155,6 +178,11 @@ class RpgSystem {
       dice: (json['dice'] as List?)?.map((e) => int.tryParse(e.toString()) ?? 0).where((e) => e > 0).toList(),
       skillAttributes: skillAttributes,
       treeAttributeRequirement: json['treeAttributeRequirement'] == true,
+      treeBranches: json['treeBranches'] == true,
+      treeTiers: json['treeTiers'] == true,
+      treeRanks: json['treeRanks'] == true,
+      treeExclusive: json['treeExclusive'] == true,
+      treeAbilityLink: json['treeAbilityLink'] == true,
       updatedAt: json['updatedAt']?.toString(),
     );
   }

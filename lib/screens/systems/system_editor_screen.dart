@@ -28,6 +28,11 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
   late List<int> dice;
   late Map<String, String> skillAttributes;
   late bool treeAttributeRequirement;
+  late bool treeBranches;
+  late bool treeTiers;
+  late bool treeRanks;
+  late bool treeExclusive;
+  late bool treeAbilityLink;
 
   final Map<String, String> _attributeRenames = {};
   final Map<String, String> _skillRenames = {};
@@ -54,6 +59,11 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
     dice = [...widget.system.dice];
     skillAttributes = {...widget.system.skillAttributes};
     treeAttributeRequirement = widget.system.treeAttributeRequirement;
+    treeBranches = widget.system.treeBranches;
+    treeTiers = widget.system.treeTiers;
+    treeRanks = widget.system.treeRanks;
+    treeExclusive = widget.system.treeExclusive;
+    treeAbilityLink = widget.system.treeAbilityLink;
     _savedSnapshot = _snapshot();
   }
 
@@ -69,6 +79,11 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
         dice: dice,
         skillAttributes: pruneSkillAttributes(skills: skills, attributes: attributes, links: skillAttributes),
         treeAttributeRequirement: treeAttributeRequirement,
+        treeBranches: treeBranches,
+        treeTiers: treeTiers,
+        treeRanks: treeRanks,
+        treeExclusive: treeExclusive,
+        treeAbilityLink: treeAbilityLink,
       );
 
   String _snapshot() => jsonEncode(_currentSystem().toJson());
@@ -520,18 +535,6 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
             onDelete: (i) => _confirmDelete(sections, i, 'seção'),
             onReorder: (a, b) => _reorder(sections, a, b),
           ),
-          // Árvore de Habilidades (1.3.76): requisito de atributo opcional.
-          Card(
-            child: SwitchListTile(
-              key: const ValueKey('tree-attribute-requirement'),
-              secondary: const Icon(Icons.account_tree_outlined),
-              title: const Text('Árvore: exigir atributo mínimo para desbloquear'),
-              subtitle: const Text('Cada habilidade da árvore pode pedir um valor mínimo de atributo.'),
-              value: treeAttributeRequirement,
-              onChanged: (value) => setState(() => treeAttributeRequirement = value),
-            ),
-          ),
-          const SizedBox(height: 10),
           _DiceEditorSection(
             dice: dice,
             onDefaults: () => setState(() => dice = [4, 6, 8, 10, 12, 20, 100]),
@@ -563,6 +566,37 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
               }
             },
             onDelete: (i) => setState(() => dice.removeAt(i)),
+          ),
+          // Árvore de Habilidades (1.3.77): o sistema decide quais funções a
+          // árvore mostra. Tudo desligado = árvore como antes da 1.3.76.
+          Card(
+            key: const ValueKey('tree-features-section'),
+            margin: cardSpacingMargin,
+            clipBehavior: Clip.antiAlias,
+            child: ExpansionTile(
+              initiallyExpanded: true,
+              leading: const Icon(Icons.account_tree_outlined),
+              title: const Text('Árvore de Habilidades'),
+              subtitle: const Text('Funções extras da árvore. Desligar só esconde; nada é apagado.'),
+              childrenPadding: const EdgeInsets.only(bottom: 8),
+              children: [
+                for (final (key, title, hint, value, set) in <(String, String, String, bool, void Function(bool))>[
+                  ('tree-branches', 'Ramos', 'Divide a árvore em ramos com nome e cor.', treeBranches, (v) => treeBranches = v),
+                  ('tree-tiers', 'Tipos', 'Marca habilidades como Talento, Façanha ou Lenda.', treeTiers, (v) => treeTiers = v),
+                  ('tree-ranks', 'Aprimoramento', 'Permite habilidades com mais de um nível.', treeRanks, (v) => treeRanks = v),
+                  ('tree-exclusive', 'Escolhas exclusivas', "Permite 'escolha uma das duas'.", treeExclusive, (v) => treeExclusive = v),
+                  ('tree-attribute-requirement', 'Requisito de atributo', 'Exige um atributo mínimo para desbloquear.', treeAttributeRequirement, (v) => treeAttributeRequirement = v),
+                  ('tree-ability-link', 'Adicionar às Habilidades', 'Ao desbloquear, a habilidade aparece em Habilidades e Ações.', treeAbilityLink, (v) => treeAbilityLink = v),
+                ])
+                  SwitchListTile(
+                    key: ValueKey(key),
+                    title: Text(title),
+                    subtitle: Text(hint),
+                    value: value,
+                    onChanged: (v) => setState(() => set(v)),
+                  ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           FilledButton.icon(
