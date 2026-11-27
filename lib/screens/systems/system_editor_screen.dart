@@ -27,6 +27,7 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
   late List<String> sections;
   late List<int> dice;
   late Map<String, String> skillAttributes;
+  late bool treeAttributeRequirement;
 
   final Map<String, String> _attributeRenames = {};
   final Map<String, String> _skillRenames = {};
@@ -52,6 +53,7 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
     sections = [...widget.system.sections];
     dice = [...widget.system.dice];
     skillAttributes = {...widget.system.skillAttributes};
+    treeAttributeRequirement = widget.system.treeAttributeRequirement;
     _savedSnapshot = _snapshot();
   }
 
@@ -66,6 +68,7 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
         sections: sections,
         dice: dice,
         skillAttributes: pruneSkillAttributes(skills: skills, attributes: attributes, links: skillAttributes),
+        treeAttributeRequirement: treeAttributeRequirement,
       );
 
   String _snapshot() => jsonEncode(_currentSystem().toJson());
@@ -517,6 +520,18 @@ class _SystemEditorScreenState extends State<SystemEditorScreen> {
             onDelete: (i) => _confirmDelete(sections, i, 'seção'),
             onReorder: (a, b) => _reorder(sections, a, b),
           ),
+          // Árvore de Habilidades (1.3.76): requisito de atributo opcional.
+          Card(
+            child: SwitchListTile(
+              key: const ValueKey('tree-attribute-requirement'),
+              secondary: const Icon(Icons.account_tree_outlined),
+              title: const Text('Árvore: exigir atributo mínimo para desbloquear'),
+              subtitle: const Text('Cada habilidade da árvore pode pedir um valor mínimo de atributo.'),
+              value: treeAttributeRequirement,
+              onChanged: (value) => setState(() => treeAttributeRequirement = value),
+            ),
+          ),
+          const SizedBox(height: 10),
           _DiceEditorSection(
             dice: dice,
             onDefaults: () => setState(() => dice = [4, 6, 8, 10, 12, 20, 100]),

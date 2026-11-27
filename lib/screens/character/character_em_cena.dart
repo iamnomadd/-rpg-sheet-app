@@ -444,6 +444,7 @@ class _GeneralTab extends StatelessWidget {
                 const Expanded(child: Text('Árvore de Habilidades', style: TextStyle(fontWeight: FontWeight.bold))),
                 Text('${unlocked.length}/${character.skillTree.length}'),
               ]),
+              if (character.skillTreeBranches.isNotEmpty) Text('${character.skillTreeBranches.length} ramo(s)', style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(height: 8),
               _compactLines(names, character.skillTree.isEmpty ? 'Nenhuma skill criada.' : 'Nenhuma skill desbloqueada.'),
             ]),

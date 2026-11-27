@@ -408,6 +408,7 @@ class RpgFileService {
       abilityDetails: original.abilityDetails.map((key, value) => MapEntry(key, Map<String, dynamic>.from(value))),
       inventoryDetails: original.inventoryDetails.map((key, value) => MapEntry(key, Map<String, dynamic>.from(value))),
       skillTree: original.skillTree.map((node) => Map<String, dynamic>.from(node)).toList(),
+      skillTreeBranches: original.skillTreeBranches.map((branch) => Map<String, dynamic>.from(branch)).toList(),
       generalOrder: List<String>.from(original.generalOrder),
       sheetTabOrder: List<String>.from(original.sheetTabOrder),
       conditions: List<String>.from(original.conditions),

@@ -37,7 +37,7 @@ class SkillTreesScreen extends StatelessWidget {
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                       leading: CircleAvatar(child: Icon(themedMainIcon(state.themeId, 'tree'))),
                       title: Text(c.name),
-                      subtitle: Text('${c.skillTree.length} habilidade(s) • $unlocked desbloqueada(s)'),
+                      subtitle: Text('${c.skillTree.length} habilidade(s) • $unlocked desbloqueada(s)${c.skillTreeBranches.isEmpty ? '' : ' • ${c.skillTreeBranches.length} ramo(s)'}'),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => Navigator.push(
                         context,
