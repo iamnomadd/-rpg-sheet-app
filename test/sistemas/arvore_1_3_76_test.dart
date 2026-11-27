@@ -27,15 +27,16 @@ Map<String, dynamic> _node(String id, {String parent = '', bool unlocked = false
 
 // 1.3.77: as funções da árvore são ligadas no sistema; os testes da 1.3.76
 // usam um sistema com todas ligadas (o requisito continua opcional).
-RpgSystem _system({bool requirement = false}) => RpgSystem(
+// 1.3.78: "Tipos" saiu (o tipo é o nível); [ranks] desliga o Aprimoramento
+// nos testes que usam a árvore simples (Desbloquear/Bloquear).
+RpgSystem _system({bool requirement = false, bool ranks = true}) => RpgSystem(
       id: 'sys',
       name: 'Sistema',
       attributes: ['Força', 'Destreza'],
       resources: ['PV', 'PM'],
       treeAttributeRequirement: requirement,
       treeBranches: true,
-      treeTiers: true,
-      treeRanks: true,
+      treeRanks: ranks,
       treeExclusive: true,
       treeAbilityLink: true,
     );
@@ -108,7 +109,8 @@ void main() {
       expect(c.skillTree.where((n) => n['unlocked'] == true).map((n) => n['id']), ['a']);
       // Padrões: Talento, 1 nível, sem ramo, sem escolha, sem requisito, sem Habilidades.
       final a = c.skillTree.first;
-      expect([nodeTier(a), nodeMaxRank(a), nodeRank(a), nodeBranchId(a), nodeGroup(a), a['addToAbilities']], ['talento', 1, 1, '', '', null]);
+      // 1.3.78: o máximo é 3 para todas (o tipo vem do nível).
+      expect([nodeTier(a), nodeMaxRank(a), nodeRank(a), nodeBranchId(a), nodeGroup(a), a['addToAbilities']], ['talento', 3, 1, '', '', null]);
       expect(nodeRank(c.skillTree.last), 0);
       final json = c.toJson();
       expect(json.containsKey('skillTreeBranches'), isFalse, reason: 'sem ramos, o JSON fica como antes');
@@ -159,7 +161,8 @@ void main() {
       expect(find.byKey(const ValueKey('node-branch')), findsNothing, reason: 'sem ramos, sem o campo Ramo');
       await tester.tap(find.text('Mais opções'));
       await settle(tester);
-      expect(find.byKey(const ValueKey('node-tier')), findsOneWidget);
+      // 1.3.78: sem o campo Tipo; os textos por nível no lugar.
+      expect(find.byKey(const ValueKey('node-rank-text-1')), findsOneWidget);
       expect(find.byKey(const ValueKey('node-req-attribute')), findsNothing, reason: 'interruptor do sistema desligado');
     });
   });
@@ -223,9 +226,10 @@ void main() {
       await pump(
         tester,
         _character([
-          _node('t', level: 1),
-          _node('f', level: 1, extra: {'tier': 'facanha'}),
-          _node('l', level: 1, unlocked: true, extra: {'tier': 'lenda'}),
+          // 1.3.78: o tipo vem do nível (1 Talento, 2 Façanha, 3 Lenda).
+          _node('t', level: 1, unlocked: true, extra: {'rank': 1}),
+          _node('f', level: 1, unlocked: true, extra: {'rank': 2}),
+          _node('l', level: 1, unlocked: true, extra: {'rank': 3}),
         ]),
         reduceAnimations: true,
       );
@@ -237,13 +241,11 @@ void main() {
       expect(find.byKey(const ValueKey('skill-node-lenda-l')), findsOneWidget);
       expect(find.byKey(const ValueKey('skill-tree-tier-legend')), findsOneWidget);
       expect(tester.binding.transientCallbackCount, 0, reason: 'sem animação contínua');
-      // Legenda recolhível com uma frase por tipo.
-      expect(find.text(skillTreeTierHint('lenda')), findsNothing);
+      // Legenda recolhível do Aprimoramento.
+      expect(find.text(skillTreeRanksLegend), findsNothing);
       await tester.tap(find.byKey(const ValueKey('skill-tree-tier-legend')));
       await tester.pump();
-      for (final tier in skillTreeTiers) {
-        expect(find.text(skillTreeTierHint(tier)), findsOneWidget);
-      }
+      expect(find.text(skillTreeRanksLegend), findsOneWidget);
       // O tipo não muda a regra: a Lenda bloqueada com pai livre é Disponível.
       expect(nodeRaiseBlock(_system(), _character([_node('x', extra: {'tier': 'lenda'})]), _node('x', extra: {'tier': 'lenda'})), isNull);
     });
@@ -302,16 +304,16 @@ void main() {
       expect(nodeLowerBlock(c, parent, system: _system()), isNotNull);
     });
 
-    testWidgets('o cartão mostra "1/3" e o detalhe tem Aprimorar e Reduzir', (tester) async {
-      final c = await pump(tester, _character([_node('a', level: 1, unlocked: true, extra: {'maxRank': 3, 'rank': 1, 'rankTexts': ['', 'Dano 2d6', '']})]));
-      expect(find.text('Nível 1 • Desbloqueada • 1/3'), findsOneWidget);
+    testWidgets('o detalhe tem Aprimorar para Façanha e Reduzir (1.3.78: sem "1/3" no cartão)', (tester) async {
+      final c = await pump(tester, _character([_node('a', level: 1, unlocked: true, extra: {'rank': 1, 'rankTexts': ['', 'Dano 2d6', '']})]));
+      expect(find.text('Nível 1 • Desbloqueada'), findsOneWidget);
       await openDetail(tester, 'Nó a');
-      expect(find.text('Talento • Aprimoramento 1 de 3'), findsOneWidget);
+      expect(find.text('Talento • próximo: Façanha'), findsOneWidget);
       expect(find.text('Próximo nível: Dano 2d6'), findsOneWidget);
-      await tester.tap(find.text('Aprimorar'));
+      await tester.tap(find.text('Aprimorar para Façanha'));
       await settle(tester);
       expect(nodeRank(c.skillTree.single), 2);
-      expect(find.text('Nível 1 • Desbloqueada • 2/3'), findsOneWidget);
+      expect(find.text('Façanha'), findsOneWidget);
       await openDetail(tester, 'Nó a');
       await tester.tap(find.text('Reduzir'));
       await settle(tester);
@@ -319,7 +321,8 @@ void main() {
     });
 
     testWidgets('bloquear um pai com filho desbloqueado mostra a mensagem e não bloqueia', (tester) async {
-      final c = await pump(tester, _character([_node('a', level: 1, unlocked: true), _node('b', parent: 'a', level: 2, unlocked: true)]));
+      // 1.3.78: com o Aprimoramento ligado o cadeado abre o detalhe; aqui, a árvore simples.
+      final c = await pump(tester, _character([_node('a', level: 1, unlocked: true), _node('b', parent: 'a', level: 2, unlocked: true)]), system: _system(ranks: false));
       await tester.tap(find.byTooltip('Bloquear').first);
       await settle(tester);
       expect(find.text('Bloqueie primeiro as habilidades que dependem desta.'), findsOneWidget);
@@ -384,9 +387,7 @@ void main() {
   });
 
   group('habilidades', () {
-    Map<String, dynamic> linked(String id, {int maxRank = 2}) => _node(id, level: 1, extra: {
-          'tier': 'facanha',
-          'maxRank': maxRank,
+    Map<String, dynamic> linked(String id) => _node(id, level: 1, extra: {
           'rankTexts': ['Dano 1d6', 'Dano 2d6'],
           'addToAbilities': true,
           'ability': {'category': 'Magia', 'cost': 2, 'resource': 'PM', 'damage': '1d6'},
@@ -402,7 +403,7 @@ void main() {
       expect(c.abilityDetails['Nó a']!['cost'], 2);
       expect(c.abilityDescriptions['Nó a'], 'Descrição de a\n\nDano 1d6');
       await openDetail(tester, 'Nó a');
-      await tester.tap(find.text('Aprimorar'));
+      await tester.tap(find.text('Aprimorar para Façanha'));
       await settle(tester);
       expect(c.abilityDescriptions['Nó a'], 'Descrição de a\n\nDano 2d6');
       // 2 → 1 (sem pergunta), 1 → 0 (pergunta).
@@ -422,11 +423,12 @@ void main() {
     });
 
     testWidgets('conflito de nome: não sobrescreve e segue com o desbloqueio', (tester) async {
-      final character = _character([linked('a', maxRank: 1)]);
+      final character = _character([linked('a')]);
       character.abilities.add('Nó a');
       character.abilityDescriptions['Nó a'] = 'Minha habilidade';
       character.abilityDetails['Nó a'] = {'category': 'Técnica'};
-      final c = await pump(tester, character);
+      // 1.3.78: árvore simples (o cadeado bloqueia direto).
+      final c = await pump(tester, character, system: _system(ranks: false));
       await tester.tap(find.byTooltip('Desbloquear'));
       await settle(tester);
       expect(find.text('Já existe uma habilidade com esse nome; ela não foi alterada.'), findsOneWidget);
@@ -441,7 +443,7 @@ void main() {
     });
 
     test('renomear o nó renomeia a habilidade (mantendo o vínculo); "Manter" mantém', () {
-      final node = linked('a', maxRank: 1);
+      final node = linked('a');
       final c = _character([node]);
       setNodeRank(node, 1);
       expect(syncNodeAbility(c, node), isTrue);
@@ -457,8 +459,8 @@ void main() {
       expect(c.abilities, ['Seta arcana', 'Outra']);
     });
 
-    testWidgets('renomear pelo editor renomeia a habilidade; nós novos Façanha/Lenda vão para as Habilidades por padrão', (tester) async {
-      final node = linked('a', maxRank: 1);
+    testWidgets('renomear pelo editor renomeia a habilidade; o editor grava os textos de Talento/Façanha/Lenda', (tester) async {
+      final node = linked('a');
       setNodeRank(node, 1);
       final character = _character([node]);
       syncNodeAbility(character, node);
@@ -477,15 +479,14 @@ void main() {
       await tester.enterText(find.widgetWithText(TextField, 'Nome'), 'Golpe lendário');
       await tester.tap(find.text('Mais opções'));
       await settle(tester);
-      await tester.tap(find.text('Lenda'));
-      await settle(tester);
-      final toggle = tester.widget<SwitchListTile>(find.byKey(const ValueKey('node-add-ability')));
-      expect(toggle.value, isTrue);
+      // 1.3.78: sem escolha de tipo; um texto por nível.
+      expect(find.byKey(const ValueKey('node-tier')), findsNothing);
+      await tester.enterText(find.widgetWithText(TextField, 'Lenda (opcional)'), 'Dano 3d6');
       await tester.tap(find.text('Salvar'));
       await settle(tester);
       final created = c.skillTree.last;
-      expect(nodeTier(created), 'lenda');
-      expect(created['addToAbilities'], isTrue);
+      expect(nodeRankText(created, 3), 'Dano 3d6');
+      expect(nodeTier(created), 'talento', reason: 'bloqueada: o tipo vem do nível');
     });
   });
 

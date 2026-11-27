@@ -99,10 +99,9 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
     final branchIds = {for (final b in character.skillTreeBranches) b['id']?.toString() ?? ''};
     String branchId = node == null ? '' : nodeBranchId(node);
     if (!branchIds.contains(branchId)) branchId = '';
-    String tier = node == null ? 'talento' : nodeTier(node);
-    int maxRank = node == null ? 1 : nodeMaxRank(node);
+    // 1.3.78: o tipo é o nível; com Aprimoramento, um texto por nível.
     final rankTexts = [
-      for (var i = 1; i <= skillTreeMaxRanks; i++) TextEditingController(text: node == null ? '' : nodeRankText(node, i)),
+      for (var i = 1; i <= skillTreeMaxRank; i++) TextEditingController(text: node == null ? '' : nodeRankText(node, i)),
     ];
     final ownId = node == null ? '' : nodeId(node);
     final exclusive = <String>{
@@ -112,7 +111,6 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
     if (!(system?.attributes.contains(reqAttribute) ?? false)) reqAttribute = '';
     final reqValue = TextEditingController(text: ((node?['reqValue'] as num?)?.toInt() ?? 0) > 0 ? '${node!['reqValue']}' : '');
     bool addToAbilities = node == null ? false : node['addToAbilities'] == true;
-    var abilityTouched = editing;
     final ability = node == null ? nodeAbilitySettings(const {}) : nodeAbilitySettings(node);
     String category = ability['category'] as String;
     final resources = character.resourceValues.keys.toList();
@@ -211,42 +209,17 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                     childrenPadding: const EdgeInsets.only(bottom: 8),
                     title: const Text('Mais opções'),
                     children: [
-                      if (features.tiers) ...[
-                      Align(alignment: Alignment.centerLeft, child: Text('Tipo', style: Theme.of(context).textTheme.labelLarge)),
-                      const SizedBox(height: 6),
-                      SegmentedButton<String>(
-                        key: const ValueKey('node-tier'),
-                        showSelectedIcon: false,
-                        segments: [for (final t in skillTreeTiers) ButtonSegment(value: t, label: Text(skillTreeTierLabel(t)))],
-                        selected: {tier},
-                        onSelectionChanged: (value) => setDialogState(() {
-                          tier = value.first;
-                          // Nova Façanha/Lenda vai para as Habilidades, se a pessoa não escolheu.
-                          if (!abilityTouched) addToAbilities = tier != 'talento';
-                        }),
-                      ),
-                      const SizedBox(height: 6),
-                      Align(alignment: Alignment.centerLeft, child: Text(skillTreeTierHint(tier), style: Theme.of(context).textTheme.bodySmall)),
-                      const SizedBox(height: 12),
-                      ],
                       if (features.ranks) ...[
-                      DropdownButtonFormField<int>(
-                        key: const ValueKey('node-max-rank'),
-                        initialValue: maxRank,
-                        decoration: const InputDecoration(labelText: 'Níveis de aprimoramento'),
-                        items: [for (var i = 1; i <= skillTreeMaxRanks; i++) DropdownMenuItem(value: i, child: Text(i == 1 ? '1 (sem aprimorar)' : '$i'))],
-                        onChanged: (value) => setDialogState(() => maxRank = value ?? 1),
-                      ),
-                      if (maxRank > 1)
-                        for (var i = 1; i <= maxRank; i++) ...[
-                          const SizedBox(height: 8),
-                          TextField(
-                            key: ValueKey('node-rank-text-$i'),
-                            controller: rankTexts[i - 1],
-                            textCapitalization: TextCapitalization.sentences,
-                            decoration: InputDecoration(labelText: 'Nível $i (opcional)', hintText: i == 1 ? 'Ex.: dano 1d6' : 'Ex.: o dano aumenta para ${i}d6'),
-                          ),
-                        ],
+                      Align(alignment: Alignment.centerLeft, child: Text(skillTreeRanksLegend, style: Theme.of(context).textTheme.bodySmall)),
+                      for (var i = 1; i <= skillTreeMaxRank; i++) ...[
+                        const SizedBox(height: 8),
+                        TextField(
+                          key: ValueKey('node-rank-text-$i'),
+                          controller: rankTexts[i - 1],
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: InputDecoration(labelText: '${skillTreeTierLabel(i)} (opcional)', hintText: i == 1 ? 'Ex.: dano 1d6' : 'Ex.: o dano aumenta para ${i}d6'),
+                        ),
+                      ],
                       const SizedBox(height: 4),
                       ],
                       if (features.exclusive && character.skillTree.any((other) => nodeId(other) != ownId)) ...[
@@ -299,10 +272,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                         contentPadding: EdgeInsets.zero,
                         title: const Text('Adicionar às Habilidades ao desbloquear'),
                         value: addToAbilities,
-                        onChanged: (value) => setDialogState(() {
-                          abilityTouched = true;
-                          addToAbilities = value;
-                        }),
+                        onChanged: (value) => setDialogState(() => addToAbilities = value),
                       ),
                       if (addToAbilities) ...[
                         DropdownButtonFormField<String>(
@@ -363,7 +333,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                   setDialogState(() => nameError = 'Dê um nome.');
                   return;
                 }
-                final texts = [for (var i = 0; i < maxRank; i++) rankTexts[i].text.trim()];
+                final texts = [for (var i = 0; i < skillTreeMaxRank; i++) rankTexts[i].text.trim()];
                 Navigator.pop(dialogContext, {
                   'name': trimmed,
                   'description': description.text.trim(),
@@ -371,9 +341,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
                   // Só as funções ligadas no sistema voltam; as outras ficam
                   // como estão no nó (desligar só esconde).
                   if (features.branches) 'branchId': branchId,
-                  if (features.tiers) 'tier': tier,
-                  if (features.ranks) 'maxRank': maxRank,
-                  if (features.ranks) 'rankTexts': maxRank > 1 && texts.any((t) => t.isNotEmpty) ? texts : null,
+                  if (features.ranks) 'rankTexts': texts.any((t) => t.isNotEmpty) ? texts : null,
                   if (features.exclusive) 'exclusive': exclusive.toList(),
                   'reqAttribute': reqAttribute,
                   'reqValue': int.tryParse(reqValue.text.trim()) ?? 0,
@@ -446,13 +414,8 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
     final abilityBefore = jsonEncode(nodeAbilitySettings(node));
 
     put('branchId', result['branchId'], '');
-    put('tier', result['tier'], 'talento');
-    put('maxRank', result['maxRank'], 1);
+    // tier e maxRank da 1.3.76 ficam no nó como estão (sem efeito).
     put('rankTexts', result['rankTexts'], null);
-    if (result.containsKey('maxRank') && (node.containsKey('rank') || nodeMaxRank(node) > 1)) {
-      // Nível atual dentro do novo máximo.
-      setNodeRank(node, nodeRank(node));
-    }
     if (requirementOn) {
       final attribute = result['reqAttribute'] as String? ?? '';
       final value = result['reqValue'] as int? ?? 0;
@@ -642,15 +605,17 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
     final block = nodeRaiseBlock(system, character, node);
     final children = nodeChildren(character, node).map(nodeName).toList();
     final branch = features.branches ? nodeBranch(character, node) : null;
+    // 1.3.78: "Talento • próximo: Façanha", "Façanha • próximo: Lenda",
+    // "Lenda • nível máximo" (o tipo é o nível atual).
     final summary = [
-      if (features.tiers) skillTreeTierLabel(nodeTier(node)),
-      if (maxRank > 1) 'Aprimoramento $rank de $maxRank',
+      if (features.ranks && rank > 0) skillTreeTierLabel(rank),
+      if (features.ranks && rank > 0) rank < maxRank ? 'próximo: ${skillTreeTierLabel(rank + 1)}' : 'nível máximo',
       if (children.isNotEmpty) 'Desbloqueia: ${children.join(', ')}',
     ].join(' • ');
     final rankText = features.ranks ? nodeRankText(node, rank) : '';
     final nextText = features.ranks && rank < maxRank ? nodeRankText(node, rank + 1) : '';
     final canRaise = rank < maxRank;
-    final primaryLabel = canRaise ? (rank == 0 ? 'Desbloquear' : 'Aprimorar') : (maxRank == 1 ? 'Bloquear' : 'Reduzir');
+    final primaryLabel = canRaise ? (rank == 0 ? 'Desbloquear' : 'Aprimorar para ${skillTreeTierLabel(rank + 1)}') : (maxRank == 1 ? 'Bloquear' : 'Reduzir');
     final error = Theme.of(context).colorScheme.error;
     await showModalBottomSheet<void>(
       context: context,
@@ -818,7 +783,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
       }
       // Selo do tipo (Façanha/Lenda): cresce com o texto também.
       if (features.tiers && nodeTier(node) != 'talento') {
-        growth += textGrowth(context, skillTreeTierLabel(nodeTier(node)), labelSmall?.copyWith(fontSize: 10), maxWidth: math.max(1.0, layout.nodeWidth - 10));
+        growth += textGrowth(context, skillTreeTierLabel(nodeRank(node)), labelSmall?.copyWith(fontSize: 10), maxWidth: math.max(1.0, layout.nodeWidth - 10));
       }
       extra = math.max(extra, growth);
     }
@@ -950,7 +915,8 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
     final themeId = context.watch<AppState>().themeId;
     final templateLabel = SkillTreeTemplates.templateLabelForClass(character.className);
     final features = _features(character);
-    final usesTiers = features.tiers && character.skillTree.any((node) => nodeTier(node) != 'talento');
+    // Legenda do Aprimoramento (só com ele ligado no sistema).
+    final usesTiers = features.ranks && character.skillTree.isNotEmpty;
     return Column(
       children: [
         Padding(
@@ -997,7 +963,7 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
             ],
           ),
         ),
-        // Legenda dos tipos: só quando a árvore usa Façanha/Lenda; recolhível.
+        // Legenda recolhível do Aprimoramento.
         if (usesTiers)
           InkWell(
             key: const ValueKey('skill-tree-tier-legend'),
@@ -1006,11 +972,10 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 7),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
-                  Expanded(child: Text('Tipos: Talento, Façanha e Lenda', style: Theme.of(context).textTheme.labelMedium)),
+                  Expanded(child: Text('Talento → Façanha → Lenda', style: Theme.of(context).textTheme.labelMedium)),
                   Icon(_legendOpen ? Icons.expand_less : Icons.expand_more, size: 18),
                 ]),
-                if (_legendOpen)
-                  for (final tier in skillTreeTiers) Text(skillTreeTierHint(tier), style: Theme.of(context).textTheme.bodySmall),
+                if (_legendOpen) Text(skillTreeRanksLegend, style: Theme.of(context).textTheme.bodySmall),
               ]),
             ),
           ),
@@ -1087,8 +1052,8 @@ class _TreeLegendDot extends StatelessWidget {
 
 enum _NodeState { unlocked, available, locked, closed }
 
-/// Legenda do cartão normal: "Nível N • Estado" como antes; com mais de um
-/// nível de aprimoramento, também "2/3".
+/// Legenda do cartão normal: "Nível N • Estado" como antes (1.3.78: sem
+/// "2/3"; o tipo atual aparece no selo).
 String skillNodeCardLabel(Map<String, dynamic> node, Object state, {bool ranks = true}) {
   final stateLabel = switch (state) {
     _NodeState.unlocked => 'Desbloqueada',
@@ -1098,20 +1063,18 @@ String skillNodeCardLabel(Map<String, dynamic> node, Object state, {bool ranks =
   };
   final level = (node['level'] as num?)?.toInt();
   final label = level == null ? stateLabel : 'Nível $level • $stateLabel';
-  return ranks && nodeMaxRank(node) > 1 ? '$label • ${nodeRank(node)}/${nodeMaxRank(node)}' : label;
+  return label;
 }
 
-/// Linha pequena do cartão compacto: "Nv N" como antes; com níveis, "2/3".
+/// Linha pequena do cartão compacto: "Nv N" como antes.
 String? skillNodeCompactLabel(Map<String, dynamic> node, {bool ranks = true}) {
   final level = (node['level'] as num?)?.toInt();
-  final rank = ranks && nodeMaxRank(node) > 1 ? '${nodeRank(node)}/${nodeMaxRank(node)}' : null;
-  if (level == null) return rank;
-  return rank == null ? 'Nv $level' : 'Nv $level • $rank';
+  return level == null ? null : 'Nv $level';
 }
 
 /// Altura a mais por tipo: Façanha um pouco maior, Lenda a maior.
-const skillTreeFacanhaExtra = 30.0;
-const skillTreeLendaExtra = 40.0;
+const skillTreeFacanhaExtra = 38.0;
+const skillTreeLendaExtra = 48.0;
 
 Map<String, double> skillTreeTierExtraHeights(List<Map<String, dynamic>> nodes) => {
       for (final node in nodes)
@@ -1256,7 +1219,8 @@ class _SkillNodeCard extends StatelessWidget {
   /// Cor do ramo (vários ramos); null = cores de sempre.
   final Color? accent;
 
-  /// Funções ligadas no sistema: Tipos (selo/tamanho) e Aprimoramento ("2/3").
+  /// Funções ligadas no sistema: o Aprimoramento traz o visual por tipo
+  /// (selo e tamanho pelo nível atual).
   final bool tiers;
   final bool ranks;
 
@@ -1290,7 +1254,7 @@ class _SkillNodeCard extends StatelessWidget {
             key: ValueKey('skill-node-tier-${nodeId(node)}'),
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
             decoration: BoxDecoration(border: Border.all(color: borderColor.withValues(alpha: .8)), borderRadius: BorderRadius.circular(6)),
-            child: Text(skillTreeTierLabel(tier), style: Theme.of(context).textTheme.labelSmall?.copyWith(color: borderColor, fontSize: 10)),
+            child: Text(skillTreeTierLabel(nodeRank(node)), style: Theme.of(context).textTheme.labelSmall?.copyWith(color: borderColor, fontSize: 10)),
           );
 
     Widget frame(Widget content, double radius) {

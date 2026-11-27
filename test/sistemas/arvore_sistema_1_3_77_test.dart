@@ -104,7 +104,7 @@ void main() {
     });
   });
 
-  testWidgets('editor de sistemas: seção "Árvore de Habilidades" com os 6 interruptores desligados', (tester) async {
+  testWidgets('editor de sistemas: seção "Árvore de Habilidades" com os interruptores desligados (1.3.78: sem "Tipos")', (tester) async {
     tester.view.physicalSize = const Size(800, 6000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -118,12 +118,12 @@ void main() {
     expect(find.text('Árvore de Habilidades'), findsOneWidget);
     final expected = {
       'tree-branches': ('Ramos', 'Divide a árvore em ramos com nome e cor.'),
-      'tree-tiers': ('Tipos', 'Marca habilidades como Talento, Façanha ou Lenda.'),
-      'tree-ranks': ('Aprimoramento', 'Permite habilidades com mais de um nível.'),
+      'tree-ranks': ('Aprimoramento', 'Cada habilidade sobe até 3 pontos: Talento → Façanha → Lenda.'),
       'tree-exclusive': ('Escolhas exclusivas', "Permite 'escolha uma das duas'."),
       'tree-attribute-requirement': ('Requisito de atributo', 'Exige um atributo mínimo para desbloquear.'),
       'tree-ability-link': ('Adicionar às Habilidades', 'Ao desbloquear, a habilidade aparece em Habilidades e Ações.'),
     };
+    expect(find.byKey(const ValueKey('tree-tiers')), findsNothing);
     for (final entry in expected.entries) {
       final tile = find.byKey(ValueKey(entry.key));
       await tester.ensureVisible(tile);
@@ -210,8 +210,10 @@ void main() {
           await tester.tap(find.text('Mais opções'));
           await settle(tester);
         }
-        expect(find.byKey(const ValueKey('node-tier')), keys.contains('tier') ? findsOneWidget : findsNothing);
-        expect(find.byKey(const ValueKey('node-max-rank')), keys.contains('ranks') ? findsOneWidget : findsNothing);
+        // 1.3.78: sem Tipo e sem quantidade de níveis; com Aprimoramento, os 3 textos.
+        expect(find.byKey(const ValueKey('node-tier')), findsNothing);
+        expect(find.byKey(const ValueKey('node-max-rank')), findsNothing);
+        expect(find.byKey(const ValueKey('node-rank-text-3')), keys.contains('ranks') ? findsOneWidget : findsNothing);
         expect(find.text('Escolha exclusiva com…'), keys.contains('exclusive') ? findsOneWidget : findsNothing);
         expect(find.byKey(const ValueKey('node-req-attribute')), keys.contains('requirement') ? findsOneWidget : findsNothing);
         expect(find.byKey(const ValueKey('node-add-ability')), keys.contains('ability') ? findsOneWidget : findsNothing);
@@ -228,17 +230,20 @@ void main() {
       expect(find.text('Lenda'), findsNothing);
       await editorShows({'branches'});
 
-      // Tipos: selo e legenda.
+      // 1.3.78: um sistema salvo só com "Tipos" conta como Aprimoramento ligado.
+      // O nó com nível 2 aparece como Façanha (o tier 'lenda' salvo é ignorado).
       await setSystem(tester, _system(tiers: true));
-      expect(find.text('Lenda'), findsOneWidget);
+      expect(find.text('Façanha'), findsOneWidget);
+      expect(find.text('Lenda'), findsNothing);
       expect(find.byKey(const ValueKey('skill-tree-tier-legend')), findsOneWidget);
       expect(find.text('Fúria'), findsNothing);
-      await editorShows({'tier'});
+      await editorShows({'ranks'});
 
-      // Aprimoramento: "2/3".
+      // Aprimoramento: selo pelo nível, sem "2/3".
       await setSystem(tester, _system(ranks: true));
-      expect(find.text('Nível 1 • Desbloqueada • 2/3'), findsOneWidget);
-      expect(find.text('Lenda'), findsNothing);
+      expect(find.text('Nível 1 • Desbloqueada'), findsOneWidget);
+      expect(find.textContaining('/3'), findsNothing);
+      expect(find.text('Façanha'), findsOneWidget);
       await editorShows({'ranks'});
 
       // Escolhas exclusivas: B fica fechada.
