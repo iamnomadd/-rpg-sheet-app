@@ -62,7 +62,7 @@ void main() {
       expect(playerTurnRefreshDelay(failures: 0, realtimeConnected: false, hasShareCode: false, hasCampaigns: false), const Duration(seconds: 60));
       expect(playerTurnRefreshDelay(failures: 0, realtimeConnected: true, hasShareCode: false, hasCampaigns: true), const Duration(seconds: 15));
       expect(playerTurnRefreshDelay(failures: 0, realtimeConnected: false, hasShareCode: false, hasCampaigns: true), const Duration(milliseconds: 1200));
-      expect(playerTurnRefreshDelay(failures: 0, realtimeConnected: false, hasShareCode: true, hasCampaigns: false), const Duration(milliseconds: 1200));
+      expect(playerTurnRefreshDelay(failures: 0, realtimeConnected: false, hasShareCode: true, hasCampaigns: false), const Duration(seconds: 10));
       expect(playerTurnRefreshDelay(failures: 1, realtimeConnected: false, hasShareCode: false, hasCampaigns: false), const Duration(seconds: 4));
       expect(playerTurnRefreshDelay(failures: 2, realtimeConnected: true, hasShareCode: true, hasCampaigns: true), const Duration(seconds: 8));
       expect(playerTurnRefreshDelay(failures: 5, realtimeConnected: true, hasShareCode: true, hasCampaigns: true), const Duration(seconds: 12));

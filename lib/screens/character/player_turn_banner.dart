@@ -15,8 +15,12 @@ import '../campaigns/initiative_tools.dart';
 /// nem campanha vinculada aprovada (o tempo real nunca conecta).
 const playerTurnIdleRefresh = Duration(seconds: 60);
 
+/// Intervalo com shareCode mas sem campanha aprovada (1.3.75).
+const playerTurnShareCodeRefresh = Duration(seconds: 10);
+
 /// Próxima consulta do aviso de turno. Com falhas: os atrasos (backoff) de
-/// sempre. Sem shareCode e sem campanhas aprovadas: [playerTurnIdleRefresh].
+/// sempre. Sem shareCode e sem campanhas aprovadas: [playerTurnIdleRefresh];
+/// com shareCode e sem campanhas: [playerTurnShareCodeRefresh].
 /// Com tempo real conectado: 15 s; desconectado: reconexão rápida (1,2 s).
 Duration playerTurnRefreshDelay({required int failures, required bool realtimeConnected, required bool hasShareCode, required bool hasCampaigns}) {
   if (failures > 0) {
@@ -24,6 +28,8 @@ Duration playerTurnRefreshDelay({required int failures, required bool realtimeCo
     return Duration(seconds: seconds.clamp(4, 12));
   }
   if (!hasShareCode && !hasCampaigns) return playerTurnIdleRefresh;
+  // Com shareCode mas sem campanha aprovada, o tempo real ainda não conecta.
+  if (!hasCampaigns) return playerTurnShareCodeRefresh;
   return realtimeConnected ? const Duration(seconds: 15) : const Duration(milliseconds: 1200);
 }
 
