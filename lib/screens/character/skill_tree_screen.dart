@@ -931,13 +931,13 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
           padding: const EdgeInsets.fromLTRB(16, 12, 12, 8),
           child: Row(
             children: [
-              Icon(themedIcon(themeId, 'skillTree')),
-              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Árvore de Habilidades', style: Theme.of(context).textTheme.titleLarge),
+                    // Título da aba (1.3.80): Cinzel com ornamento, sem ícone.
+                    const AbyssTabTitle('Árvore de Habilidades'),
+                    const SizedBox(height: 2),
                     Text('$unlocked de ${character.skillTree.length} desbloqueada(s) • role para ver toda a árvore', style: Theme.of(context).textTheme.bodySmall),
                   ],
                 ),

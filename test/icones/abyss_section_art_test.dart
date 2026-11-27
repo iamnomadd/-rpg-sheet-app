@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:rpg_sheet_app/app/abyss_art_size.dart';
+import 'package:rpg_sheet_app/app/abyss_theme.dart';
 import 'package:rpg_sheet_app/app/abyss_tab_art.dart';
 import 'package:rpg_sheet_app/app/app.dart';
 import 'package:rpg_sheet_app/models/character.dart';
@@ -89,12 +90,13 @@ void main() {
         final art = find.descendant(of: find.byKey(ValueKey('abyss-tab-art-$role')), matching: find.byType(Image));
         expect(_asset(tester.widget<Image>(art)), abyssTabArt(role), reason: role);
       }
+      // 1.3.80: o título do topo das abas é o AbyssTabTitle (Cinzel), sem a arte.
       await _openTab(tester, 'Status');
-      expect(_images(tester, abyssSectionArtFolder).map(_asset), contains(abyssSectionArt('attributes')));
+      expect(find.widgetWithText(AbyssTabTitle, 'Atributos'), findsOneWidget);
       await _openTab(tester, 'Habilidades');
-      expect(_images(tester, abyssSectionArtFolder).map(_asset), contains(abyssSectionArt('abilities')));
+      expect(find.widgetWithText(AbyssTabTitle, 'Habilidades'), findsOneWidget);
       await _openTab(tester, 'Inventário');
-      expect(_images(tester, abyssSectionArtFolder).map(_asset), contains(abyssSectionArt('inventory')));
+      expect(find.widgetWithText(AbyssTabTitle, 'Inventário'), findsOneWidget);
       await _finish(tester);
     });
 

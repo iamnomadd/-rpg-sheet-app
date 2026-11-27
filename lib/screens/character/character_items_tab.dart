@@ -326,9 +326,8 @@ class _CharacterItemsTabState extends State<_CharacterItemsTab> {
       padding: EdgeInsets.fromLTRB(compact ? 10 : 16, compact ? 10 : 14, compact ? 10 : 16, 28),
       children: [
         Row(children: [
-          ThemedSectionIcon(themeId, widget.iconRole, size: 20),
-          const SizedBox(width: 8),
-          Text(widget.title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          // Título da aba (1.3.80): Cinzel com ornamento, sem ícone.
+          Flexible(child: AbyssTabTitle(widget.title)),
           const Spacer(),
           if (widget.items.isNotEmpty)
             Text('${visibleEntries.length}/${widget.items.length}', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant)),

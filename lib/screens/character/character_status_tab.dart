@@ -32,13 +32,8 @@ class _AttributesResourcesTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Row(
-          children: [
-            ThemedSectionIcon(themeId, 'attributes', size: 22),
-            const SizedBox(width: 8),
-            Text('Atributos', style: Theme.of(context).textTheme.titleLarge),
-          ],
-        ),
+        // Título da aba (1.3.80): Cinzel com ornamento, sem ícone.
+        const AbyssTabTitle('Atributos'),
         const SizedBox(height: 10),
         if (system.attributes.isEmpty)
           const Text('Este sistema não possui atributos configurados.')

@@ -113,7 +113,8 @@ void main() {
       _expectFramedCards(tester, themeId, 'Status');
       expect(find.byType(AbyssResourceBar), findsWidgets);
       expect(_assets(tester, abyssResourceArtFolder), isNotEmpty, reason: 'Status: artes de recurso');
-      expect(_assets(tester, abyssSectionArtFolder), isNotEmpty, reason: 'Status: artes dos títulos');
+      // 1.3.80: o título do topo da aba é o AbyssTabTitle (Cinzel), sem arte.
+      expect(find.byType(AbyssTabTitle), findsWidgets, reason: 'Status: título da aba');
       expect(tester.takeException(), isNull);
 
       await tester.pumpWidget(const SizedBox());

@@ -137,12 +137,14 @@ void main() {
         }
       }
 
+      // 1.3.80: o título do topo das abas Status, Inventário e Habilidades é o
+      // AbyssTabTitle (Cinzel com ornamento), sem a arte.
       await openTab('Status');
-      expect(tester.widgetList<Image>(find.byType(Image)).where((i) => _assetOf(i) == abyssSectionArt('attributes') && i.width == abyssArtIconSize(false)), isNotEmpty, reason: 'cabeçalho Status');
+      expect(find.widgetWithText(AbyssTabTitle, 'Atributos'), findsOneWidget, reason: 'cabeçalho Status');
       await openTab('Inventário');
-      expect(tester.widgetList<Image>(find.byType(Image)).where((i) => _assetOf(i) == abyssSectionArt('inventory') && i.width == abyssArtIconSize(false)), isNotEmpty, reason: 'cabeçalho da lista');
+      expect(find.widgetWithText(AbyssTabTitle, 'Inventário'), findsOneWidget, reason: 'cabeçalho da lista');
       await openTab('Habilidades');
-      expect(tester.widgetList<Image>(find.byType(Image)).where((i) => _assetOf(i) == abyssSectionArt('abilities') && i.width == abyssArtIconSize(false)), isNotEmpty);
+      expect(find.widgetWithText(AbyssTabTitle, 'Habilidades'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await _finish(tester);
     });

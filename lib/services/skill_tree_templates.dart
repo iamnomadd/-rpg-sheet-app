@@ -47,14 +47,24 @@ class SkillTreeTemplates {
 
   static bool hasTemplate(String className) => templateKeyForClass(className) != null;
 
-  /// Recurso usado no custo das habilidades do modelo: o primeiro recurso do
-  /// sistema que não é de vida (Vida, PV, Pontos de Vida, PV Temporários e
-  /// Sanidade não contam). Null = sem custo.
+  /// Recurso usado no custo das habilidades do modelo (1.3.80):
+  /// 1. o primeiro recurso cujo nome indique energia/magia (Energia, PM,
+  ///    Pontos de Mana, Mana, PE, Pontos de Esforço, Estamina, Vigor, Ki,
+  ///    Fôlego; sem acento e sem maiúsculas);
+  /// 2. senão, o primeiro que não seja de vida nem Inspiração, Sorte,
+  ///    XP/Experiência, Sanidade ou Defesa;
+  /// 3. senão, null (sem custo).
+  /// Só vale para novas gerações; árvores já geradas não mudam.
   static String? costResource(Iterable<String> resources) {
+    const energy = {'energia', 'pm', 'pontos de mana', 'mana', 'pe', 'pontos de esforco', 'estamina', 'vigor', 'ki', 'folego'};
+    const excluded = {'inspiracao', 'sorte', 'xp', 'experiencia', 'sanidade', 'defesa'};
+    for (final resource in resources) {
+      if (energy.contains(_normalize(resource))) return resource;
+    }
     for (final resource in resources) {
       final key = _normalize(resource);
-      final life = key == 'vida' || key == 'pv' || key == 'pontos de vida' || key == 'sanidade' || key.startsWith('pv ') || key.contains('vida');
-      if (!life) return resource;
+      final life = key == 'vida' || key == 'pv' || key == 'pontos de vida' || key.startsWith('pv ') || key.contains('vida');
+      if (!life && !excluded.contains(key)) return resource;
     }
     return null;
   }
