@@ -88,7 +88,8 @@ void main() {
     expect(SkillTreeTemplates.costResource(['Vida', 'Energia']), 'Energia');
     expect(SkillTreeTemplates.costResource(['PV', 'PM']), 'PM');
     expect(SkillTreeTemplates.costResource(['PV', 'PE', 'Sanidade']), 'PE');
-    expect(SkillTreeTemplates.costResource(['Vida', 'PV Temporários', 'Inspiração']), 'Inspiração');
+    // 1.3.80: Inspiração não serve de custo (D&D 5e fica sem custo).
+    expect(SkillTreeTemplates.costResource(['Vida', 'PV Temporários', 'Inspiração']), isNull);
     expect(SkillTreeTemplates.costResource(['Pontos de Vida', 'Sanidade']), isNull);
     expect(SkillTreeTemplates.costResource(['PV']), isNull);
     Map ability(List<String> resources, String name) =>

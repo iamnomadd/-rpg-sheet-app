@@ -24,7 +24,7 @@ class _SkillsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(padding: const EdgeInsets.all(16), children: [
-      Text('Perícias do sistema', style: Theme.of(context).textTheme.titleLarge),
+      const AbyssTabTitle('Perícias do sistema'),
       const SizedBox(height: 8),
       if (system.skills.isNotEmpty) ...[
         Text(
@@ -81,7 +81,7 @@ class _SectionsTab extends StatelessWidget {
       // de passar da tela.
       if (MediaQuery.textScalerOf(context).scale(1) <= 1)
         Row(children: [
-          Expanded(child: Text('Seções da ficha', style: Theme.of(context).textTheme.titleLarge)),
+          const Expanded(child: AbyssTabTitle('Seções da ficha')),
           Chip(
             visualDensity: VisualDensity.compact,
             avatar: const Icon(Icons.tune, size: 15),
@@ -90,7 +90,7 @@ class _SectionsTab extends StatelessWidget {
         ])
       else
         Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, spacing: 8, runSpacing: 6, children: [
-          Text('Seções da ficha', style: Theme.of(context).textTheme.titleLarge),
+          const AbyssTabTitle('Seções da ficha'),
           Chip(
             visualDensity: VisualDensity.compact,
             avatar: const Icon(Icons.tune, size: 15),

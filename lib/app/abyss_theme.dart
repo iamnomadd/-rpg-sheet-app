@@ -1090,3 +1090,72 @@ double abyssChipBarHeight(BuildContext context, double current) {
   final label = MediaQuery.textScalerOf(context).scale(14) * 1.43;
   return math.max(current, label + 2 * 11 + 4);
 }
+
+/// Família da fonte dos títulos das abas da ficha (1.3.80). Se a fonte não
+/// carregar, o Flutter usa a fonte padrão.
+const abyssTitleFontFamily = 'Cinzel';
+
+/// Título do topo de uma aba da ficha: texto em Cinzel (700), do tamanho e da
+/// cor do titleLarge do tema, com um filete fino e um pequeno losango no meio
+/// embaixo (o mesmo detalhe da barra de baixo do app). O filete acompanha a
+/// largura do texto (ou a largura disponível, a menor); com texto grande, o
+/// título quebra linha em vez de estourar.
+class AbyssTabTitle extends StatelessWidget {
+  final String text;
+
+  const AbyssTabTitle(this.text, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final base = Theme.of(context).textTheme.titleLarge;
+    final style = (base ?? const TextStyle()).copyWith(fontFamily: abyssTitleFontFamily, fontWeight: FontWeight.w700);
+    final palette = AbyssPalette.of(context);
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      widthFactor: 1,
+      child: IntrinsicWidth(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(text, style: style),
+            const SizedBox(height: 4),
+            SizedBox(
+              key: const ValueKey('abyss-tab-title-ornament'),
+              height: 9,
+              child: CustomPaint(painter: AbyssTitleOrnamentPainter(color: palette.gold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Filete com o losango no meio, embaixo do título da aba.
+class AbyssTitleOrnamentPainter extends CustomPainter {
+  final Color color;
+
+  const AbyssTitleOrnamentPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final y = size.height / 2;
+    canvas.drawLine(Offset(0, y), Offset(size.width, y), Paint()
+      ..color = color.withValues(alpha: .8)
+      ..strokeWidth = 1);
+    final cx = size.width / 2;
+    canvas.drawPath(
+      Path()
+        ..moveTo(cx - 5, y)
+        ..lineTo(cx, y - 4)
+        ..lineTo(cx + 5, y)
+        ..lineTo(cx, y + 4)
+        ..close(),
+      Paint()..color = color,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant AbyssTitleOrnamentPainter oldDelegate) => oldDelegate.color != color;
+}
