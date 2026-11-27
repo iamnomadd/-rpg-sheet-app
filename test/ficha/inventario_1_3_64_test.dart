@@ -180,6 +180,9 @@ void main() {
       expect(c.inventoryDetails['Pistola']!['ammoItem'], 'Balas 9mm');
       expect(c.inventoryDetails['Rifle']!['ammoItem'], 'Balas 9mm');
       // Recarregar a Pistola no Em Cena usa o estoque renomeado.
+      // 1.3.81: a barra de abas acompanha a página; traz a aba para a tela antes de tocar.
+      await tester.ensureVisible(find.text('Em Cena').first);
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.tap(find.text('Em Cena').first);
       await _settle(tester);
       final pistolRow = find.ancestor(of: find.text('Pistola').last, matching: find.byType(Card)).first;
