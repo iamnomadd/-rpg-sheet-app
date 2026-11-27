@@ -133,7 +133,12 @@ class _CharacterScreenState extends State<CharacterScreen> {
       c.level = (int.tryParse(level.text) ?? c.level).clamp(1, 999);
       final classChanged = originalClassName.trim().toLowerCase() != c.className.trim().toLowerCase();
       if (classChanged && c.skillTree.isEmpty && SkillTreeTemplates.hasTemplate(c.className)) {
-        c.skillTree = SkillTreeTemplates.forClass(c.className);
+        // 1.3.79: o modelo grava os nós e os ramos (o custo usa os recursos do sistema).
+        final systemResources = state.systems.where((s) => s.id == c.systemId).map((s) => s.resources).firstOrNull;
+        final generated = SkillTreeTemplates.generate(c.className, resources: systemResources ?? c.resourceValues.keys);
+        c.skillTree = generated.nodes;
+        final existing = {for (final b in c.skillTreeBranches) b['id']?.toString() ?? ''};
+        c.skillTreeBranches.addAll(generated.branches.where((b) => !existing.contains(b['id'])));
       }
       await state.updateCharacter(c);
       if (mounted) setState(() {});

@@ -477,9 +477,17 @@ class _SkillTreeScreenState extends State<SkillTreeScreen> {
   }
 
   Future<void> _generateTemplate(Character character) async {
-    final generated = SkillTreeTemplates.forClass(character.className);
-    if (generated.isEmpty || character.skillTree.isNotEmpty) return;
-    character.skillTree = generated;
+    // Só com a árvore vazia (árvores já criadas não mudam).
+    if (character.skillTree.isNotEmpty) return;
+    final generated = SkillTreeTemplates.generate(
+      character.className,
+      resources: _system(character)?.resources ?? character.resourceValues.keys,
+    );
+    if (generated.nodes.isEmpty) return;
+    character.skillTree = generated.nodes;
+    // 1.3.79: o modelo também cria os seus ramos (os que a ficha já tem ficam).
+    final existing = {for (final b in character.skillTreeBranches) b['id']?.toString() ?? ''};
+    character.skillTreeBranches.addAll(generated.branches.where((b) => !existing.contains(b['id'])));
     await context.read<AppState>().updateCharacter(character);
     if (mounted) setState(() {});
   }
